@@ -1,0 +1,35 @@
+{
+  "app_name": "Sightseeing Collector",
+  "version": "1.0.0",
+  "min_distance_for_collection": 100,
+  "location_update_interval": 10000,
+  "default_landmarks_count": 5,
+  "categories": [
+    {
+      "id": "sightseeing",
+      "name": "Sightseeing",
+      "icon": "location_on",
+      "color": "#FF9800"
+    },
+    {
+      "id": "travel",
+      "name": "Reisen",
+      "icon": "flight",
+      "color": "#9C27B0"
+    }
+  ],
+  "difficulty_levels": [
+    {
+      "level": "easy",
+      "multiplier": 1.0
+    },
+    {
+      "level": "medium",
+      "multiplier": 1.5
+    },
+    {
+      "level": "hard",
+      "multiplier": 2.0
+    }
+  ]
+}
