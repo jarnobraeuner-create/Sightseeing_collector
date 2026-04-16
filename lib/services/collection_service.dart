@@ -58,8 +58,9 @@ class CollectionService extends ChangeNotifier {
     String landmarkName,
     String category,
     int points,
-    List<String> setIds,
-  ) {
+    List<String> setIds, {
+    TokenTier tier = TokenTier.bronze,
+  }) {
     // Check if token already collected
     if (hasCollectedToken(landmarkId)) {
       debugPrint('Token already collected for landmark: $landmarkId');
@@ -75,6 +76,7 @@ class CollectionService extends ChangeNotifier {
       collectedAt: DateTime.now(),
       points: points,
       setIds: setIds,
+      tier: tier,
     );
 
     _tokens.add(token);
@@ -160,5 +162,68 @@ class CollectionService extends ChangeNotifier {
       'sightseeingTokens': getTokensByCategory('sightseeing').length,
       'travelTokens': getTokensByCategory('travel').length,
     };
+  }
+
+  // Token Upgrade System
+  bool canUpgradeToken(String landmarkId, TokenTier fromTier) {
+    final tokensOfLandmark = _tokens.where(
+      (t) => t.landmarkId == landmarkId && t.tier == fromTier,
+    );
+    return tokensOfLandmark.length >= 5;
+  }
+
+  void upgradeTokens(String landmarkId, TokenTier fromTier, TokenTier toTier) {
+    final tokensToUpgrade = _tokens
+        .where((t) => t.landmarkId == landmarkId && t.tier == fromTier)
+        .take(5)
+        .toList();
+
+    if (tokensToUpgrade.length < 5) {
+      debugPrint('Not enough tokens to upgrade');
+      return;
+    }
+
+    // Entferne die 5 Token
+    for (var token in tokensToUpgrade) {
+      _tokens.remove(token);
+      _totalPoints -= token.points;
+    }
+
+    // Erstelle neuen höherwertigen Token
+    final firstToken = tokensToUpgrade.first;
+    final newToken = Token(
+      id: const Uuid().v4(),
+      landmarkId: landmarkId,
+      landmarkName: firstToken.landmarkName,
+      category: firstToken.category,
+      collectedAt: DateTime.now(),
+      points: toTier.pointValue,
+      setIds: firstToken.setIds,
+      tier: toTier,
+    );
+
+    _tokens.add(newToken);
+    _totalPoints += newToken.points;
+
+    notifyListeners();
+  }
+
+  int getTokenCountByTier(String landmarkId, TokenTier tier) {
+    return _tokens
+        .where((t) => t.landmarkId == landmarkId && t.tier == tier)
+        .length;
+  }
+
+  // Reset collection for testing
+  void resetCollection() {
+    _tokens.clear();
+    _totalPoints = 0;
+    for (var i = 0; i < _sets.length; i++) {
+      _sets[i] = _sets[i].copyWith(
+        collectedTokenIds: [],
+        completed: false,
+      );
+    }
+    notifyListeners();
   }
 }

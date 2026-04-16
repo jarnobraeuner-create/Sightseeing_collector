@@ -7,6 +7,7 @@ import 'map_screen.dart';
 import 'collection_screen.dart';
 import 'profile_screen.dart';
 import 'trading_screen.dart';
+import 'token_upgrade_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -76,6 +77,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     tooltip: 'Sammlung',
                     child: const Icon(Icons.collections),
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton(
+                    heroTag: 'upgrade',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TokenUpgradeScreen(),
+                        ),
+                      );
+                    },
+                    tooltip: 'Token Upgrades',
+                    backgroundColor: Colors.purple[700],
+                    child: const Icon(Icons.upgrade),
                   ),
                   const SizedBox(height: 12),
                   FloatingActionButton(

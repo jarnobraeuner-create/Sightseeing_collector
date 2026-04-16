@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'token.dart';
 
 class Quest {
   final String id;
@@ -40,6 +41,7 @@ class Landmark {
   final String imageUrl;
   final List<Quest> quests;
   final List<String> relatedSetIds;
+  final TokenTier defaultTier;
 
   Landmark({
     required this.id,
@@ -53,6 +55,7 @@ class Landmark {
     required this.imageUrl,
     this.quests = const [],
     this.relatedSetIds = const [],
+    this.defaultTier = TokenTier.bronze,
   });
 
   // Calculate distance to user using Haversine formula
@@ -90,6 +93,7 @@ class Landmark {
         'imageUrl': imageUrl,
         'quests': quests.map((q) => q.toJson()).toList(),
         'relatedSetIds': relatedSetIds,
+        'defaultTier': defaultTier.name,
       };
 
   factory Landmark.fromJson(Map<String, dynamic> json) => Landmark(
@@ -107,5 +111,9 @@ class Landmark {
                 .toList() ??
             [],
         relatedSetIds: List<String>.from(json['relatedSetIds'] ?? []),
+        defaultTier: TokenTier.values.firstWhere(
+          (e) => e.name == json['defaultTier'],
+          orElse: () => TokenTier.bronze,
+        ),
       );
 }

@@ -31,6 +31,40 @@ class _CollectionScreenState extends State<CollectionScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Collection'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_forever),
+            tooltip: 'Reset Collection (Test)',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Reset Collection?'),
+                  content: const Text('Alle gesammelten Tokens werden gelöscht. Dies kann nicht rückgängig gemacht werden.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Abbrechen'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Provider.of<CollectionService>(context, listen: false).resetCollection();
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Collection zurückgesetzt'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      },
+                      child: const Text('Reset', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

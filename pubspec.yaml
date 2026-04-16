@@ -44,6 +44,7 @@ dev_dependencies:
   
   flutter_lints: ^3.0.0
   build_runner: ^2.4.6
+  flutter_native_splash: ^2.3.0
 
 flutter:
   uses-material-design: true
@@ -51,3 +52,12 @@ flutter:
   assets:
     - assets/images/
     - assets/config.json
+
+flutter_native_splash:
+  color: "#1a1a2e"
+  image: assets/images/map_pin_splash_screen.png
+  android: true
+  ios: true
+  android_12:
+    color: "#1a1a2e"
+    image: assets/images/map_pin_splash_screen.png

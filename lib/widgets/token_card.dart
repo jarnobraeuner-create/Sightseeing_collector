@@ -75,12 +75,25 @@ class TokenCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${token.points} pts',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[600],
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              token.tier.displayName,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: _getTierColor(token.tier),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '${token.points} pts',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
                         ),
                         Icon(
                           token.category == 'sightseeing'
@@ -99,5 +112,18 @@ class TokenCard extends StatelessWidget {
         );
       },
     );
+  }
+
+  Color _getTierColor(TokenTier tier) {
+    switch (tier) {
+      case TokenTier.bronze:
+        return Colors.orange[700]!;
+      case TokenTier.silver:
+        return Colors.grey[400]!;
+      case TokenTier.gold:
+        return Colors.amber[600]!;
+      case TokenTier.platinum:
+        return Colors.cyan[400]!;
+    }
   }
 }

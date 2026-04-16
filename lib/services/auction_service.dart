@@ -43,7 +43,7 @@ class AuctionService extends ChangeNotifier {
         sellerName: 'Lisa Müller',
         tokenId: '2',
         tokenName: 'Elbphilharmonie',
-        tokenImageUrl: 'assets/images/Token_gold_elbphilharmonie.png',
+        tokenImageUrl: 'assets/images/Token_Elbphilhamonie_Bronze.png',
         minimumCoins: 80,
         createdAt: now.subtract(const Duration(hours: 5)),
         expiresAt: now.add(const Duration(hours: 19)),

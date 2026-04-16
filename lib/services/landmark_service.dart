@@ -66,7 +66,7 @@ class LandmarkService extends ChangeNotifier {
         category: 'sightseeing',
         difficulty: 'easy',
         pointsReward: 120,
-        imageUrl: 'assets/images/Token_gold_elbphilharmonie.png',
+        imageUrl: 'assets/images/Token_Elbphilhamonie_Bronze.png',
         relatedSetIds: ['set_hamburg', 'set_monuments'],
         quests: [
           Quest(
@@ -87,7 +87,7 @@ class LandmarkService extends ChangeNotifier {
         category: 'sightseeing',
         difficulty: 'medium',
         pointsReward: 110,
-        imageUrl: 'assets/images/Token_gold_laeiszhalle.png',
+        imageUrl: 'assets/images/Token_Leiszhalle_platin.png',
         relatedSetIds: ['set_hamburg'],
         quests: [
           Quest(
@@ -108,8 +108,9 @@ class LandmarkService extends ChangeNotifier {
         category: 'sightseeing',
         difficulty: 'easy',
         pointsReward: 100,
-        imageUrl: 'assets/images/Token_gold_Michel.png',
+        imageUrl: 'assets/images/Token_Michel_silber.png',
         relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.silver,
         quests: [
           Quest(
             id: 'q4',
@@ -413,5 +414,68 @@ class LandmarkService extends ChangeNotifier {
             l.name.toLowerCase().contains(lowerQuery) ||
             l.description.toLowerCase().contains(lowerQuery))
         .toList();
+  }
+
+  String getImageUrlForTier(String landmarkId, TokenTier tier) {
+    final landmark = getLandmarkById(landmarkId);
+    if (landmark == null) return 'assets/images/default_token.jpeg';
+
+    // Elbphilharmonie immer mit Bronze-Token
+    if (landmarkId == '2') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Token_Elbphilhamonie_Bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Token_Elbphilhamonie_Bronze.png';
+        case TokenTier.gold:
+          return 'assets/images/Token_Elbphilhamonie_Bronze.png';
+        case TokenTier.platinum:
+          return 'assets/images/Token_Elbphilhamonie_Bronze.png';
+      }
+    }
+
+    // Spezielle Tier-Bilder für Laeiszhalle
+    if (landmarkId == '3') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Token_gold_laeiszhalle.png';
+        case TokenTier.silver:
+          return 'assets/images/Token_gold_laeiszhalle.png';
+        case TokenTier.gold:
+          return 'assets/images/Token_gold_laeiszhalle.png';
+        case TokenTier.platinum:
+          return 'assets/images/Token_Leiszhalle_platin.png';
+      }
+    }
+
+    // Spezielle Tier-Bilder für Michel
+    if (landmarkId == '4') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return landmark.imageUrl; // Kein Bronze-Bild vorhanden
+        case TokenTier.silver:
+          return 'assets/images/Token_Michel_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Token_gold_Michel.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl; // Fallback zum Standard
+      }
+    }
+
+    // Für andere Landmarks: Verwende Standard-Bild
+    return landmark.imageUrl;
+  }
+
+  String getMapPinForTier(TokenTier tier) {
+    switch (tier) {
+      case TokenTier.bronze:
+        return 'assets/images/Map_Pin_Bronze.png';
+      case TokenTier.silver:
+        return 'assets/images/Map_pin_silber.png';
+      case TokenTier.gold:
+        return 'assets/images/map_pin_gold.png';
+      case TokenTier.platinum:
+        return 'assets/images/Map_Pin_Bronze.png'; // Fallback
+    }
   }
 }

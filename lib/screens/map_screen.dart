@@ -18,14 +18,14 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
   bool _isMapReady = false;
-  BitmapDescriptor? _customMarkerIcon;
-  BitmapDescriptor? _customMarkerIconGray;
+  final Map<String, BitmapDescriptor> _markerIcons = {}; // Bronze, Silver, Gold, Platinum
+  final Map<String, BitmapDescriptor> _markerIconsGray = {}; // Graustufen-Versionen
   bool _isUpdatingMarkers = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCustomMarker();
+    _loadAllMarkerIcons();
     // Verzögerte Initialisierung
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
@@ -38,17 +38,28 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  Future<void> _loadCustomMarker() async {
+  Future<void> _loadAllMarkerIcons() async {
+    await Future.wait([
+      _loadMarkerIcon('bronze', 'assets/images/Map_Pin_Bronze.png'),
+      _loadMarkerIcon('silver', 'assets/images/Map_pin_silber.png'),
+      _loadMarkerIcon('gold', 'assets/images/map_pin_gold.png'),
+      _loadMarkerIcon('platin', 'assets/images/Map_pin_platin.png'),
+    ]);
+    
+    if (mounted) {
+      _updateMarkers();
+    }
+  }
+
+  Future<void> _loadMarkerIcon(String tierKey, String imagePath) async {
     try {
-      // Lade das Bild als ByteData für bessere Kontrolle
-      final ByteData data = await rootBundle.load('assets/images/map_pin.png');
+      final ByteData data = await rootBundle.load(imagePath);
       final Uint8List bytes = data.buffer.asUint8List();
       
-      // Dekodiere das Bild
       final ui.Codec codec = await ui.instantiateImageCodec(
         bytes,
-        targetWidth: 200, // Zielbreite in Pixeln
-        targetHeight: 200, // Zielhöhe in Pixeln
+        targetWidth: 200,
+        targetHeight: 200,
       );
       final ui.FrameInfo frameInfo = await codec.getNextFrame();
       final ByteData? resizedData = await frameInfo.image.toByteData(
@@ -60,7 +71,6 @@ class _MapScreenState extends State<MapScreen> {
           resizedData.buffer.asUint8List(),
         );
         
-        // Erstelle auch ein Graustufen-Icon
         final ui.Image grayImage = await _convertToGrayscale(frameInfo.image);
         final ByteData? grayData = await grayImage.toByteData(
           format: ui.ImageByteFormat.png,
@@ -68,19 +78,17 @@ class _MapScreenState extends State<MapScreen> {
         
         if (mounted) {
           setState(() {
-            _customMarkerIcon = icon;
+            _markerIcons[tierKey] = icon;
             if (grayData != null) {
-              _customMarkerIconGray = BitmapDescriptor.fromBytes(
+              _markerIconsGray[tierKey] = BitmapDescriptor.fromBytes(
                 grayData.buffer.asUint8List(),
               );
             }
           });
-          // Marker neu laden nachdem Icon geladen wurde
-          _updateMarkers();
         }
       }
     } catch (e) {
-      debugPrint('Fehler beim Laden des Custom Marker Icons: $e');
+      debugPrint('Fehler beim Laden des $tierKey Marker Icons: $e');
     }
   }
 
@@ -247,14 +255,33 @@ class _MapScreenState extends State<MapScreen> {
       final collectionService = Provider.of<CollectionService>(context, listen: false);
       
       final newMarkers = landmarkService.landmarks.map((landmark) {
-        final isCollected = collectionService.hasCollectedToken(landmark.id);
+        final token = collectionService.getToken(landmark.id);
+        final isCollected = token != null;
+        
+        // Michel (id='4') bekommt silbernen Pin, Chilehaus (id='5') gold, Laeiszhalle (id='3') platin, alle anderen bronze
+        String pinType = 'bronze';
+        if (landmark.id == '4') {
+          pinType = 'silver';
+        } else if (landmark.id == '5') {
+          pinType = 'gold';
+        } else if (landmark.id == '3') {
+          pinType = 'platin';
+        }
+        
+        // Wähle das passende Icon
+        BitmapDescriptor markerIcon;
+        if (isCollected) {
+          // Gesammelt: Verwende Graustufen-Version
+          markerIcon = _markerIconsGray[pinType] ?? BitmapDescriptor.defaultMarker;
+        } else {
+          // Nicht gesammelt: Verwende farbige Version
+          markerIcon = _markerIcons[pinType] ?? BitmapDescriptor.defaultMarker;
+        }
         
         return Marker(
           markerId: MarkerId(landmark.id),
           position: LatLng(landmark.latitude, landmark.longitude),
-          icon: isCollected 
-              ? (_customMarkerIconGray ?? BitmapDescriptor.defaultMarker)
-              : (_customMarkerIcon ?? BitmapDescriptor.defaultMarker),
+          icon: markerIcon,
           alpha: isCollected ? 0.7 : 1.0,
           onTap: () => _showLandmarkDetails(landmark),
           infoWindow: InfoWindow(
@@ -352,7 +379,8 @@ class _MapScreenState extends State<MapScreen> {
         ? landmark.getDistance(position.latitude, position.longitude)
         : null;
     // TESTMODUS: Distanz-Check deaktiviert - alle Tokens sammelbar
-    final isCollected = collectionService.hasCollectedToken(landmark.id);
+    final token = collectionService.getToken(landmark.id);
+    final isCollected = token != null;
     
     showModalBottomSheet(
       context: context,
@@ -508,12 +536,13 @@ class _MapScreenState extends State<MapScreen> {
                           landmark.category,
                           landmark.pointsReward,
                           landmark.relatedSetIds,
+                          tier: landmark.defaultTier,
                         );
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Token gesammelt! +${landmark.pointsReward} Punkte',
+                              'Token gesammelt! +${landmark.pointsReward} Punkte (${landmark.defaultTier.displayName})',
                             ),
                             backgroundColor: Colors.green,
                             behavior: SnackBarBehavior.floating,

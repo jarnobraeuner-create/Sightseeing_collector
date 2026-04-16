@@ -1,3 +1,36 @@
+enum TokenTier {
+  bronze,
+  silver,
+  gold,
+  platinum;
+
+  String get displayName {
+    switch (this) {
+      case TokenTier.bronze:
+        return 'Bronze';
+      case TokenTier.silver:
+        return 'Silber';
+      case TokenTier.gold:
+        return 'Gold';
+      case TokenTier.platinum:
+        return 'Platin';
+    }
+  }
+
+  int get pointValue {
+    switch (this) {
+      case TokenTier.bronze:
+        return 10;
+      case TokenTier.silver:
+        return 50;
+      case TokenTier.gold:
+        return 200;
+      case TokenTier.platinum:
+        return 1000;
+    }
+  }
+}
+
 class Token {
   final String id;
   final String landmarkId;
@@ -6,6 +39,7 @@ class Token {
   final DateTime collectedAt;
   final int points;
   final List<String> setIds;
+  final TokenTier tier;
 
   Token({
     required this.id,
@@ -15,6 +49,7 @@ class Token {
     required this.collectedAt,
     required this.points,
     this.setIds = const [],
+    this.tier = TokenTier.bronze,
   });
 
   Map<String, dynamic> toJson() => {
@@ -25,6 +60,7 @@ class Token {
         'collectedAt': collectedAt.toIso8601String(),
         'points': points,
         'setIds': setIds,
+        'tier': tier.name,
       };
 
   factory Token.fromJson(Map<String, dynamic> json) => Token(
@@ -35,5 +71,9 @@ class Token {
         collectedAt: DateTime.parse(json['collectedAt']),
         points: json['points'],
         setIds: List<String>.from(json['setIds'] ?? []),
+        tier: TokenTier.values.firstWhere(
+          (t) => t.name == (json['tier'] ?? 'bronze'),
+          orElse: () => TokenTier.bronze,
+        ),
       );
 }
