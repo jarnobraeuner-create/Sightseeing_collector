@@ -357,69 +357,152 @@ class _SetRewardCard extends StatelessWidget {
   final CollectionSet set;
   const _SetRewardCard({required this.set});
 
+  void _showDetail(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.amber[400]!, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.amber.withValues(alpha: 0.4),
+                blurRadius: 24,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('👑', style: TextStyle(fontSize: 32)),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(
+                  set.rewardImageUrl!,
+                  width: double.infinity,
+                  height: 240,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 240,
+                    color: Colors.grey[800],
+                    child: const Icon(Icons.emoji_events,
+                        size: 80, color: Colors.amber),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                set.name,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber[400]!),
+                ),
+                child: Text(
+                  '🎉 Set abgeschlossen  ·  +${set.bonusPoints} 🪙',
+                  style: TextStyle(
+                      color: Colors.amber[300],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                set.description,
+                style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Schließen',
+                    style: TextStyle(color: Colors.grey[500])),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.amber[900]!, Colors.amber[700]!],
-        ),
-        border: Border.all(color: Colors.amber[400]!, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.amber.withValues(alpha: 0.35),
-            blurRadius: 10,
-            spreadRadius: 1,
+    return GestureDetector(
+      onTap: () => _showDetail(context),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.amber[900]!, Colors.amber[700]!],
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Crown badge
-          const Text('👑', style: TextStyle(fontSize: 20)),
-          const SizedBox(height: 8),
-          // Wappen image
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Image.asset(
-                set.rewardImageUrl!,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.emoji_events,
-                  size: 60,
-                  color: Colors.amber,
+          border: Border.all(color: Colors.amber[400]!, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.amber.withValues(alpha: 0.35),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('👑', style: TextStyle(fontSize: 20)),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Image.asset(
+                  set.rewardImageUrl!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.emoji_events,
+                    size: 60,
+                    color: Colors.amber,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          // Set name
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              set.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                set.name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            '🎉 Set abgeschlossen',
-            style: TextStyle(color: Colors.amber, fontSize: 10),
-          ),
-          const SizedBox(height: 8),
-        ],
+            const SizedBox(height: 4),
+            const Text(
+              '🎉 Set abgeschlossen',
+              style: TextStyle(color: Colors.amber, fontSize: 10),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
