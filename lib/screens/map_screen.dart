@@ -43,7 +43,7 @@ class _MapScreenState extends State<MapScreen> {
       _loadMarkerIcon('bronze', 'assets/images/Map_Pin_Bronze.png'),
       _loadMarkerIcon('silver', 'assets/images/Map_pin_silber.png'),
       _loadMarkerIcon('gold', 'assets/images/map_pin_gold.png'),
-      _loadMarkerIcon('platin', 'assets/images/Map_pin_platin.png'),
+      _loadMarkerIcon('platin', 'assets/images/Platin_mappin_platin.png'),
     ]);
     
     if (mounted) {

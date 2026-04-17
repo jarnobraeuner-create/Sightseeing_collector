@@ -143,7 +143,7 @@ class LandmarkService extends ChangeNotifier {
       ),
       Landmark(
         id: '6',
-        name: 'Altonaer Volkspark',
+        name: 'Volksparkstadion',
         description:
             'Großer Volkspark in Hamburg-Altona mit vielfältigen Freizeitmöglichkeiten.',
         latitude: 53.5889,

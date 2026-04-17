@@ -1,0 +1,98 @@
+﻿Analyzing sightseeing_collector...                              
+
+   info - Unnecessary use of a block function body - lib\main.dart:14:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:14:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:48:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:72:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\models\auction.dart:82:22 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:108:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\collection_set.dart:10:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\models\collection_set.dart:28:6 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\models\collection_set.dart:50:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\landmark.dart:10:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\landmark.dart:24:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\landmark.dart:46:3 - sort_constructors_first
+   info - Local variables should be final - lib\models\landmark.dart:65:5 - prefer_final_locals
+   info - Local variables should be final - lib\models\landmark.dart:66:5 - prefer_final_locals
+   info - Local variables should be final - lib\models\landmark.dart:68:5 - prefer_final_locals
+   info - Local variables should be final - lib\models\landmark.dart:74:5 - prefer_final_locals
+   info - Local variables should be final - lib\models\landmark.dart:75:5 - prefer_final_locals
+   info - Unnecessary use of a block function body - lib\models\landmark.dart:80:37 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\models\landmark.dart:99:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\token.dart:44:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\token.dart:66:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\token_upgrade.dart:30:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\user.dart:9:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\user.dart:28:11 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\models\user.dart:44:6 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:30:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:86:28 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:125:41 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:133:26 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:144:41 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:38:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:153:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:159:58 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:182:56 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:254:52 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:278:5 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\home_screen.dart:291:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:297:38 - prefer_expression_function_bodies
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart' - lib\screens\map_screen.dart:1:8 - unnecessary_import
+   info - 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead - lib\screens\map_screen.dart:70:56 - deprecated_member_use
+   info - 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead - lib\screens\map_screen.dart:83:60 - deprecated_member_use
+   info - 'setMapStyle' is deprecated and shouldn't be used. Use GoogleMap.style instead - lib\screens\map_screen.dart:139:21 - deprecated_member_use
+   info - Unnecessary use of a block function body - lib\screens\map_screen.dart:305:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a 'double' literal - lib\screens\map_screen.dart:359:27 - prefer_int_literals
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\map_screen.dart:418:43 - deprecated_member_use
+   info - Unnecessary use of a block function body - lib\screens\map_screen.dart:430:70 - prefer_expression_function_bodies
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\map_screen.dart:479:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\map_screen.dart:482:39 - deprecated_member_use
+   info - Unnecessary use of a block function body - lib\screens\map_screen_safe.dart:10:38 - prefer_expression_function_bodies
+   info - Use 'const' with the constructor to improve performance - lib\screens\map_screen_safe.dart:94:13 - prefer_const_constructors
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:9:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:198:5 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:222:35 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\token_upgrade_screen.dart:19:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\token_upgrade_screen.dart:43:71 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\token_upgrade_screen.dart:66:64 - prefer_expression_function_bodies
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\token_upgrade_screen.dart:145:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\token_upgrade_screen.dart:172:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\token_upgrade_screen.dart:190:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\token_upgrade_screen.dart:297:69 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\token_upgrade_screen.dart:357:59 - deprecated_member_use
+   info - Unnecessary use of a block function body - lib\screens\token_upgrade_screen.dart:409:5 - prefer_expression_function_bodies
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\token_upgrade_screen.dart:416:33 - deprecated_member_use
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:31:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:42:58 - prefer_expression_function_bodies
+   info - Unnecessary use of a 'double' literal - lib\screens\trading_screen.dart:44:47 - prefer_int_literals
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:83:30 - prefer_expression_function_bodies
+   info - Local variables should be final - lib\screens\trading_screen.dart:213:5 - prefer_final_locals
+   info - Use 'const' with the constructor to improve performance - lib\screens\trading_screen.dart:293:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\trading_screen.dart:328:17 - prefer_const_constructors
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:468:32 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:659:29 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\services\auction_service.dart:9:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\services\auction_service.dart:142:46 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\services\auction_service.dart:146:42 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\services\collection_service.dart:18:3 - sort_constructors_first
+   info - The variable 'setId' should be final - lib\services\collection_service.dart:92:14 - prefer_final_in_for_each
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:123:45 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:135:52 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:152:42 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:156:36 - prefer_expression_function_bodies
+   info - The variable 'token' should be final - lib\services\collection_service.dart:187:14 - prefer_final_in_for_each
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:211:62 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\services\landmark_service.dart:22:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\services\landmark_service.dart:404:34 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\services\location_service.dart:21:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\widgets\landmark_card.dart:10:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\widgets\landmark_card.dart:66:70 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\widgets\set_card.dart:9:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\widgets\set_card.dart:15:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\widgets\set_card.dart:131:49 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\widgets\token_card.dart:9:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\widgets\token_card.dart:15:38 - prefer_expression_function_bodies
+   info - Dependencies not sorted alphabetically - pubspec.yaml:18:3 - sort_pub_dependencies
+   info - Dependencies not sorted alphabetically - pubspec.yaml:45:3 - sort_pub_dependencies
+
