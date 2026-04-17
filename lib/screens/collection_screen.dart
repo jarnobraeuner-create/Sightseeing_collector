@@ -100,6 +100,146 @@ class _CollectionScreenState extends State<CollectionScreen>
     );
   }
 
+  void _showTokenDetail(BuildContext context, Token token) {
+    final landmarkService = Provider.of<LandmarkService>(context, listen: false);
+    final landmark = landmarkService.getLandmarkById(token.landmarkId);
+    final imageUrl = landmarkService.getImageUrlForTier(token.landmarkId, token.tier);
+
+    Color tierColor;
+    switch (token.tier) {
+      case TokenTier.bronze: tierColor = Colors.orange[700]!; break;
+      case TokenTier.silver: tierColor = Colors.grey[400]!; break;
+      case TokenTier.gold:   tierColor = Colors.amber[500]!; break;
+      case TokenTier.platinum: tierColor = Colors.cyan[300]!; break;
+    }
+
+    String tierEmoji;
+    switch (token.tier) {
+      case TokenTier.bronze: tierEmoji = '🥉'; break;
+      case TokenTier.silver: tierEmoji = '🥈'; break;
+      case TokenTier.gold:   tierEmoji = '🥇'; break;
+      case TokenTier.platinum: tierEmoji = '💎'; break;
+    }
+
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: tierColor, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: tierColor.withValues(alpha: 0.4),
+                blurRadius: 24,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Big token image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(
+                  imageUrl,
+                  width: double.infinity,
+                  height: 260,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 260,
+                    color: Colors.grey[800],
+                    child: const Icon(Icons.image_not_supported,
+                        size: 80, color: Colors.white38),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                token.landmarkName,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: tierColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: tierColor),
+                    ),
+                    child: Text(
+                      '$tierEmoji ${token.tier.displayName}  ·  ${token.points} 🪙',
+                      style: TextStyle(
+                          color: tierColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+              if (landmark != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  landmark.description,
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Schließen',
+                          style: TextStyle(color: Colors.grey[500])),
+                    ),
+                  ),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.upgrade, size: 16),
+                      label: const Text('Upgraden'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: tierColor,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                TokenUpgradeScreen(initialToken: token),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTokensTab() {
     return Consumer<CollectionService>(
       builder: (context, collectionService, child) {
@@ -163,7 +303,8 @@ class _CollectionScreenState extends State<CollectionScreen>
                     final token = collectionService.tokens[index];
                     return TokenCard(
                       token: token,
-                      onTap: () {
+                      onTap: () => _showTokenDetail(context, token),
+                      onLongPress: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(

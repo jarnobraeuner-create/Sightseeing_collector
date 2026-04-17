@@ -6,11 +6,13 @@ import '../services/index.dart';
 class TokenCard extends StatelessWidget {
   final Token token;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const TokenCard({
     Key? key,
     required this.token,
     this.onTap,
+    this.onLongPress,
   }) : super(key: key);
 
   @override
@@ -21,6 +23,7 @@ class TokenCard extends StatelessWidget {
         
         return GestureDetector(
           onTap: onTap,
+          onLongPress: onLongPress,
           child: Card(
           elevation: 2,
           child: Column(
