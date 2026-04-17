@@ -5,7 +5,9 @@ import '../services/collection_service.dart';
 import '../services/landmark_service.dart';
 
 class TokenUpgradeScreen extends StatefulWidget {
-  const TokenUpgradeScreen({Key? key}) : super(key: key);
+  final Token? initialToken;
+
+  const TokenUpgradeScreen({Key? key, this.initialToken}) : super(key: key);
 
   @override
   State<TokenUpgradeScreen> createState() => _TokenUpgradeScreenState();
@@ -14,6 +16,12 @@ class TokenUpgradeScreen extends StatefulWidget {
 class _TokenUpgradeScreenState extends State<TokenUpgradeScreen> {
   Token? _selectedTokenToUpgrade;
   final List<Token> _selectedTokensToTrade = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTokenToUpgrade = widget.initialToken;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -428,9 +436,9 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen> {
               final fromTier = _selectedTokenToUpgrade!.tier;
               final toTier = _getNextTier(fromTier);
               
-              collectionService.upgradeTokens(
-                _selectedTokenToUpgrade!.landmarkId,
-                fromTier,
+              collectionService.upgradeSpecificTokens(
+                _selectedTokenToUpgrade!.id,
+                _selectedTokensToTrade.map((t) => t.id).toList(),
                 toTier,
               );
               

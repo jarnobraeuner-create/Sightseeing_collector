@@ -5,10 +5,12 @@ import '../services/index.dart';
 
 class TokenCard extends StatelessWidget {
   final Token token;
+  final VoidCallback? onTap;
 
   const TokenCard({
     Key? key,
     required this.token,
+    this.onTap,
   }) : super(key: key);
 
   @override
@@ -17,7 +19,9 @@ class TokenCard extends StatelessWidget {
       builder: (context, landmarkService, child) {
         final landmark = landmarkService.getLandmarkById(token.landmarkId);
         
-        return Card(
+        return GestureDetector(
+          onTap: onTap,
+          child: Card(
           elevation: 2,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,6 +113,7 @@ class TokenCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
         );
       },
     );

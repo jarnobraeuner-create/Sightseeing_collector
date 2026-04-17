@@ -208,6 +208,42 @@ class CollectionService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void upgradeSpecificTokens(
+    String mainTokenId,
+    List<String> sacrificeTokenIds,
+    TokenTier toTier,
+  ) {
+    final mainToken = _tokens.firstWhere((t) => t.id == mainTokenId);
+
+    // Entferne Haupttoken
+    _tokens.removeWhere((t) => t.id == mainTokenId);
+    _totalPoints -= mainToken.points;
+
+    // Entferne Opfertokens
+    for (final id in sacrificeTokenIds) {
+      final sacrifice = _tokens.firstWhere((t) => t.id == id, orElse: () => mainToken);
+      _tokens.removeWhere((t) => t.id == id);
+      _totalPoints -= sacrifice.points;
+    }
+
+    // Erstelle upgegradeten Token
+    final newToken = Token(
+      id: const Uuid().v4(),
+      landmarkId: mainToken.landmarkId,
+      landmarkName: mainToken.landmarkName,
+      category: mainToken.category,
+      collectedAt: DateTime.now(),
+      points: toTier.pointValue,
+      setIds: mainToken.setIds,
+      tier: toTier,
+    );
+
+    _tokens.add(newToken);
+    _totalPoints += newToken.points;
+
+    notifyListeners();
+  }
+
   int getTokenCountByTier(String landmarkId, TokenTier tier) {
     return _tokens
         .where((t) => t.landmarkId == landmarkId && t.tier == tier)

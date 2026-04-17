@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/index.dart';
 import '../widgets/index.dart';
+import 'token_upgrade_screen.dart';
 
 class CollectionScreen extends StatefulWidget {
   const CollectionScreen({Key? key}) : super(key: key);
@@ -123,7 +124,18 @@ class _CollectionScreenState extends State<CollectionScreen>
           ),
           itemCount: collectionService.tokens.length,
           itemBuilder: (context, index) {
-            return TokenCard(token: collectionService.tokens[index]);
+            final token = collectionService.tokens[index];
+            return TokenCard(
+              token: token,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TokenUpgradeScreen(initialToken: token),
+                  ),
+                );
+              },
+            );
           },
         );
       },
