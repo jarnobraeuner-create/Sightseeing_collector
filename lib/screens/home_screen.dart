@@ -8,6 +8,7 @@ import 'collection_screen.dart';
 import 'profile_screen.dart';
 import 'trading_screen.dart';
 import 'token_upgrade_screen.dart';
+import 'sets_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -28,6 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return const CollectionScreen();
       case 3:
+        return const SetsScreen();
+      case 4:
         return const ProfileScreen();
       default:
         return const MapScreen();
@@ -46,8 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildPage(0),
               _buildPage(1),
               _buildPage(2),
-              _buildPage(3),
-            ],
+              _buildPage(3),              _buildPage(4),            ],
           ),
           // Schwebende Navigation Buttons
           if (_selectedIndex == 0) // Nur auf Map-Screen zeigen
@@ -95,10 +97,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
                   FloatingActionButton(
-                    heroTag: 'profile',
+                    heroTag: 'sets',
                     onPressed: () {
                       setState(() {
                         _selectedIndex = 3;
+                      });
+                    },
+                    tooltip: 'Sets',
+                    backgroundColor: Colors.teal[700],
+                    child: const Icon(Icons.workspace_premium),
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton(
+                    heroTag: 'profile',
+                    onPressed: () {
+                      setState(() {
+                        _selectedIndex = 4;
                       });
                     },
                     tooltip: 'Profil',

@@ -6,6 +6,7 @@ class CollectionSet {
   final List<String> collectedTokenIds;
   final int bonusPoints;
   final bool completed;
+  final String? rewardImageUrl;
 
   CollectionSet({
     required this.id,
@@ -15,6 +16,7 @@ class CollectionSet {
     this.collectedTokenIds = const [],
     required this.bonusPoints,
     this.completed = false,
+    this.rewardImageUrl,
   });
 
   double get completionPercentage {
@@ -34,6 +36,7 @@ class CollectionSet {
       collectedTokenIds: collectedTokenIds ?? this.collectedTokenIds,
       bonusPoints: bonusPoints,
       completed: completed ?? this.completed,
+      rewardImageUrl: rewardImageUrl,
     );
   }
 
@@ -45,6 +48,7 @@ class CollectionSet {
         'collectedTokenIds': collectedTokenIds,
         'bonusPoints': bonusPoints,
         'completed': completed,
+        'rewardImageUrl': rewardImageUrl,
       };
 
   factory CollectionSet.fromJson(Map<String, dynamic> json) => CollectionSet(
@@ -55,5 +59,6 @@ class CollectionSet {
         collectedTokenIds: List<String>.from(json['collectedTokenIds'] ?? []),
         bonusPoints: json['bonusPoints'],
         completed: json['completed'] ?? false,
+        rewardImageUrl: json['rewardImageUrl'],
       );
 }

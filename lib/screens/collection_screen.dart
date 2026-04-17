@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/index.dart';
 import '../services/index.dart';
 import '../widgets/index.dart';
 import 'token_upgrade_screen.dart';
@@ -33,6 +34,21 @@ class _CollectionScreenState extends State<CollectionScreen>
       appBar: AppBar(
         title: const Text('My Collection'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.science),
+            tooltip: 'Alle Tokens sammeln (Test)',
+            onPressed: () {
+              final cs = Provider.of<CollectionService>(context, listen: false);
+              final ls = Provider.of<LandmarkService>(context, listen: false);
+              cs.collectAllTokensForTesting(ls.landmarks);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('🔬 Alle Tokens gesammelt!'),
+                  backgroundColor: Colors.teal,
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.delete_forever),
             tooltip: 'Reset Collection (Test)',
@@ -114,29 +130,61 @@ class _CollectionScreenState extends State<CollectionScreen>
           );
         }
 
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.75,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: collectionService.tokens.length,
-          itemBuilder: (context, index) {
-            final token = collectionService.tokens[index];
-            return TokenCard(
-              token: token,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TokenUpgradeScreen(initialToken: token),
+        return CustomScrollView(
+          slivers: [
+            // ── Completed set reward badges (first row) ──────────────────
+            () {
+              final completedWithReward = collectionService.sets
+                  .where((s) => s.completed && s.rewardImageUrl != null)
+                  .toList();
+              if (completedWithReward.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+              return SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                sliver: SliverGrid(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => _SetRewardCard(set: completedWithReward[i]),
+                    childCount: completedWithReward.length,
                   ),
-                );
-              },
-            );
-          },
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.75,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                ),
+              );
+            }(),
+            // ── Regular tokens ────────────────────────────────────────────
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverGrid(
+                delegate: SliverChildBuilderDelegate(
+                  (_, index) {
+                    final token = collectionService.tokens[index];
+                    return TokenCard(
+                      token: token,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TokenUpgradeScreen(initialToken: token),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  childCount: collectionService.tokens.length,
+                ),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.75,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -158,6 +206,80 @@ class _CollectionScreenState extends State<CollectionScreen>
           },
         );
       },
+    );
+  }
+}
+
+// ── Set Reward Card ──────────────────────────────────────────────────────────
+
+class _SetRewardCard extends StatelessWidget {
+  final CollectionSet set;
+  const _SetRewardCard({required this.set});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.amber[900]!, Colors.amber[700]!],
+        ),
+        border: Border.all(color: Colors.amber[400]!, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withValues(alpha: 0.35),
+            blurRadius: 10,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Crown badge
+          const Text('👑', style: TextStyle(fontSize: 20)),
+          const SizedBox(height: 8),
+          // Wappen image
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Image.asset(
+                set.rewardImageUrl!,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.emoji_events,
+                  size: 60,
+                  color: Colors.amber,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Set name
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              set.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            '🎉 Set abgeschlossen',
+            style: TextStyle(color: Colors.amber, fontSize: 10),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }

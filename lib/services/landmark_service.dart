@@ -89,6 +89,7 @@ class LandmarkService extends ChangeNotifier {
         pointsReward: 110,
         imageUrl: 'assets/images/Token_Leiszhalle_platin.png',
         relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.platinum,
         quests: [
           Quest(
             id: 'q3',
@@ -132,6 +133,7 @@ class LandmarkService extends ChangeNotifier {
         pointsReward: 110,
         imageUrl: 'assets/images/Token_gold_chilehaus.png',
         relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.gold,
         quests: [
           Quest(
             id: 'q5',
@@ -374,6 +376,116 @@ class LandmarkService extends ChangeNotifier {
           ),
         ],
       ),
+      Landmark(
+        id: '17',
+        name: 'HCU Hamburg',
+        description:
+            'Die HafenCity Universität Hamburg – Hochschule für Baukunst und Metropolenentwicklung in der HafenCity.',
+        latitude: 53.5403,
+        longitude: 10.0049,
+        category: 'sightseeing',
+        difficulty: 'easy',
+        pointsReward: 100,
+        imageUrl: 'assets/images/Token_HCU.png',
+        relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.gold,
+        quests: [
+          Quest(
+            id: 'q17',
+            title: 'Campus-Besuch',
+            taskType: 'checkin',
+            completed: false,
+          ),
+        ],
+      ),
+      Landmark(
+        id: '18',
+        name: 'Landungsbrücken',
+        description:
+            'Die berühmten Hamburger Landungsbrücken am Hafen – Tor zur Welt und Treffpunkt der Stadt.',
+        latitude: 53.5449,
+        longitude: 9.9682,
+        category: 'sightseeing',
+        difficulty: 'easy',
+        pointsReward: 110,
+        imageUrl: 'assets/images/Token_Landungsbrücken_Gold.png',
+        relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.gold,
+        quests: [
+          Quest(
+            id: 'q18',
+            title: 'Hafenrundfahrt',
+            taskType: 'checkin',
+            completed: false,
+          ),
+        ],
+      ),
+      Landmark(
+        id: '19',
+        name: 'Marco Polo Tower',
+        description:
+            'Markantes Wohnhochhaus in der HafenCity mit spektakulärer Architektur und Blick auf die Elbe.',
+        latitude: 53.5394,
+        longitude: 10.0069,
+        category: 'sightseeing',
+        difficulty: 'medium',
+        pointsReward: 105,
+        imageUrl: 'assets/images/Token_MarcoPolo.png',
+        relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.gold,
+        quests: [
+          Quest(
+            id: 'q19',
+            title: 'Architektur-Foto',
+            taskType: 'photo',
+            completed: false,
+          ),
+        ],
+      ),
+      Landmark(
+        id: '20',
+        name: 'Hamburger Rathaus',
+        description:
+            'Das prachtvolle neugotische Rathaus am Rathausmarkt – Herz der Hansestadt und Sitz der Bürgerschaft.',
+        latitude: 53.5503,
+        longitude: 9.9995,
+        category: 'sightseeing',
+        difficulty: 'easy',
+        pointsReward: 115,
+        imageUrl: 'assets/images/Token_Rathaus_Gold.png',
+        relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.gold,
+        quests: [
+          Quest(
+            id: 'q20',
+            title: 'Rathausmarkt-Besuch',
+            taskType: 'checkin',
+            completed: false,
+          ),
+        ],
+      ),
+      Landmark(
+        id: '21',
+        name: 'Westfield Hamburg-Überseequartier',
+        description:
+            'Modernes Einkaufs- und Entertainmentzentrum im Herzen der HafenCity.',
+        latitude: 53.5417,
+        longitude: 10.0011,
+        category: 'travel',
+        difficulty: 'easy',
+        pointsReward: 90,
+        imageUrl: 'assets/images/Token_Westfield.png',
+        relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.gold,
+        quests: [
+          Quest(
+            id: 'q21',
+            title: 'Shopping-Besuch',
+            taskType: 'checkin',
+            completed: false,
+          ),
+        ],
+      ),
     ]);
   }
 
@@ -420,17 +532,17 @@ class LandmarkService extends ChangeNotifier {
     final landmark = getLandmarkById(landmarkId);
     if (landmark == null) return 'assets/images/default_token.jpeg';
 
-    // Elbphilharmonie immer mit Bronze-Token
+    // Spezielle Tier-Bilder für Elbphilharmonie
     if (landmarkId == '2') {
       switch (tier) {
         case TokenTier.bronze:
           return 'assets/images/Token_Elbphilhamonie_Bronze.png';
         case TokenTier.silver:
-          return 'assets/images/Token_Elbphilhamonie_Bronze.png';
+          return 'assets/images/Token_Elbphilhamonie_silber.png';
         case TokenTier.gold:
-          return 'assets/images/Token_Elbphilhamonie_Bronze.png';
+          return 'assets/images/Token_Elbphilhamonie_silber.png';
         case TokenTier.platinum:
-          return 'assets/images/Token_Elbphilhamonie_Bronze.png';
+          return 'assets/images/Token_Elbphilhamonie_silber.png';
       }
     }
 
@@ -459,6 +571,20 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_gold_Michel.png';
         case TokenTier.platinum:
           return landmark.imageUrl; // Fallback zum Standard
+      }
+    }
+
+    // Spezielle Tier-Bilder für Volksparkstadion
+    if (landmarkId == '6') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Volksparkstadion_bronze.jpeg';
+        case TokenTier.silver:
+          return 'assets/images/Volksparkstadion_silber .jpeg';
+        case TokenTier.gold:
+          return 'assets/images/Token_gold_volksparkstadion.png';
+        case TokenTier.platinum:
+          return 'assets/images/Token_gold_volksparkstadion.png'; // Fallback
       }
     }
 

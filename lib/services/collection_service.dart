@@ -33,8 +33,9 @@ class CollectionService extends ChangeNotifier {
         id: 'set_hamburg',
         name: 'Hamburg Klassiker',
         description: 'Sammle alle klassischen Sehenswürdigkeiten in Hamburg',
-        requiredTokenIds: ['1', '2', '3', '4', '5', '6', '13', '14', '15', '16'], // 10 Hamburg Landmarks
+        requiredTokenIds: ['1', '2', '3', '4', '5', '6', '13', '14', '15', '16', '17', '18', '19', '20', '21'],
         bonusPoints: 800,
+        rewardImageUrl: 'assets/images/Hamburg_Wappen_small.png',
       ),
       CollectionSet(
         id: 'set_monuments',
@@ -49,6 +50,7 @@ class CollectionService extends ChangeNotifier {
         description: 'Entdecke alle Sehenswürdigkeiten in Dissen',
         requiredTokenIds: ['7', '8', '9', '10', '11', '12'], // 6 Dissen Landmarks
         bonusPoints: 500,
+        rewardImageUrl: 'assets/images/Dissen_Wappen_small.png',
       ),
     ]);
   }
@@ -85,6 +87,31 @@ class CollectionService extends ChangeNotifier {
     // Update related sets
     _updateSets(landmarkId, setIds);
 
+    notifyListeners();
+  }
+
+  /// Like collectToken but skips the already-collected check (used for lootbox)
+  void collectTokenAllowDuplicate(
+    String landmarkId,
+    String landmarkName,
+    String category,
+    int points,
+    List<String> setIds, {
+    TokenTier tier = TokenTier.bronze,
+  }) {
+    final token = Token(
+      id: const Uuid().v4(),
+      landmarkId: landmarkId,
+      landmarkName: landmarkName,
+      category: category,
+      collectedAt: DateTime.now(),
+      points: points,
+      setIds: setIds,
+      tier: tier,
+    );
+    _tokens.add(token);
+    _totalPoints += points;
+    _updateSets(landmarkId, setIds);
     notifyListeners();
   }
 
@@ -248,6 +275,42 @@ class CollectionService extends ChangeNotifier {
     return _tokens
         .where((t) => t.landmarkId == landmarkId && t.tier == tier)
         .length;
+  }
+
+  // Alle Tokens für Testzwecke sammeln (6x Bronze pro Landmark)
+  void collectAllTokensForTesting(List<Landmark> landmarks) {
+    for (final landmark in landmarks) {
+      final token = Token(
+        id: const Uuid().v4(),
+        landmarkId: landmark.id,
+        landmarkName: landmark.name,
+        category: landmark.category,
+        collectedAt: DateTime.now(),
+        points: landmark.pointsReward,
+        setIds: landmark.relatedSetIds,
+        tier: landmark.defaultTier,
+      );
+      _tokens.add(token);
+      _totalPoints += landmark.pointsReward;
+    }
+    // Fill all sets completely
+    for (int i = 0; i < _sets.length; i++) {
+      final set = _sets[i];
+      if (!set.completed) {
+        _sets[i] = set.copyWith(
+          collectedTokenIds: List<String>.from(set.requiredTokenIds),
+          completed: true,
+        );
+        _totalPoints += set.bonusPoints;
+      }
+    }
+    notifyListeners();
+  }
+
+  // Add points directly (e.g. quick-sell)
+  void addPoints(int points) {
+    _totalPoints += points;
+    notifyListeners();
   }
 
   // Reset collection for testing

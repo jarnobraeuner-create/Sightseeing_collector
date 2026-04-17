@@ -40,7 +40,7 @@ class TokenCard extends StatelessWidget {
                             top: Radius.circular(4),
                           ),
                           child: Image.asset(
-                            landmark.imageUrl,
+                            landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
                             fit: BoxFit.cover,
                             width: double.infinity,
                             errorBuilder: (context, error, stackTrace) => Center(
