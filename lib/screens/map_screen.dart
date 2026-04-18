@@ -385,32 +385,75 @@ class _MapScreenState extends State<MapScreen> {
           : Consumer<LocationService>(
               builder: (context, locationService, child) {
                 final position = locationService.currentPosition;
-                
-                if (position == null) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Standort wird ermittelt...'),
-                      ],
-                    ),
-                  );
+                final hasLocation = position != null;
+
+                // Karte immer anzeigen – Hamburg als Fallback wenn kein GPS
+                const LatLng hamburgCenter = LatLng(53.5500, 10.0000);
+                final initialTarget = hasLocation
+                    ? LatLng(position.latitude, position.longitude)
+                    : hamburgCenter;
+
+                // Wenn Position gerade erst verfügbar wurde, Kamera bewegen
+                if (hasLocation && _mapController != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _mapController?.animateCamera(
+                      CameraUpdate.newLatLng(initialTarget),
+                    );
+                  });
                 }
 
-                return GoogleMap(
-                  onMapCreated: _onMapCreated,
-                  initialCameraPosition: CameraPosition(
-                    target: LatLng(position.latitude, position.longitude),
-                    zoom: 13.0,
-                  ),
-                  markers: _markers,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: false,
-                  mapType: MapType.normal,
-                  zoomControlsEnabled: true,
-                  compassEnabled: true,
+                return Stack(
+                  children: [
+                    GoogleMap(
+                      onMapCreated: _onMapCreated,
+                      initialCameraPosition: CameraPosition(
+                        target: initialTarget,
+                        zoom: 13.0,
+                      ),
+                      markers: _markers,
+                      myLocationEnabled: hasLocation &&
+                          locationService.isLocationAccessGranted,
+                      myLocationButtonEnabled: false,
+                      mapType: MapType.normal,
+                      zoomControlsEnabled: true,
+                      compassEnabled: true,
+                    ),
+                    // Overlay-Spinner solange kein Standort bekannt
+                    if (!hasLocation)
+                      Positioned(
+                        bottom: 24,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.amber,
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Standort wird ermittelt …',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
