@@ -19,8 +19,9 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
   bool _isMapReady = false;
-  final Map<String, BitmapDescriptor> _markerIcons = {}; // Bronze, Silver, Gold, Platinum
-  final Map<String, BitmapDescriptor> _markerIconsGray = {}; // Graustufen-Versionen
+  bool _hasCenteredOnUser = false;
+  final Map<String, BitmapDescriptor> _markerIcons = {};
+  final Map<String, BitmapDescriptor> _markerIconsGray = {};
   bool _isUpdatingMarkers = false;
 
   @override
@@ -136,7 +137,17 @@ class _MapScreenState extends State<MapScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
-    // Dark Mode Style anwenden
+    // Einmalig auf Nutzerposition zentrieren wenn GPS bereits verfügbar
+    if (!_hasCenteredOnUser) {
+      final locationService = Provider.of<LocationService>(context, listen: false);
+      final position = locationService.currentPosition;
+      if (position != null) {
+        _hasCenteredOnUser = true;
+        controller.animateCamera(
+          CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
+        );
+      }
+    }
     _mapController?.setMapStyle('''
 [
   {
@@ -387,17 +398,14 @@ class _MapScreenState extends State<MapScreen> {
                 final position = locationService.currentPosition;
                 final hasLocation = position != null;
 
-                // Karte immer anzeigen – Hamburg als Fallback wenn kein GPS
-                const LatLng hamburgCenter = LatLng(53.5500, 10.0000);
-                final initialTarget = hasLocation
-                    ? LatLng(position.latitude, position.longitude)
-                    : hamburgCenter;
-
-                // Wenn Position gerade erst verfügbar wurde, Kamera bewegen
-                if (hasLocation && _mapController != null) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                // Einmalig zur Nutzerposition springen wenn Karte bereit
+                if (hasLocation && !_hasCenteredOnUser && _mapController != null) {
+                  _hasCenteredOnUser = true;
+                  Future.microtask(() {
                     _mapController?.animateCamera(
-                      CameraUpdate.newLatLng(initialTarget),
+                      CameraUpdate.newLatLng(
+                        LatLng(position.latitude, position.longitude),
+                      ),
                     );
                   });
                 }
@@ -406,13 +414,12 @@ class _MapScreenState extends State<MapScreen> {
                   children: [
                     GoogleMap(
                       onMapCreated: _onMapCreated,
-                      initialCameraPosition: CameraPosition(
-                        target: initialTarget,
+                      initialCameraPosition: const CameraPosition(
+                        target: LatLng(53.5500, 10.0000), // Hamburg Fallback
                         zoom: 13.0,
                       ),
                       markers: _markers,
-                      myLocationEnabled: hasLocation &&
-                          locationService.isLocationAccessGranted,
+                      myLocationEnabled: locationService.isLocationAccessGranted,
                       myLocationButtonEnabled: false,
                       mapType: MapType.normal,
                       zoomControlsEnabled: true,

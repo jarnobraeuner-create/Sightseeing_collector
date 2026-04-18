@@ -491,8 +491,8 @@ class LandmarkService extends ChangeNotifier {
         name: 'Auedeich 70',
         description:
             'Historischer Standort am Auedeich 70 in Hamburg-Finkenwerder, direkt an der Elbe.',
-        latitude: 53.5072,
-        longitude: 9.8868,
+        latitude: 53.5286154,
+        longitude: 9.8833147,
         category: 'travel',
         difficulty: 'medium',
         pointsReward: 100,
