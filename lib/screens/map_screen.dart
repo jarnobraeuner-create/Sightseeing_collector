@@ -470,7 +470,6 @@ class _MapScreenState extends State<MapScreen> {
     final distance = position != null
         ? landmark.getDistance(position.latitude, position.longitude)
         : null;
-    // TESTMODUS: Distanz-Check deaktiviert - alle Tokens sammelbar
 
     showModalBottomSheet(
       context: context,
@@ -537,6 +536,13 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
       setState(_refreshCooldown);
       return _remaining != null && _remaining!.inSeconds > 0;
     });
+  }
+
+  // Distanz in km; <= 0.1 km = innerhalb 100 Meter
+  bool get _isNearby {
+    final d = widget.distance;
+    if (d == null) return false; // kein GPS = nicht sammelbar
+    return d <= 0.1;
   }
 
   Color get _tierColor {
@@ -755,7 +761,30 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
             const SizedBox(height: 12),
           ],
           // Buttons
-          if (_canCollect) ...[
+          if (!_isNearby) ...[                
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.grey[850],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[600]!),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.location_off, color: Colors.grey, size: 22),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.distance != null
+                        ? 'Zu weit entfernt (${(widget.distance! * 1000).toStringAsFixed(0)} m) – komm näher!'
+                        : 'Standort nicht verfügbar',
+                    style: const TextStyle(color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ] else if (_canCollect) ...[
             Row(
               children: [
                 Expanded(
