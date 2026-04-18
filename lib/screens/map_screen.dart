@@ -549,7 +549,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
   bool get _isNearby {
     final d = widget.distance;
     if (d == null) return false; // kein GPS = nicht sammelbar
-    return d <= 0.1;
+    return d <= 0.25;
   }
 
   Color get _tierColor {
