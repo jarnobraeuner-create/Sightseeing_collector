@@ -33,7 +33,7 @@ class CollectionService extends ChangeNotifier {
         id: 'set_hamburg',
         name: 'Hamburg Klassiker',
         description: 'Sammle alle klassischen Sehenswürdigkeiten in Hamburg',
-        requiredTokenIds: ['1', '2', '3', '4', '5', '6', '13', '14', '15', '16', '17', '18', '19', '20', '21'],
+        requiredTokenIds: ['1', '2', '3', '4', '5', '6', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23'],
         bonusPoints: 800,
         rewardImageUrl: 'assets/images/Hamburg_Wappen_small.png',
       ),

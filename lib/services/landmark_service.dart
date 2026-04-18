@@ -486,6 +486,50 @@ class LandmarkService extends ChangeNotifier {
           ),
         ],
       ),
+      Landmark(
+        id: '23',
+        name: 'Auedeich 70',
+        description:
+            'Historischer Standort am Auedeich 70 in Hamburg-Finkenwerder, direkt an der Elbe.',
+        latitude: 53.5072,
+        longitude: 9.8868,
+        category: 'travel',
+        difficulty: 'medium',
+        pointsReward: 100,
+        imageUrl: 'assets/images/Audeich_token_gold.png',
+        relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.gold,
+        quests: [
+          Quest(
+            id: 'q23',
+            title: 'Auedeich erkunden',
+            taskType: 'checkin',
+            completed: false,
+          ),
+        ],
+      ),
+      Landmark(
+        id: '22',
+        name: 'MS Altenwerder',
+        description:
+            'Das legendäre Containerschiff MS Altenwerder im Hafen Hamburg-Finkenwerder – Symbol der maritimen Industrie an der Elbe.',
+        latitude: 53.5151,
+        longitude: 9.9234,
+        category: 'travel',
+        difficulty: 'medium',
+        pointsReward: 100,
+        imageUrl: 'assets/images/MS-Altenwerder_token.png',
+        relatedSetIds: ['set_hamburg'],
+        defaultTier: TokenTier.gold,
+        quests: [
+          Quest(
+            id: 'q22',
+            title: 'MS Altenwerder entdecken',
+            taskType: 'checkin',
+            completed: false,
+          ),
+        ],
+      ),
     ]);
   }
 
