@@ -23,7 +23,16 @@ class SightseeingCollectorApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => LocationService()),
         ChangeNotifierProvider(create: (_) => LandmarkService()),
-        ChangeNotifierProvider(create: (_) => CollectionService()),
+        // CollectionService bekommt die userId vom AuthService
+        ChangeNotifierProxyProvider<AuthService, CollectionService>(
+          create: (_) => CollectionService(),
+          update: (_, auth, service) {
+            service!.setUserId(
+              auth.isLoggedIn ? auth.firebaseUser?.uid : null,
+            );
+            return service;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => AuctionService()),
         ChangeNotifierProvider(create: (_) => LootboxService()),
         ChangeNotifierProvider(create: (_) => CooldownService()),

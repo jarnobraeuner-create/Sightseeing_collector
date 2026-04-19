@@ -1,59 +1,119 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/index.dart';
 
 class CollectionService extends ChangeNotifier {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  String? _userId;
   final List<Token> _tokens = [];
   final List<CollectionSet> _sets = [];
   int _totalPoints = 0;
-  bool _isInitialized = false;
+  bool _isLoaded = false;
 
   List<Token> get tokens => _tokens;
-  List<CollectionSet> get sets {
-    _ensureInitialized();
-    return _sets;
-  }
+  List<CollectionSet> get sets => _sets;
   int get totalPoints => _totalPoints;
+  bool get isLoaded => _isLoaded;
 
   CollectionService() {
-    // Nicht automatisch initialisieren
-    debugPrint('CollectionService created (lazy loading)');
+    _initializeSets();
   }
 
-  void _ensureInitialized() {
-    if (!_isInitialized) {
-      _isInitialized = true;
-      _initializeSets();
+  // â”€â”€â”€ User Management (called by ProxyProvider) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  void setUserId(String? uid) {
+    if (_userId == uid) return;
+    _userId = uid;
+    if (uid != null) {
+      _loadFromFirestore(uid);
+    } else {
+      _clearLocalData();
     }
   }
 
+  Future<void> _loadFromFirestore(String uid) async {
+    _isLoaded = false;
+    notifyListeners();
+    try {
+      final userDoc = await _db.collection('users').doc(uid).get();
+      if (userDoc.exists) {
+        _totalPoints = (userDoc.data()?['coins'] as num?)?.toInt() ?? 0;
+      }
+
+      final tokensSnap = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('tokens')
+          .get();
+
+      _tokens.clear();
+      for (final doc in tokensSnap.docs) {
+        try {
+          _tokens.add(Token.fromJson(doc.data()));
+        } catch (e) {
+          debugPrint('Error parsing token ${doc.id}: $e');
+        }
+      }
+
+      _rebuildSetsState();
+      _isLoaded = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading collection from Firestore: $e');
+      _isLoaded = true;
+      notifyListeners();
+    }
+  }
+
+  void _clearLocalData() {
+    _tokens.clear();
+    _totalPoints = 0;
+    _isLoaded = false;
+    _initializeSets();
+    notifyListeners();
+  }
+
+  // â”€â”€â”€ Sets Initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
   void _initializeSets() {
+    _sets.clear();
     _sets.addAll([
       CollectionSet(
         id: 'set_hamburg',
         name: 'Hamburg Klassiker',
-        description: 'Sammle alle klassischen Sehenswürdigkeiten in Hamburg',
+        description: 'Sammle alle klassischen SehenswÃ¼rdigkeiten in Hamburg',
         requiredTokenIds: ['1', '2', '3', '4', '5', '6', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23'],
         bonusPoints: 800,
         rewardImageUrl: 'assets/images/Hamburg_Wappen_small.png',
       ),
       CollectionSet(
         id: 'set_monuments',
-        name: 'Hamburgs Denkmäler',
-        description: 'Besuche die berühmtesten Denkmäler Hamburgs',
-        requiredTokenIds: ['1', '2'], // Speicherstadt, Elbphilharmonie
+        name: 'Hamburgs DenkmÃ¤ler',
+        description: 'Besuche die berÃ¼hmtesten DenkmÃ¤ler Hamburgs',
+        requiredTokenIds: ['1', '2'],
         bonusPoints: 250,
       ),
       CollectionSet(
         id: 'set_dissen',
         name: 'Dissen Klassiker',
-        description: 'Entdecke alle Sehenswürdigkeiten in Dissen',
-        requiredTokenIds: ['7', '8', '9', '10', '11', '12'], // 6 Dissen Landmarks
+        description: 'Entdecke alle SehenswÃ¼rdigkeiten in Dissen',
+        requiredTokenIds: ['7', '8', '9', '10', '11', '12'],
         bonusPoints: 500,
         rewardImageUrl: 'assets/images/Dissen_Wappen_small.png',
       ),
     ]);
   }
+
+  void _rebuildSetsState() {
+    _initializeSets();
+    for (final token in _tokens) {
+      _updateSets(token.landmarkId, token.setIds);
+    }
+  }
+
+  // â”€â”€â”€ Token Collection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   void collectToken(
     String landmarkId,
@@ -63,13 +123,11 @@ class CollectionService extends ChangeNotifier {
     List<String> setIds, {
     TokenTier tier = TokenTier.bronze,
   }) {
-    // Check if token already collected
     if (hasCollectedToken(landmarkId)) {
       debugPrint('Token already collected for landmark: $landmarkId');
       return;
     }
 
-    // Create new token
     final token = Token(
       id: const Uuid().v4(),
       landmarkId: landmarkId,
@@ -83,11 +141,10 @@ class CollectionService extends ChangeNotifier {
 
     _tokens.add(token);
     _totalPoints += points;
-
-    // Update related sets
     _updateSets(landmarkId, setIds);
-
     notifyListeners();
+    _persistToken(token);
+    _persistCoins();
   }
 
   /// Like collectToken but skips the already-collected check (used for lootbox)
@@ -113,6 +170,31 @@ class CollectionService extends ChangeNotifier {
     _totalPoints += points;
     _updateSets(landmarkId, setIds);
     notifyListeners();
+    _persistToken(token);
+    _persistCoins();
+  }
+
+  /// Adds an externally created token (e.g. received from a trade)
+  void addToken(Token token) {
+    _tokens.add(token);
+    _totalPoints += token.points;
+    _updateSets(token.landmarkId, token.setIds);
+    notifyListeners();
+    _persistToken(token);
+    _persistCoins();
+  }
+
+  /// Removes a token by ID (e.g. sold or traded away)
+  void removeTokenById(String tokenId) {
+    final idx = _tokens.indexWhere((t) => t.id == tokenId);
+    if (idx == -1) return;
+    final token = _tokens[idx];
+    _tokens.removeAt(idx);
+    _totalPoints -= token.points;
+    if (_totalPoints < 0) _totalPoints = 0;
+    notifyListeners();
+    _deleteTokenFromFirestore(tokenId);
+    _persistCoins();
   }
 
   void _updateSets(String landmarkId, List<String> setIds) {
@@ -121,31 +203,42 @@ class CollectionService extends ChangeNotifier {
       if (setIndex == -1) continue;
 
       final set = _sets[setIndex];
-      
-      // Check if this landmark is required for this set
       if (!set.requiredTokenIds.contains(landmarkId)) continue;
+      if (set.collectedTokenIds.contains(landmarkId)) continue;
 
-      // Add to collected tokens if not already there
-      if (!set.collectedTokenIds.contains(landmarkId)) {
-        final updatedCollectedTokens = List<String>.from(set.collectedTokenIds)
-          ..add(landmarkId);
+      final updatedCollectedTokens =
+          List<String>.from(set.collectedTokenIds)..add(landmarkId);
+      final isComplete =
+          updatedCollectedTokens.length == set.requiredTokenIds.length;
 
-        // Check if set is now complete
-        final isComplete = updatedCollectedTokens.length == set.requiredTokenIds.length;
+      _sets[setIndex] = set.copyWith(
+        collectedTokenIds: updatedCollectedTokens,
+        completed: isComplete,
+      );
 
-        _sets[setIndex] = set.copyWith(
-          collectedTokenIds: updatedCollectedTokens,
-          completed: isComplete,
-        );
-
-        // Award bonus points if complete
-        if (isComplete && !set.completed) {
-          _totalPoints += set.bonusPoints;
-          debugPrint('Set completed: ${set.name}. Bonus points: ${set.bonusPoints}');
-        }
+      if (isComplete && !set.completed) {
+        _totalPoints += set.bonusPoints;
+        debugPrint('Set completed: ${set.name}. Bonus: ${set.bonusPoints}');
       }
     }
   }
+
+  // â”€â”€â”€ Coins / Points â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  void addPoints(int points) {
+    _totalPoints += points;
+    notifyListeners();
+    _persistCoins();
+  }
+
+  void spendPoints(int points) {
+    _totalPoints -= points;
+    if (_totalPoints < 0) _totalPoints = 0;
+    notifyListeners();
+    _persistCoins();
+  }
+
+  // â”€â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   bool hasCollectedToken(String landmarkId) {
     return _tokens.any((token) => token.landmarkId == landmarkId);
@@ -191,12 +284,13 @@ class CollectionService extends ChangeNotifier {
     };
   }
 
-  // Token Upgrade System
+  // â”€â”€â”€ Token Upgrade System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
   bool canUpgradeToken(String landmarkId, TokenTier fromTier) {
-    final tokensOfLandmark = _tokens.where(
-      (t) => t.landmarkId == landmarkId && t.tier == fromTier,
-    );
-    return tokensOfLandmark.length >= 5;
+    final count = _tokens
+        .where((t) => t.landmarkId == landmarkId && t.tier == fromTier)
+        .length;
+    return count >= 5;
   }
 
   void upgradeTokens(String landmarkId, TokenTier fromTier, TokenTier toTier) {
@@ -210,13 +304,12 @@ class CollectionService extends ChangeNotifier {
       return;
     }
 
-    // Entferne die 5 Token
     for (var token in tokensToUpgrade) {
       _tokens.remove(token);
       _totalPoints -= token.points;
+      _deleteTokenFromFirestore(token.id);
     }
 
-    // Erstelle neuen höherwertigen Token
     final firstToken = tokensToUpgrade.first;
     final newToken = Token(
       id: const Uuid().v4(),
@@ -231,8 +324,9 @@ class CollectionService extends ChangeNotifier {
 
     _tokens.add(newToken);
     _totalPoints += newToken.points;
-
     notifyListeners();
+    _persistToken(newToken);
+    _persistCoins();
   }
 
   void upgradeSpecificTokens(
@@ -242,18 +336,18 @@ class CollectionService extends ChangeNotifier {
   ) {
     final mainToken = _tokens.firstWhere((t) => t.id == mainTokenId);
 
-    // Entferne Haupttoken
     _tokens.removeWhere((t) => t.id == mainTokenId);
     _totalPoints -= mainToken.points;
+    _deleteTokenFromFirestore(mainTokenId);
 
-    // Entferne Opfertokens
     for (final id in sacrificeTokenIds) {
-      final sacrifice = _tokens.firstWhere((t) => t.id == id, orElse: () => mainToken);
+      final sacrifice =
+          _tokens.firstWhere((t) => t.id == id, orElse: () => mainToken);
       _tokens.removeWhere((t) => t.id == id);
       _totalPoints -= sacrifice.points;
+      _deleteTokenFromFirestore(id);
     }
 
-    // Erstelle upgegradeten Token
     final newToken = Token(
       id: const Uuid().v4(),
       landmarkId: mainToken.landmarkId,
@@ -267,8 +361,9 @@ class CollectionService extends ChangeNotifier {
 
     _tokens.add(newToken);
     _totalPoints += newToken.points;
-
     notifyListeners();
+    _persistToken(newToken);
+    _persistCoins();
   }
 
   int getTokenCountByTier(String landmarkId, TokenTier tier) {
@@ -277,7 +372,7 @@ class CollectionService extends ChangeNotifier {
         .length;
   }
 
-  // Alle Tokens für Testzwecke sammeln (6x Bronze pro Landmark)
+  // Alle Tokens fÃ¼r Testzwecke sammeln (6x Bronze pro Landmark)
   void collectAllTokensForTesting(List<Landmark> landmarks) {
     for (final landmark in landmarks) {
       final token = Token(
@@ -293,7 +388,6 @@ class CollectionService extends ChangeNotifier {
       _tokens.add(token);
       _totalPoints += landmark.pointsReward;
     }
-    // Fill all sets completely
     for (int i = 0; i < _sets.length; i++) {
       final set = _sets[i];
       if (!set.completed) {
@@ -305,24 +399,57 @@ class CollectionService extends ChangeNotifier {
       }
     }
     notifyListeners();
-  }
-
-  // Add points directly (e.g. quick-sell)
-  void addPoints(int points) {
-    _totalPoints += points;
-    notifyListeners();
+    for (final token in _tokens) {
+      _persistToken(token);
+    }
+    _persistCoins();
   }
 
   // Reset collection for testing
   void resetCollection() {
+    final tokenIds = _tokens.map((t) => t.id).toList();
     _tokens.clear();
     _totalPoints = 0;
-    for (var i = 0; i < _sets.length; i++) {
-      _sets[i] = _sets[i].copyWith(
-        collectedTokenIds: [],
-        completed: false,
-      );
-    }
+    _initializeSets();
     notifyListeners();
+    if (_userId != null) {
+      for (final id in tokenIds) {
+        _deleteTokenFromFirestore(id);
+      }
+      _persistCoins();
+    }
+  }
+
+  // â”€â”€â”€ Firestore Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  void _persistToken(Token token) {
+    if (_userId == null) return;
+    _db
+        .collection('users')
+        .doc(_userId)
+        .collection('tokens')
+        .doc(token.id)
+        .set(token.toJson())
+        .catchError((e) => debugPrint('Error saving token: $e'));
+  }
+
+  void _deleteTokenFromFirestore(String tokenId) {
+    if (_userId == null) return;
+    _db
+        .collection('users')
+        .doc(_userId)
+        .collection('tokens')
+        .doc(tokenId)
+        .delete()
+        .catchError((e) => debugPrint('Error deleting token: $e'));
+  }
+
+  void _persistCoins() {
+    if (_userId == null) return;
+    _db
+        .collection('users')
+        .doc(_userId)
+        .set({'coins': _totalPoints}, SetOptions(merge: true))
+        .catchError((e) => debugPrint('Error saving coins: $e'));
   }
 }

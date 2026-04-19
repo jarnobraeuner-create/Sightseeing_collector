@@ -1,89 +1,71 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/auction.dart';
 
 class AuctionService extends ChangeNotifier {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  StreamSubscription<QuerySnapshot>? _subscription;
+
   final List<Auction> _auctions = [];
-  
+  bool _isLoaded = false;
+
   List<Auction> get auctions => _auctions.where((a) => a.isActive).toList();
-  
+  bool get isLoaded => _isLoaded;
+
   AuctionService() {
-    _initializeDemoAuctions();
+    _listenToAuctions();
   }
 
-  void _initializeDemoAuctions() {
-    // Demo-Auktionen für Testing
-    final now = DateTime.now();
-    
-    _auctions.addAll([
-      Auction(
-        id: 'auction_1',
-        sellerId: 'demo_seller_1',
-        sellerName: 'Max Mustermann',
-        tokenId: '1',
-        tokenName: 'Speicherstadt',
-        tokenImageUrl: 'assets/images/Token_gold_speicherstadt.png',
-        minimumCoins: 50,
-        createdAt: now.subtract(const Duration(hours: 2)),
-        expiresAt: now.add(const Duration(hours: 22)),
-        bids: [
-          Bid(
-            id: 'bid_1',
-            bidderId: 'bidder_1',
-            bidderName: 'Anna Schmidt',
-            coins: 75,
-            offeredTokenIds: [],
-            offeredTokenNames: [],
-            createdAt: now.subtract(const Duration(hours: 1)),
-          ),
-        ],
-      ),
-      Auction(
-        id: 'auction_2',
-        sellerId: 'demo_seller_2',
-        sellerName: 'Lisa Müller',
-        tokenId: '2',
-        tokenName: 'Elbphilharmonie',
-        tokenImageUrl: 'assets/images/Token_Elbphilhamonie_Bronze.png',
-        minimumCoins: 80,
-        createdAt: now.subtract(const Duration(hours: 5)),
-        expiresAt: now.add(const Duration(hours: 19)),
-        bids: [
-          Bid(
-            id: 'bid_2',
-            bidderId: 'bidder_2',
-            bidderName: 'Tom Weber',
-            coins: 50,
-            offeredTokenIds: ['4'],
-            offeredTokenNames: ['Michel'],
-            createdAt: now.subtract(const Duration(hours: 3)),
-          ),
-        ],
-      ),
-      Auction(
-        id: 'auction_3',
-        sellerId: 'demo_seller_3',
-        sellerName: 'Peter Klein',
-        tokenId: '5',
-        tokenName: 'Chilehaus',
-        tokenImageUrl: 'assets/images/Token_gold_chilehaus.png',
-        minimumCoins: 60,
-        createdAt: now.subtract(const Duration(hours: 1)),
-        expiresAt: now.add(const Duration(hours: 23)),
-        bids: [],
-      ),
-    ]);
+  void _listenToAuctions() {
+    _subscription = _db
+        .collection('auctions')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+      _auctions.clear();
+      final now = DateTime.now();
+      for (final doc in snapshot.docs) {
+        try {
+          final auction = Auction.fromJson(doc.data());
+          // Automatisch abgelaufene Auktionen deaktivieren
+          if (auction.isActive && auction.expiresAt.isBefore(now)) {
+            _db.collection('auctions').doc(doc.id).update({'isActive': false});
+          } else {
+            _auctions.add(auction);
+          }
+        } catch (e) {
+          debugPrint('Error parsing auction ${doc.id}: $e');
+        }
+      }
+      _isLoaded = true;
+      notifyListeners();
+    }, onError: (e) {
+      debugPrint('Auction stream error: $e');
+      _isLoaded = true;
+      notifyListeners();
+    });
   }
 
-  void createAuction(
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  // ─── Create Auction ───────────────────────────────────────────────────────
+
+  Future<void> createAuction(
     String sellerId,
     String sellerName,
     String tokenId,
     String tokenName,
     String tokenImageUrl,
     int minimumCoins,
-  ) {
+  ) async {
+    final id = 'auction_${DateTime.now().millisecondsSinceEpoch}';
     final auction = Auction(
-      id: 'auction_${DateTime.now().millisecondsSinceEpoch}',
+      id: id,
       sellerId: sellerId,
       sellerName: sellerName,
       tokenId: tokenId,
@@ -93,22 +75,21 @@ class AuctionService extends ChangeNotifier {
       createdAt: DateTime.now(),
       expiresAt: DateTime.now().add(const Duration(days: 1)),
     );
-    
-    _auctions.add(auction);
-    notifyListeners();
+
+    await _db.collection('auctions').doc(id).set(auction.toJson());
+    // Stream update wird den UI refresh triggern
   }
 
-  void placeBid(
+  // ─── Place Bid ────────────────────────────────────────────────────────────
+
+  Future<void> placeBid(
     String auctionId,
     String bidderId,
     String bidderName,
     int coins,
     List<String> offeredTokenIds,
     List<String> offeredTokenNames,
-  ) {
-    final auctionIndex = _auctions.indexWhere((a) => a.id == auctionId);
-    if (auctionIndex == -1) return;
-
+  ) async {
     final bid = Bid(
       id: 'bid_${DateTime.now().millisecondsSinceEpoch}',
       bidderId: bidderId,
@@ -119,33 +100,38 @@ class AuctionService extends ChangeNotifier {
       createdAt: DateTime.now(),
     );
 
-    _auctions[auctionIndex].bids.add(bid);
-    notifyListeners();
+    await _db.collection('auctions').doc(auctionId).update({
+      'bids': FieldValue.arrayUnion([bid.toJson()]),
+    });
   }
 
-  void acceptBid(String auctionId, String bidId) {
-    final auctionIndex = _auctions.indexWhere((a) => a.id == auctionId);
-    if (auctionIndex == -1) return;
+  // ─── Accept Bid ───────────────────────────────────────────────────────────
 
-    _auctions[auctionIndex].isActive = false;
-    notifyListeners();
+  Future<void> acceptBid(String auctionId, String bidId) async {
+    await _db
+        .collection('auctions')
+        .doc(auctionId)
+        .update({'isActive': false, 'acceptedBidId': bidId});
   }
 
-  void cancelAuction(String auctionId) {
-    final auctionIndex = _auctions.indexWhere((a) => a.id == auctionId);
-    if (auctionIndex == -1) return;
+  // ─── Cancel Auction ───────────────────────────────────────────────────────
 
-    _auctions[auctionIndex].isActive = false;
-    notifyListeners();
+  Future<void> cancelAuction(String auctionId) async {
+    await _db
+        .collection('auctions')
+        .doc(auctionId)
+        .update({'isActive': false});
   }
+
+  // ─── Queries ─────────────────────────────────────────────────────────────
 
   List<Auction> getMyAuctions(String userId) {
     return _auctions.where((a) => a.sellerId == userId && a.isActive).toList();
   }
 
   List<Auction> getMyBids(String userId) {
-    return _auctions.where((a) => 
-      a.isActive && a.bids.any((b) => b.bidderId == userId)
-    ).toList();
+    return _auctions
+        .where((a) => a.isActive && a.bids.any((b) => b.bidderId == userId))
+        .toList();
   }
 }

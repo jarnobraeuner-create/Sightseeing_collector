@@ -631,10 +631,11 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                           .map((t) => t.landmarkName)
                           .toList();
                       
+                      final auth = Provider.of<AuthService>(context, listen: false);
                       auctionService.placeBid(
                         auction.id,
-                        'current_user',
-                        'Du',
+                        auth.firebaseUser!.uid,
+                        auth.appUser?.username ?? 'Unbekannt',
                         coinBid,
                         selectedTokenIds,
                         selectedTokenNames,
@@ -824,9 +825,10 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             ElevatedButton(
               onPressed: () {
                 final auctionService = Provider.of<AuctionService>(context, listen: false);
+                final auth = Provider.of<AuthService>(context, listen: false);
                 auctionService.createAuction(
-                  'current_user',
-                  'Du',
+                  auth.firebaseUser!.uid,
+                  auth.appUser?.username ?? 'Unbekannt',
                   token.id,
                   landmark.name,
                   landmark.imageUrl,
@@ -856,7 +858,8 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
   Widget _buildMyAuctions() {
     return Consumer<AuctionService>(
       builder: (context, auctionService, child) {
-        final myAuctions = auctionService.getMyAuctions('current_user');
+        final auth = Provider.of<AuthService>(context, listen: false);
+        final myAuctions = auctionService.getMyAuctions(auth.firebaseUser?.uid ?? '');
         
         if (myAuctions.isEmpty) {
           return Center(
