@@ -276,6 +276,53 @@ class _LoggedInProfile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
+                // ── Abmelden Button ──────────────────────────────────────
+                Consumer<AuthService>(
+                  builder: (_, auth, __) => SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red[400],
+                        side: BorderSide(color: Colors.red[700]!),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      icon: const Icon(Icons.logout),
+                      label: const Text(
+                        'Abmelden',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: Colors.grey[850],
+                            title: const Text('Abmelden?',
+                                style: TextStyle(color: Colors.white)),
+                            content: const Text(
+                                'Möchtest du dich wirklich abmelden?',
+                                style: TextStyle(color: Colors.white70)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Abbrechen'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: Text('Abmelden',
+                                    style: TextStyle(color: Colors.red[400])),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) await auth.logout();
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
               ],
             ),
           );

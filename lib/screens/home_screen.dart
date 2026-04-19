@@ -48,65 +48,53 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildPage(3),
             ],
           ),
-          // Schwebende Navigation Buttons (nur auf Map-Screen)
+          // Upgrade-Button nur auf der Karte
           if (_selectedIndex == 0)
             Positioned(
-              top: 100,
+              top: 120,
               right: 16,
-              child: Column(
-                children: [
-                  FloatingActionButton(
-                    heroTag: 'trading',
-                    onPressed: () => setState(() => _selectedIndex = 1),
-                    tooltip: 'Trading',
-                    backgroundColor: Colors.blue[700],
-                    child: const Icon(Icons.store),
+              child: FloatingActionButton.small(
+                heroTag: 'upgrade',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TokenUpgradeScreen(),
                   ),
-                  const SizedBox(height: 12),
-                  FloatingActionButton(
-                    heroTag: 'upgrade',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TokenUpgradeScreen(),
-                        ),
-                      );
-                    },
-                    tooltip: 'Token Upgrades',
-                    backgroundColor: Colors.purple[700],
-                    child: const Icon(Icons.upgrade),
-                  ),
-                  const SizedBox(height: 12),
-                  FloatingActionButton(
-                    heroTag: 'sets',
-                    onPressed: () => setState(() => _selectedIndex = 2),
-                    tooltip: 'Sets',
-                    backgroundColor: Colors.teal[700],
-                    child: const Icon(Icons.workspace_premium),
-                  ),
-                  const SizedBox(height: 12),
-                  FloatingActionButton(
-                    heroTag: 'profile',
-                    onPressed: () => setState(() => _selectedIndex = 3),
-                    tooltip: 'Profil',
-                    child: const Icon(Icons.person),
-                  ),
-                ],
+                ),
+                tooltip: 'Token Upgrades',
+                backgroundColor: Colors.purple[700],
+                child: const Icon(Icons.upgrade, color: Colors.white),
               ),
             ),
-          // Zurück zur Karte Button auf anderen Screens
-          if (_selectedIndex != 0)
-            Positioned(
-              bottom: 24,
-              right: 24,
-              child: FloatingActionButton(
-                heroTag: 'back_to_map',
-                onPressed: () => setState(() => _selectedIndex = 0),
-                tooltip: 'Zurück zur Karte',
-                child: const Icon(Icons.map),
-              ),
-            ),
+        ],
+      ),
+      // ── Feste untere Navigation ──────────────────────────────────────────
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (i) => setState(() => _selectedIndex = i),
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.grey[900],
+        selectedItemColor: Colors.amber[600],
+        unselectedItemColor: Colors.grey[500],
+        selectedFontSize: 12,
+        unselectedFontSize: 11,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map),
+            label: 'Karte',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.store),
+            label: 'Trading',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.workspace_premium),
+            label: 'Sets',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profil',
+          ),
         ],
       ),
     );
