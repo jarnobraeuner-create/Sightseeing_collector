@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "886045906435",
+    "project_id": "sightseeing-collector-11d2f",
+    "storage_bucket": "sightseeing-collector-11d2f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:886045906435:android:3627116bd3864168c42036",
+        "android_client_info": {
+          "package_name": "com.sightseeing.collector"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZzuXuCwly6eXAjDOaKQPCK26yMNyyU58"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

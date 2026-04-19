@@ -43,7 +43,7 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                 );
-                if (confirm == true) auth.logout();
+                if (confirm == true) await auth.logout();
               },
             ),
           ),
