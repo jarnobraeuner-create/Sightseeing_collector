@@ -17,37 +17,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0; // Starte mit Map (Index 0)
-  bool _authListenerAdded = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_authListenerAdded) {
-      _authListenerAdded = true;
-      final auth = Provider.of<AuthService>(context, listen: false);
-      auth.addListener(_handleAuthChange);
-      _handleAuthChange(); // Direkt beim Start prüfen
-    }
-  }
-
-  void _handleAuthChange() {
-    final auth = Provider.of<AuthService>(context, listen: false);
-    if (auth.isInitialized && !auth.isLoggedIn) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _selectedIndex != 3) {
-          setState(() => _selectedIndex = 3);
-        }
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    final auth = Provider.of<AuthService>(context, listen: false);
-    auth.removeListener(_handleAuthChange);
-    super.dispose();
-  }
+  int _selectedIndex = 0;
 
   Widget _buildPage(int index) {
     switch (index) {
@@ -66,12 +36,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthService>(context);
+
+    // Wenn nicht eingeloggt → immer Profil-Tab (Index 3) anzeigen
+    final effectiveIndex = auth.isLoggedIn ? _selectedIndex : 3;
 
     return Scaffold(
       body: Stack(
         children: [
           IndexedStack(
-            index: _selectedIndex,
+            index: effectiveIndex,
             children: [
               _buildPage(0),
               _buildPage(1),
@@ -79,8 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildPage(3),
             ],
           ),
-          // Schwebende Navigation Buttons
-          if (_selectedIndex == 0) // Nur auf Map-Screen zeigen
+          // Schwebende Navigation Buttons (nur auf Map-Screen und nur eingeloggt)
+          if (effectiveIndex == 0 && auth.isLoggedIn)
             Positioned(
               top: 100,
               right: 16,
@@ -138,8 +112,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-          // Zurück zur Karte Button auf anderen Screens
-          if (_selectedIndex != 0)
+          // Zurück zur Karte Button auf anderen Screens (nur eingeloggt)
+          if (effectiveIndex != 0 && auth.isLoggedIn)
             Positioned(
               bottom: 24,
               right: 24,
