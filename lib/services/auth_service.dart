@@ -47,6 +47,9 @@ class AuthService extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
   AuthService() {
     _auth.authStateChanges().listen(_onAuthStateChanged);
   }
@@ -57,6 +60,7 @@ class AuthService extends ChangeNotifier {
     } else {
       await _loadUserProfile(user.uid);
     }
+    _isInitialized = true;
     notifyListeners();
   }
 
