@@ -18,6 +18,36 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0; // Starte mit Map (Index 0)
+  bool _authListenerAdded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_authListenerAdded) {
+      _authListenerAdded = true;
+      final auth = Provider.of<AuthService>(context, listen: false);
+      auth.addListener(_handleAuthChange);
+      _handleAuthChange(); // Direkt beim Start prüfen
+    }
+  }
+
+  void _handleAuthChange() {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    if (auth.isInitialized && !auth.isLoggedIn) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedIndex != 3) {
+          setState(() => _selectedIndex = 3);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    auth.removeListener(_handleAuthChange);
+    super.dispose();
+  }
 
   Widget _buildPage(int index) {
     switch (index) {
@@ -300,8 +330,8 @@ class LandmarkDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(landmark.name),
       ),
-      body: Consumer2<LocationService, CollectionService>(
-        builder: (context, locationService, collectionService, child) {
+      body: Consumer3<LocationService, CollectionService, AuthService>(
+        builder: (context, locationService, collectionService, authService, child) {
           final position = locationService.currentPosition;
           final distance = position != null
               ? landmark.getDistance(position.latitude, position.longitude)
@@ -463,6 +493,19 @@ class LandmarkDetailScreen extends StatelessWidget {
                               ? null
                               : (isNearby
                                   ? () {
+                                      if (!authService.isLoggedIn) {
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Bitte melde dich an, um Tokens zu sammeln. Gehe zum Profil-Tab.',
+                                            ),
+                                            backgroundColor: Colors.orange,
+                                            duration: Duration(seconds: 3),
+                                          ),
+                                        );
+                                        return;
+                                      }
                                       collectionService.collectToken(
                                         landmark.id,
                                         landmark.name,

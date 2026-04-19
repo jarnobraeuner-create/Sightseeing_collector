@@ -609,6 +609,20 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
   }
 
   void _collect(BuildContext ctx) {
+    final authService = Provider.of<AuthService>(ctx, listen: false);
+    if (!authService.isLoggedIn) {
+      Navigator.pop(ctx);
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Bitte melde dich an, um Tokens zu sammeln. Gehe zum Profil-Tab.',
+          ),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
     final landmark = widget.landmark;
     widget.collectionService.collectTokenAllowDuplicate(
       landmark.id,

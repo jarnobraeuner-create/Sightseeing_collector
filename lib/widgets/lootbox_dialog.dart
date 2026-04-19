@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/index.dart';
+import '../services/auth_service.dart';
 import '../services/collection_service.dart';
 import '../services/landmark_service.dart';
 import '../services/lootbox_service.dart';
@@ -97,6 +98,20 @@ class _LootboxDialogState extends State<LootboxDialog>
   }
 
   void _keepToken() {
+    final authService = context.read<AuthService>();
+    if (!authService.isLoggedIn) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Bitte melde dich an, um Tokens zu behalten. Gehe zum Profil-Tab.',
+          ),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
     final collectionService = context.read<CollectionService>();
     final landmark = _wonLandmark!;
     final tier = _wonTier!;
