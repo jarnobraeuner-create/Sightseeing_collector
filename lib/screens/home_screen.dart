@@ -36,16 +36,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthService>(context);
-
-    // Wenn nicht eingeloggt → immer Profil-Tab (Index 3) anzeigen
-    final effectiveIndex = auth.isLoggedIn ? _selectedIndex : 3;
-
     return Scaffold(
       body: Stack(
         children: [
           IndexedStack(
-            index: effectiveIndex,
+            index: _selectedIndex,
             children: [
               _buildPage(0),
               _buildPage(1),
@@ -53,8 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildPage(3),
             ],
           ),
-          // Schwebende Navigation Buttons (nur auf Map-Screen und nur eingeloggt)
-          if (effectiveIndex == 0 && auth.isLoggedIn)
+          // Schwebende Navigation Buttons (nur auf Map-Screen)
+          if (_selectedIndex == 0)
             Positioned(
               top: 100,
               right: 16,
@@ -62,11 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   FloatingActionButton(
                     heroTag: 'trading',
-                    onPressed: () {
-                      setState(() {
-                        _selectedIndex = 1;
-                      });
-                    },
+                    onPressed: () => setState(() => _selectedIndex = 1),
                     tooltip: 'Trading',
                     backgroundColor: Colors.blue[700],
                     child: const Icon(Icons.store),
@@ -89,11 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 12),
                   FloatingActionButton(
                     heroTag: 'sets',
-                    onPressed: () {
-                      setState(() {
-                        _selectedIndex = 2;
-                      });
-                    },
+                    onPressed: () => setState(() => _selectedIndex = 2),
                     tooltip: 'Sets',
                     backgroundColor: Colors.teal[700],
                     child: const Icon(Icons.workspace_premium),
@@ -101,29 +88,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 12),
                   FloatingActionButton(
                     heroTag: 'profile',
-                    onPressed: () {
-                      setState(() {
-                        _selectedIndex = 3;
-                      });
-                    },
+                    onPressed: () => setState(() => _selectedIndex = 3),
                     tooltip: 'Profil',
                     child: const Icon(Icons.person),
                   ),
                 ],
               ),
             ),
-          // Zurück zur Karte Button auf anderen Screens (nur eingeloggt)
-          if (effectiveIndex != 0 && auth.isLoggedIn)
+          // Zurück zur Karte Button auf anderen Screens
+          if (_selectedIndex != 0)
             Positioned(
               bottom: 24,
               right: 24,
               child: FloatingActionButton(
                 heroTag: 'back_to_map',
-                onPressed: () {
-                  setState(() {
-                    _selectedIndex = 0;
-                  });
-                },
+                onPressed: () => setState(() => _selectedIndex = 0),
                 tooltip: 'Zurück zur Karte',
                 child: const Icon(Icons.map),
               ),

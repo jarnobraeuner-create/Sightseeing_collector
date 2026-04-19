@@ -1,0 +1,148 @@
+Analyzing sightseeing_collector...                              
+
+   info - Unnecessary use of a block function body - lib\main.dart:20:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:14:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:48:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:72:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\models\auction.dart:82:22 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:108:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\collection_set.dart:11:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\models\collection_set.dart:30:6 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\models\collection_set.dart:54:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\landmark.dart:10:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\landmark.dart:24:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\landmark.dart:46:3 - sort_constructors_first
+   info - Local variables should be final - lib\models\landmark.dart:65:5 - prefer_final_locals
+   info - Local variables should be final - lib\models\landmark.dart:66:5 - prefer_final_locals
+   info - Local variables should be final - lib\models\landmark.dart:68:5 - prefer_final_locals
+   info - Local variables should be final - lib\models\landmark.dart:74:5 - prefer_final_locals
+   info - Local variables should be final - lib\models\landmark.dart:75:5 - prefer_final_locals
+   info - Unnecessary use of a block function body - lib\models\landmark.dart:80:37 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\models\landmark.dart:99:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\token.dart:44:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\token.dart:66:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\token_upgrade.dart:30:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\user.dart:9:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\user.dart:28:11 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\models\user.dart:44:6 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\auth_gate.dart:12:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\auth_screen.dart:34:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\auth_screen.dart:207:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\auth_screen.dart:209:35 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\auth_screen.dart:350:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\auth_screen.dart:352:35 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\auth_screen.dart:466:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\auth_screen.dart:477:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:32:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:243:28 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:334:26 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:345:41 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\collection_screen.dart:358:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:444:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:38:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:137:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:143:58 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:166:56 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:238:52 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:262:5 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\home_screen.dart:275:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:281:38 - prefer_expression_function_bodies
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart' - lib\screens\map_screen.dart:3:8 - unnecessary_import
+   info - 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead - lib\screens\map_screen.dart:149:56 - deprecated_member_use
+   info - 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead - lib\screens\map_screen.dart:162:60 - deprecated_member_use
+   info - 'setMapStyle' is deprecated and shouldn't be used. Use GoogleMap.style instead - lib\screens\map_screen.dart:228:21 - deprecated_member_use
+   info - Unnecessary use of a block function body - lib\screens\map_screen.dart:403:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a 'double' literal - lib\screens\map_screen.dart:455:49 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\screens\map_screen.dart:456:31 - prefer_int_literals
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\map_screen.dart:546:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\map_screen_safe.dart:10:38 - prefer_expression_function_bodies
+   info - Use 'const' with the constructor to improve performance - lib\screens\map_screen_safe.dart:94:13 - prefer_const_constructors
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:11:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:24:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\profile_screen.dart:297:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:306:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\profile_screen.dart:365:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:368:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\profile_screen.dart:402:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:410:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\sets_screen.dart:38:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\sets_screen.dart:83:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\sets_screen.dart:313:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\token_upgrade_screen.dart:12:9 - sort_constructors_first
+   info - Closure should be a tearoff - lib\screens\token_upgrade_screen.dart:35:38 - unnecessary_lambdas
+   info - Unnecessary use of a block function body - lib\screens\token_upgrade_screen.dart:140:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\token_upgrade_screen.dart:174:71 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\token_upgrade_screen.dart:675:60 - prefer_expression_function_bodies
+   info - Unnecessary use of a 'double' literal - lib\screens\token_upgrade_screen.dart:697:47 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\screens\token_upgrade_screen.dart:697:57 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\screens\token_upgrade_screen.dart:700:44 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\screens\token_upgrade_screen.dart:700:54 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\screens\token_upgrade_screen.dart:733:55 - prefer_int_literals
+   info - Missing an 'await' for the 'Future' computed by this expression - lib\screens\token_upgrade_screen.dart:784:21 - unawaited_futures
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\token_upgrade_screen.dart:888:9 - sort_constructors_first
+   info - Unnecessary use of a 'double' literal - lib\screens\token_upgrade_screen.dart:925:48 - prefer_int_literals
+   info - Unnecessary use of a block function body - lib\screens\token_upgrade_screen.dart:987:37 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\token_upgrade_screen.dart:1098:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:53:58 - prefer_expression_function_bodies
+   info - Unnecessary use of a 'double' literal - lib\screens\trading_screen.dart:55:47 - prefer_int_literals
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:105:31 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:137:23 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:280:30 - prefer_expression_function_bodies
+   info - Local variables should be final - lib\screens\trading_screen.dart:410:5 - prefer_final_locals
+   info - Use 'const' with the constructor to improve performance - lib\screens\trading_screen.dart:490:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\trading_screen.dart:525:17 - prefer_const_constructors
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:666:32 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:858:29 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\trading_screen.dart:1103:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:1106:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\trading_screen.dart:1139:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:1148:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:1201:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\services\auction_service.dart:16:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\services\auction_service.dart:128:46 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\services\auction_service.dart:132:42 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\services\auth_service.dart:11:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\auth_service.dart:18:11 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\services\auth_service.dart:18:72 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\services\auth_service.dart:53:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\collection_service.dart:20:3 - sort_constructors_first
+   info - The variable 'setId' should be final - lib\services\collection_service.dart:201:14 - prefer_final_in_for_each
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:243:45 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:255:52 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:272:42 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:276:36 - prefer_expression_function_bodies
+   info - The variable 'token' should be final - lib\services\collection_service.dart:307:14 - prefer_final_in_for_each
+   info - Unnecessary use of a block function body - lib\services\collection_service.dart:369:62 - prefer_expression_function_bodies
+   info - Use 'forEach' and a tear-off rather than a 'for' loop to apply a function to every element - lib\services\collection_service.dart:402:5 - prefer_foreach
+   info - Use 'forEach' and a tear-off rather than a 'for' loop to apply a function to every element - lib\services\collection_service.dart:416:7 - prefer_foreach
+   info - Constructor declarations should be before non-constructor declarations - lib\services\cooldown_service.dart:9:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\services\cooldown_service.dart:62:44 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\services\landmark_service.dart:22:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\services\landmark_service.dart:560:34 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\services\location_service.dart:21:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\lootbox_service.dart:12:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\widgets\landmark_card.dart:10:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\widgets\landmark_card.dart:66:70 - prefer_expression_function_bodies
+   info - Use 'late' for private members with a non-nullable type - lib\widgets\lootbox_dialog.dart:28:14 - use_late_for_private_fields_and_variables
+   info - Use 'late' for private members with a non-nullable type - lib\widgets\lootbox_dialog.dart:29:13 - use_late_for_private_fields_and_variables
+   info - Unnecessary use of a 'double' literal - lib\widgets\lootbox_dialog.dart:55:39 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\widgets\lootbox_dialog.dart:55:49 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\widgets\lootbox_dialog.dart:58:38 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\widgets\lootbox_dialog.dart:58:48 - prefer_int_literals
+   info - Don't use 'BuildContext's across async gaps - lib\widgets\lootbox_dialog.dart:81:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\widgets\lootbox_dialog.dart:85:29 - use_build_context_synchronously
+   info - Unnecessary use of a block function body - lib\widgets\lootbox_dialog.dart:170:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\widgets\lootbox_dialog.dart:203:24 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\widgets\lootbox_dialog.dart:220:31 - prefer_expression_function_bodies
+   info - Unnecessary use of parentheses - lib\widgets\lootbox_dialog.dart:424:21 - unnecessary_parenthesis
+   info - Unnecessary use of parentheses - lib\widgets\lootbox_dialog.dart:425:23 - unnecessary_parenthesis
+   info - Unnecessary use of a block function body - lib\widgets\lootbox_dialog.dart:451:62 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\widgets\set_card.dart:9:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\widgets\set_card.dart:15:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\widgets\set_card.dart:131:49 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\widgets\token_card.dart:11:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\widgets\token_card.dart:19:38 - prefer_expression_function_bodies
+   info - Dependencies not sorted alphabetically - pubspec.yaml:18:3 - sort_pub_dependencies
+   info - Dependencies not sorted alphabetically - pubspec.yaml:50:3 - sort_pub_dependencies
+
+144 issues found. (ran in 5.0s)

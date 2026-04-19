@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
+
+// SharedPreferences keys
+const _kRememberEmail = 'remember_email';
+const _kRememberMe = 'remember_me';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -126,7 +131,26 @@ class _LoginFormState extends State<_LoginForm> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscure = true;
+  bool _rememberMe = false;
   bool _resetSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSaved();
+  }
+
+  Future<void> _loadSaved() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getBool(_kRememberMe) ?? false;
+    final email = prefs.getString(_kRememberEmail) ?? '';
+    if (mounted) {
+      setState(() {
+        _rememberMe = saved;
+        if (saved && email.isNotEmpty) _emailCtrl.text = email;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -138,6 +162,14 @@ class _LoginFormState extends State<_LoginForm> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = Provider.of<AuthService>(context, listen: false);
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setBool(_kRememberMe, true);
+      await prefs.setString(_kRememberEmail, _emailCtrl.text.trim());
+    } else {
+      await prefs.remove(_kRememberMe);
+      await prefs.remove(_kRememberEmail);
+    }
     final ok = await auth.login(
       email: _emailCtrl.text,
       password: _passwordCtrl.text,
@@ -207,15 +239,35 @@ class _LoginFormState extends State<_LoginForm> {
                       (v == null || v.length < 6) ? 'Mind. 6 Zeichen' : null,
                 ),
                 const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _resetSent ? null : _sendReset,
-                    child: Text(
-                      'Passwort vergessen?',
-                      style: TextStyle(color: Colors.amber[400], fontSize: 13),
+                // ── Angemeldet bleiben + Passwort vergessen ──────────────
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                      activeColor: Colors.amber[700],
+                      checkColor: Colors.black,
+                      side: BorderSide(color: Colors.grey[600]!),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
-                  ),
+                    GestureDetector(
+                      onTap: () => setState(() => _rememberMe = !_rememberMe),
+                      child: Text(
+                        'Angemeldet bleiben',
+                        style: TextStyle(color: Colors.grey[300], fontSize: 14),
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _resetSent ? null : _sendReset,
+                      child: Text(
+                        'Passwort vergessen?',
+                        style: TextStyle(color: Colors.amber[400], fontSize: 13),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
