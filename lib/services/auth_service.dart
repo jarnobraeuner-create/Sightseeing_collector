@@ -128,7 +128,8 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      _error = 'Ein unbekannter Fehler ist aufgetreten.';
+      debugPrint('Register error: $e');
+      _error = 'Ein unbekannter Fehler ist aufgetreten: $e';
       _isLoading = false;
       notifyListeners();
       return false;
