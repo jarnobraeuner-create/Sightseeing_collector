@@ -51,5 +51,7 @@
 	<string>Die App benötigt deinen Standort, um Tokens in der Nähe zu finden und zu sammeln.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Die App benötigt deinen Standort, um Tokens in der Nähe zu finden und zu sammeln.</string>
+	<key>GMSApiKey</key>
+	<string>AIzaSyArgyfTHd9Uv3he0OCO5Sw78Ilcj2lzORg</string>
 </dict>
 </plist>
