@@ -4,7 +4,6 @@ import '../models/index.dart';
 import '../services/index.dart';
 import '../widgets/index.dart';
 import 'map_screen.dart';
-import 'collection_screen.dart';
 import 'profile_screen.dart';
 import 'trading_screen.dart';
 import 'token_upgrade_screen.dart';
@@ -27,10 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 1:
         return const TradingScreen();
       case 2:
-        return const CollectionScreen();
-      case 3:
         return const SetsScreen();
-      case 4:
+      case 3:
         return const ProfileScreen();
       default:
         return const MapScreen();
@@ -49,7 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildPage(0),
               _buildPage(1),
               _buildPage(2),
-              _buildPage(3),              _buildPage(4),            ],
+              _buildPage(3),
+            ],
           ),
           // Schwebende Navigation Buttons
           if (_selectedIndex == 0) // Nur auf Map-Screen zeigen
@@ -71,17 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
                   FloatingActionButton(
-                    heroTag: 'collection',
-                    onPressed: () {
-                      setState(() {
-                        _selectedIndex = 2;
-                      });
-                    },
-                    tooltip: 'Sammlung',
-                    child: const Icon(Icons.collections),
-                  ),
-                  const SizedBox(height: 12),
-                  FloatingActionButton(
                     heroTag: 'upgrade',
                     onPressed: () {
                       Navigator.push(
@@ -100,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     heroTag: 'sets',
                     onPressed: () {
                       setState(() {
-                        _selectedIndex = 3;
+                        _selectedIndex = 2;
                       });
                     },
                     tooltip: 'Sets',
@@ -112,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     heroTag: 'profile',
                     onPressed: () {
                       setState(() {
-                        _selectedIndex = 4;
+                        _selectedIndex = 3;
                       });
                     },
                     tooltip: 'Profil',

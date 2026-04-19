@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/index.dart';
+import '../widgets/lootbox_dialog.dart';
+import 'collection_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -8,179 +10,221 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
-        title: const Text('Profile'),
+        backgroundColor: Colors.grey[850],
+        elevation: 0,
+        title: const Text('Profil', style: TextStyle(color: Colors.white)),
+        automaticallyImplyLeading: false,
       ),
       body: Consumer2<CollectionService, LocationService>(
         builder: (context, collectionService, locationService, child) {
           final stats = collectionService.getStatistics();
           final position = locationService.currentPosition;
+          final level = _calculateLevel(stats['totalPoints'] ?? 0);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Avatar & Name
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.blue[100],
-                  child: Icon(
-                    Icons.person,
-                    size: 60,
-                    color: Colors.blue[700],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Sightseeing Explorer',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                const SizedBox(height: 12),
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [Colors.amber[700]!, Colors.orange[800]!],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withValues(alpha: 0.4),
+                        blurRadius: 20,
+                        spreadRadius: 2,
                       ),
-                ),
-                const SizedBox(height: 8),
-                Chip(
-                  label: Text(
-                    'Level ${_calculateLevel(stats['totalPoints'] ?? 0)}',
+                    ],
                   ),
-                  backgroundColor: Colors.amber[100],
+                  child: const Icon(Icons.person, size: 50, color: Colors.white),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Sightseeing Explorer',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.amber[800]!, Colors.amber[500]!],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Level $level',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
-                // Statistics Cards
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Statistics',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildStatRow(
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ActionButton(
+                        icon: Icons.collections,
+                        label: 'Meine Sammlung',
+                        color: Colors.blue[700]!,
+                        onTap: () => Navigator.push(
                           context,
-                          Icons.emoji_events,
-                          'Total Points',
-                          '${stats['totalPoints']}',
-                          Colors.amber,
+                          MaterialPageRoute(
+                            builder: (_) => const CollectionScreen(),
+                          ),
                         ),
-                        const Divider(),
-                        _buildStatRow(
-                          context,
-                          Icons.collections,
-                          'Tokens Collected',
-                          '${stats['totalTokens']}',
-                          Colors.blue,
-                        ),
-                        const Divider(),
-                        _buildStatRow(
-                          context,
-                          Icons.camera_alt,
-                          'Sightseeing Tokens',
-                          '${stats['sightseeingTokens']}',
-                          Colors.purple,
-                        ),
-                        const Divider(),
-                        _buildStatRow(
-                          context,
-                          Icons.flight,
-                          'Travel Tokens',
-                          '${stats['travelTokens']}',
-                          Colors.green,
-                        ),
-                        const Divider(),
-                        _buildStatRow(
-                          context,
-                          Icons.folder_special,
-                          'Sets Completed',
-                          '${stats['completedSets']}/${stats['totalSets']}',
-                          Colors.orange,
-                        ),
-                      ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Consumer<LootboxService>(
+                        builder: (context, lootboxService, _) {
+                          final canOpen = lootboxService.canOpen;
+                          return _ActionButton(
+                            icon: Icons.card_giftcard,
+                            label: canOpen ? 'Lootbox! 🎁' : 'Lootbox',
+                            color: canOpen ? Colors.orange[700]! : Colors.grey[700]!,
+                            badge: canOpen,
+                            onTap: () => showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (_) => const LootboxDialog(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.amber[900]!, Colors.orange[800]!],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🪙', style: TextStyle(fontSize: 36)),
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Deine Coins',
+                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                          Text(
+                            '${stats['totalPoints']}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Location Card
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                _DarkCard(
+                  title: 'Statistiken',
+                  children: [
+                    _StatRow(
+                      icon: Icons.collections,
+                      label: 'Tokens gesammelt',
+                      value: '${stats['totalTokens']}',
+                      color: Colors.blue[400]!,
+                    ),
+                    _StatRow(
+                      icon: Icons.camera_alt,
+                      label: 'Sightseeing Tokens',
+                      value: '${stats['sightseeingTokens']}',
+                      color: Colors.purple[400]!,
+                    ),
+                    _StatRow(
+                      icon: Icons.flight,
+                      label: 'Travel Tokens',
+                      value: '${stats['travelTokens']}',
+                      color: Colors.green[400]!,
+                    ),
+                    _StatRow(
+                      icon: Icons.folder_special,
+                      label: 'Sets abgeschlossen',
+                      value: '${stats['completedSets']}/${stats['totalSets']}',
+                      color: Colors.orange[400]!,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _DarkCard(
+                  title: 'Standort',
+                  children: [
+                    Row(
                       children: [
-                        Text(
-                          'Location',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              color: Colors.red[400],
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (position != null) ...[
-                                    Text(
-                                      'Latitude: ${position.latitude.toStringAsFixed(4)}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium,
-                                    ),
-                                    Text(
-                                      'Longitude: ${position.longitude.toStringAsFixed(4)}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium,
-                                    ),
-                                  ] else
-                                    Text(
-                                      'Location unavailable',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: Colors.grey[600],
-                                          ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              locationService.isServiceEnabled
-                                  ? Icons.check_circle
-                                  : Icons.cancel,
-                              color: locationService.isServiceEnabled
-                                  ? Colors.green
-                                  : Colors.red,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'GPS ${locationService.isServiceEnabled ? "Enabled" : "Disabled"}',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
+                        Icon(Icons.location_on, color: Colors.red[400], size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: position != null
+                              ? Text(
+                                  '${position.latitude.toStringAsFixed(4)}° N, '
+                                  '${position.longitude.toStringAsFixed(4)}° E',
+                                  style: const TextStyle(color: Colors.white70),
+                                )
+                              : const Text(
+                                  'Kein Standort verfügbar',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          locationService.isServiceEnabled
+                              ? Icons.check_circle
+                              : Icons.cancel,
+                          color: locationService.isServiceEnabled
+                              ? Colors.green[400]
+                              : Colors.red[400],
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'GPS ${locationService.isServiceEnabled ? "aktiv" : "deaktiviert"}',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 24),
               ],
             ),
           );
@@ -189,37 +233,148 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatRow(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String value,
-    Color color,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+  int _calculateLevel(int points) => (points / 100).floor() + 1;
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  final bool badge;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.badge = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyLarge,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.4),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: Colors.white, size: 30),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+          if (badge)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: Container(
+                width: 14,
+                height: 14,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
                 ),
-          ),
+              ),
+            ),
         ],
       ),
     );
   }
+}
 
-  int _calculateLevel(int points) {
-    return (points / 100).floor() + 1;
+class _DarkCard extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+
+  const _DarkCard({required this.title, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[850],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[700]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(label, style: const TextStyle(color: Colors.white70)),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

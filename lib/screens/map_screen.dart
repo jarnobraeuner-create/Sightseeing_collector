@@ -1,12 +1,14 @@
+import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/index.dart';
 import '../services/index.dart';
-import '../widgets/lootbox_dialog.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -14,6 +16,19 @@ class MapScreen extends StatefulWidget {
   @override
   State<MapScreen> createState() => _MapScreenState();
 }
+
+// ─── Pin-Tier Randomization Constants ────────────────────────────────────────
+const _kPinTiersKey = 'pin_tiers_data_v1';
+const _kPinTiersTimestampKey = 'pin_tiers_timestamp_v1';
+const _kPinRefreshHours = 24;
+
+TokenTier _rollPinTier(Random rng) {
+  final roll = rng.nextDouble() * 100;
+  if (roll < 1.0) return TokenTier.gold;   // 1%
+  if (roll < 6.0) return TokenTier.silver; // 5%
+  return TokenTier.bronze;                 // 94%
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
@@ -24,10 +39,14 @@ class _MapScreenState extends State<MapScreen> {
   final Map<String, BitmapDescriptor> _markerIconsGray = {};
   bool _isUpdatingMarkers = false;
 
+  // Random pin tiers, refreshed every 24h
+  Map<String, TokenTier> _pinTiers = {};
+
   @override
   void initState() {
     super.initState();
     _loadAllMarkerIcons();
+    _loadOrRefreshPinTiers();
     // Verzögerte Initialisierung
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
@@ -38,6 +57,69 @@ class _MapScreenState extends State<MapScreen> {
         });
       }
     });
+  }
+
+  Future<void> _loadOrRefreshPinTiers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final savedTs = prefs.getInt(_kPinTiersTimestampKey) ?? 0;
+    final ageHours = (now - savedTs) / (1000 * 60 * 60);
+
+    if (ageHours < _kPinRefreshHours) {
+      // Load saved tiers
+      final raw = prefs.getString(_kPinTiersKey);
+      if (raw != null) {
+        final Map<String, dynamic> decoded = jsonDecode(raw) as Map<String, dynamic>;
+        final loaded = <String, TokenTier>{};
+        decoded.forEach((id, tierName) {
+          loaded[id] = _tierFromName(tierName as String);
+        });
+        if (mounted) {
+          setState(() => _pinTiers = loaded);
+          _updateMarkers();
+        }
+        return;
+      }
+    }
+
+    // Generate fresh random tiers
+    await _generateAndSavePinTiers(prefs);
+  }
+
+  Future<void> _generateAndSavePinTiers(SharedPreferences prefs) async {
+    final landmarkService = Provider.of<LandmarkService>(context, listen: false);
+    final rng = Random();
+    final newTiers = <String, TokenTier>{};
+    for (final lm in landmarkService.landmarks) {
+      newTiers[lm.id] = _rollPinTier(rng);
+    }
+    final encoded = jsonEncode(
+      newTiers.map((id, tier) => MapEntry(id, _tierToName(tier))),
+    );
+    await prefs.setString(_kPinTiersKey, encoded);
+    await prefs.setInt(_kPinTiersTimestampKey, DateTime.now().millisecondsSinceEpoch);
+    if (mounted) {
+      setState(() => _pinTiers = newTiers);
+      _updateMarkers();
+    }
+  }
+
+  String _tierToName(TokenTier t) {
+    switch (t) {
+      case TokenTier.silver: return 'silver';
+      case TokenTier.gold: return 'gold';
+      case TokenTier.platinum: return 'platinum';
+      default: return 'bronze';
+    }
+  }
+
+  TokenTier _tierFromName(String name) {
+    switch (name) {
+      case 'silver': return TokenTier.silver;
+      case 'gold': return TokenTier.gold;
+      case 'platinum': return TokenTier.platinum;
+      default: return TokenTier.bronze;
+    }
   }
 
   Future<void> _loadAllMarkerIcons() async {
@@ -270,9 +352,12 @@ class _MapScreenState extends State<MapScreen> {
         final token = collectionService.getToken(landmark.id);
         final isCollected = token != null;
         
-        // Pin-Typ basierend auf defaultTier des Landmarks
+        // Random pin tier (refreshed every 24h)
+        final pinTier = _pinTiers[landmark.id] ?? TokenTier.bronze;
+        
+        // Pin-Typ basierend auf randomisiertem Tier
         String pinType;
-        switch (landmark.defaultTier) {
+        switch (pinTier) {
           case TokenTier.silver:
             pinType = 'silver';
             break;
@@ -301,10 +386,10 @@ class _MapScreenState extends State<MapScreen> {
           position: LatLng(landmark.latitude, landmark.longitude),
           icon: markerIcon,
           alpha: isCollected ? 0.7 : 1.0,
-          onTap: () => _showLandmarkDetails(landmark),
+          onTap: () => _showLandmarkDetails(landmark, pinTier),
           infoWindow: InfoWindow(
             title: landmark.name,
-            snippet: isCollected ? 'Gesammelt ✓' : '${landmark.pointsReward} Punkte',
+            snippet: isCollected ? 'Gesammelt ✓' : '${landmark.pointsReward} Coins (${pinTier.displayName})',
           ),
         );
       }).toSet();
@@ -326,47 +411,8 @@ class _MapScreenState extends State<MapScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Karte'),
-        leading: Consumer<LootboxService>(
-          builder: (context, lootboxService, _) {
-            final canOpen = lootboxService.canOpen;
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: Text(
-                    '🎁',
-                    style: TextStyle(
-                      fontSize: 26,
-                      color: canOpen ? null : Colors.grey,
-                    ),
-                  ),
-                  tooltip: canOpen ? 'Lootbox öffnen!' : 'Morgen wieder verfügbar',
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (_) => const LootboxDialog(),
-                    );
-                  },
-                ),
-                if (canOpen)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
+        automaticallyImplyLeading: false,
+        title: null,
         actions: [
           IconButton(
             icon: const Icon(Icons.my_location),
@@ -467,7 +513,7 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void _showLandmarkDetails(Landmark landmark) {
+  void _showLandmarkDetails(Landmark landmark, TokenTier pinTier) {
     final locationService = Provider.of<LocationService>(context, listen: false);
     final collectionService = Provider.of<CollectionService>(context, listen: false);
     final landmarkService = Provider.of<LandmarkService>(context, listen: false);
@@ -489,6 +535,7 @@ class _MapScreenState extends State<MapScreen> {
         landmarkService: landmarkService,
         cooldownService: cooldownService,
         onCollected: _updateMarkers,
+        pinTier: pinTier,
       ),
     );
   }
@@ -503,6 +550,7 @@ class _LandmarkBottomSheet extends StatefulWidget {
   final LandmarkService landmarkService;
   final CooldownService cooldownService;
   final VoidCallback onCollected;
+  final TokenTier pinTier;
 
   const _LandmarkBottomSheet({
     required this.landmark,
@@ -511,6 +559,7 @@ class _LandmarkBottomSheet extends StatefulWidget {
     required this.landmarkService,
     required this.cooldownService,
     required this.onCollected,
+    required this.pinTier,
   });
 
   @override
@@ -530,7 +579,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
   }
 
   void _refreshCooldown() {
-    final tier = widget.landmark.defaultTier;
+    final tier = widget.pinTier;
     final id = widget.landmark.id;
     _canCollect = widget.cooldownService.canCollect(id, tier);
     _remaining = widget.cooldownService.remainingCooldown(id, tier);
@@ -553,7 +602,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
   }
 
   Color get _tierColor {
-    switch (widget.landmark.defaultTier) {
+    switch (widget.pinTier) {
       case TokenTier.bronze: return Colors.brown[400]!;
       case TokenTier.silver: return Colors.grey[400]!;
       case TokenTier.gold: return Colors.amber[500]!;
@@ -562,7 +611,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
   }
 
   String get _cooldownLabel {
-    final tier = widget.landmark.defaultTier;
+    final tier = widget.pinTier;
     if (tier == TokenTier.platinum) return 'Einmalig – nicht mehr sammelbar';
     if (_remaining == null) return '';
     return 'Cooldown: ${CooldownService.formatDuration(_remaining!)}';
@@ -576,7 +625,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
       landmark.category,
       landmark.pointsReward,
       landmark.relatedSetIds,
-      tier: landmark.defaultTier,
+      tier: widget.pinTier,
     );
     widget.cooldownService.recordCollection(landmark.id);
     widget.onCollected();
@@ -584,7 +633,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
     ScaffoldMessenger.of(ctx).showSnackBar(
       SnackBar(
         content: Text(
-          'Token gesammelt! +${landmark.pointsReward} Punkte (${landmark.defaultTier.displayName})',
+          'Token gesammelt! +${landmark.pointsReward} Coins (${widget.pinTier.displayName})',
         ),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
@@ -613,7 +662,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
     final landmark = widget.landmark;
     final isEverCollected = widget.cooldownService.wasEverCollected(landmark.id);
     final isFirstCollection = !isEverCollected;
-    final tier = landmark.defaultTier;
+    final tier = widget.pinTier;
     final isPlatinum = tier == TokenTier.platinum;
 
     return Container(

@@ -14,16 +14,20 @@ class TradingScreen extends StatefulWidget {
 
 class _TradingScreenState extends State<TradingScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+  late PageController _pageController;
+  int _currentPage = 0;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _pageController = PageController();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -33,10 +37,11 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.grey[850],
-        title: const Text(
-          'Token Marktplatz',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          _currentPage == 0 ? 'Shop' : 'Auktionshaus',
+          style: const TextStyle(color: Colors.white),
         ),
+        automaticallyImplyLeading: false,
         actions: [
           Consumer<CollectionService>(
             builder: (context, collectionService, child) {
@@ -60,21 +65,230 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             },
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Marktplatz'),
-            Tab(text: 'Bieten'),
-            Tab(text: 'Eigene Auktionen'),
-          ],
-        ),
+        bottom: _currentPage == 1
+            ? TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(text: 'Marktplatz'),
+                  Tab(text: 'Bieten'),
+                  Tab(text: 'Eigene'),
+                ],
+              )
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(2),
+                child: Container(
+                  height: 2,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(color: Colors.amber),
+                      ),
+                      Expanded(
+                        child: Container(color: Colors.grey[700]),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildMarketplace(),
-          _buildCreateAuction(),
-          _buildMyAuctions(),
+          // Page indicator
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _PageDot(active: _currentPage == 0, label: 'Shop'),
+                const SizedBox(width: 16),
+                _PageDot(active: _currentPage == 1, label: 'Auktionen'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (page) => setState(() => _currentPage = page),
+              children: [
+                _buildShop(),
+                _buildAuctionsPage(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuctionsPage() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+          child: TabBar(
+            controller: _tabController,
+            labelColor: Colors.amber,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Colors.amber,
+            tabs: const [
+              Tab(text: 'Marktplatz'),
+              Tab(text: 'Bieten'),
+              Tab(text: 'Eigene'),
+            ],
+          ),
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildMarketplace(),
+              _buildCreateAuction(),
+              _buildMyAuctions(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShop() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Tagesangebot
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.amber[900]!, Colors.orange[700]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.amber.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('🔥', style: TextStyle(fontSize: 22)),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Tagesangebot',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black38,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        '–25%',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Extra Münzen Paket',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '500 Coins für 375 Coins',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                const SizedBox(height: 14),
+                ElevatedButton(
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Bald verfügbar!')),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.orange[800],
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Kaufen', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Shop-Items
+          const Text(
+            'Verfügbare Items',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          _ShopItem(
+            icon: '🎰',
+            title: 'Extra Lootbox',
+            subtitle: 'Eine zusätzliche Lootbox öffnen',
+            price: 200,
+            onBuy: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Bald verfügbar!')),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _ShopItem(
+            icon: '⚡',
+            title: 'Cooldown Skip',
+            subtitle: 'Einen Cooldown sofort aufheben',
+            price: 150,
+            onBuy: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Bald verfügbar!')),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _ShopItem(
+            icon: '🗺️',
+            title: 'Radar-Boost',
+            subtitle: 'Zeige alle Tokens in 500m Radius',
+            price: 100,
+            onBuy: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Bald verfügbar!')),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  '👆 Nach links wischen für Auktionen',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.swipe_left, color: Colors.grey, size: 18),
+                    const SizedBox(width: 4),
+                    Text('Auktionshaus', style: TextStyle(color: Colors.grey[400])),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -890,6 +1104,108 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           },
         );
       },
+    );
+  }
+}
+
+// ── Helper Widgets ──────────────────────────────────────────────────────────
+
+class _PageDot extends StatelessWidget {
+  final bool active;
+  final String label;
+
+  const _PageDot({required this.active, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          width: active ? 24 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: active ? Colors.amber : Colors.grey[600],
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.amber : Colors.grey[600],
+            fontSize: 11,
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShopItem extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String subtitle;
+  final int price;
+  final VoidCallback onBuy;
+
+  const _ShopItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.price,
+    required this.onBuy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey[850],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey[700]!),
+      ),
+      child: Row(
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 32)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: onBuy,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber[700],
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(
+              '$price 🪙',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

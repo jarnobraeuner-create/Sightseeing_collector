@@ -20,6 +20,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
   Token? _selectedTokenToUpgrade;
   final List<Token> _selectedTokensToTrade = [];
   bool _isAnimating = false;
+  bool _isOrbiting = false;
+  OverlayEntry? _orbitOverlay;
 
   // Keys for animation targets
   final GlobalKey _mainSlotKey = GlobalKey();
@@ -160,7 +162,7 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
               _selectedTokensToTrade.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.white),
-              tooltip: 'Auswahl zur�cksetzen',
+              tooltip: 'Auswahl zur�cksetzen',
               onPressed: () => setState(() {
                 _selectedTokenToUpgrade = null;
                 _selectedTokensToTrade.clear();
@@ -438,7 +440,7 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
           padding: const EdgeInsets.all(32),
           child: Text(
             _selectedTokenToUpgrade == null
-                ? 'Keine upgradef�higen Tokens vorhanden.'
+                ? 'Keine upgradef�higen Tokens vorhanden.'
                 : 'Keine weiteren ${_selectedTokenToUpgrade!.tier.displayName}-Tokens vorhanden.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey[500], fontSize: 15),
@@ -456,8 +458,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
 
     final remaining = 5 - _selectedTokensToTrade.length;
     final hint = _selectedTokenToUpgrade == null
-        ? 'W�hle einen Token zum Verbessern:'
-        : 'W�hle noch $remaining ${_getTierEmoji(_selectedTokenToUpgrade!.tier)} Token(s) zum Eintauschen:';
+        ? 'W�hle einen Token zum Verbessern:'
+        : 'W�hle noch $remaining ${_getTierEmoji(_selectedTokenToUpgrade!.tier)} Token(s) zum Eintauschen:';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -484,7 +486,7 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
                   first.landmarkId, first.tier);
               final tierColor = _getTierColor(first.tier);
 
-              // Stable key on the thumbnail � used as fly animation source
+              // Stable key on the thumbnail � used as fly animation source
               final groupKey =
                   _chipKey('g_${first.landmarkId}_${first.tier.name}');
 
@@ -626,24 +628,9 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
           width: double.infinity,
           height: 54,
           child: ElevatedButton.icon(
-            onPressed: () {
-              collectionService.upgradeSpecificTokens(
-                _selectedTokenToUpgrade!.id,
-                _selectedTokensToTrade.map((t) => t.id).toList(),
-                toTier,
-              );
-              final landmark = landmarkService.landmarks.firstWhere(
-                  (l) => l.id == _selectedTokenToUpgrade!.landmarkId);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(
-                    '${landmark.name} ${toTier.displayName} erstellt! 🎉'),
-                backgroundColor: Colors.green,
-              ));
-              setState(() {
-                _selectedTokenToUpgrade = null;
-                _selectedTokensToTrade.clear();
-              });
-            },
+            onPressed: _isOrbiting ? null : () => _startOrbitAndUpgrade(
+              collectionService, landmarkService,
+            ),
             icon: const Icon(Icons.upgrade),
             label: Text(
               'Zu ${toTier.displayName} upgraden',
@@ -660,6 +647,177 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         ),
       ),
     );
+  }
+
+  // ─── Orbital upgrade animation ────────────────────────────────────────────
+
+  Future<void> _startOrbitAndUpgrade(
+    CollectionService collectionService,
+    LandmarkService landmarkService,
+  ) async {
+    if (_isOrbiting || _selectedTokenToUpgrade == null) return;
+    setState(() => _isOrbiting = true);
+
+    final mainBox = _mainSlotKey.currentContext?.findRenderObject() as RenderBox?;
+    if (mainBox == null) {
+      _doUpgrade(collectionService, landmarkService);
+      return;
+    }
+
+    final mainPos = mainBox.localToGlobal(Offset.zero);
+    final mainSize = mainBox.size;
+    final mainCenter = Offset(
+      mainPos.dx + mainSize.width / 2,
+      mainPos.dy + mainSize.height / 2,
+    );
+
+    // Gather sacrifice token images
+    final sacrificeImages = _selectedTokensToTrade.map((t) {
+      return landmarkService.getImageUrlForTier(t.landmarkId, t.tier);
+    }).toList();
+    final toTier = _getNextTier(_selectedTokenToUpgrade!.tier);
+    final mainColor = _getTierColor(_selectedTokenToUpgrade!.tier);
+
+    final orbitController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600), // 2 full orbits
+    );
+    final collapseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    final flashController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    final orbitAnim = Tween<double>(begin: 0, end: 4 * pi).animate(
+      CurvedAnimation(parent: orbitController, curve: Curves.easeInOut),
+    );
+    final collapseAnim = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: collapseController, curve: Curves.easeIn),
+    );
+    final flashAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: flashController, curve: Curves.easeOut),
+    );
+
+    const orbitRadius = 70.0;
+    const tokenSize = 46.0;
+    final count = sacrificeImages.length;
+    final toColor = _getTierColor(toTier);
+
+    _orbitOverlay = OverlayEntry(
+      builder: (_) => AnimatedBuilder(
+        animation: Listenable.merge([orbitAnim, collapseAnim, flashAnim]),
+        builder: (_, __) {
+          final phase = collapseController.isAnimating || collapseController.isCompleted;
+          final radius = orbitRadius * (phase ? collapseAnim.value : 1.0);
+          final opacity = phase ? collapseAnim.value : 1.0;
+          return Stack(
+            children: [
+              // Flash effect on main slot
+              if (flashController.isAnimating || flashController.isCompleted)
+                Positioned(
+                  left: mainCenter.dx - 80,
+                  top: mainCenter.dy - 80,
+                  child: Opacity(
+                    opacity: (1.0 - flashAnim.value).clamp(0.0, 1.0),
+                    child: Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            toColor.withValues(alpha: 0.9),
+                            toColor.withValues(alpha: 0.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              // Orbiting tokens
+              ...List.generate(count, (i) {
+                final angle = orbitAnim.value + (2 * pi * i / count);
+                final x = mainCenter.dx + radius * cos(angle) - tokenSize / 2;
+                final y = mainCenter.dy + radius * sin(angle) - tokenSize / 2;
+                return Positioned(
+                  left: x,
+                  top: y,
+                  child: Opacity(
+                    opacity: opacity.clamp(0.0, 1.0),
+                    child: Container(
+                      width: tokenSize,
+                      height: tokenSize,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: mainColor, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: mainColor.withValues(alpha: 0.6),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(sacrificeImages[i], fit: BoxFit.cover),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          );
+        },
+      ),
+    );
+
+    Overlay.of(context).insert(_orbitOverlay!);
+
+    // 2 full orbits
+    await orbitController.forward();
+    // Collapse into main token
+    await collapseController.forward();
+    // Flash
+    flashController.forward();
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    _orbitOverlay?.remove();
+    _orbitOverlay = null;
+    orbitController.dispose();
+    collapseController.dispose();
+
+    await Future.delayed(const Duration(milliseconds: 300));
+    flashController.dispose();
+
+    if (mounted) _doUpgrade(collectionService, landmarkService);
+  }
+
+  void _doUpgrade(
+    CollectionService collectionService,
+    LandmarkService landmarkService,
+  ) {
+    final toTier = _getNextTier(_selectedTokenToUpgrade!.tier);
+    collectionService.upgradeSpecificTokens(
+      _selectedTokenToUpgrade!.id,
+      _selectedTokensToTrade.map((t) => t.id).toList(),
+      toTier,
+    );
+    final landmark = landmarkService.landmarks
+        .firstWhere((l) => l.id == _selectedTokenToUpgrade!.landmarkId);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${landmark.name} ${toTier.displayName} erstellt! 🎉'),
+        backgroundColor: Colors.green,
+      ));
+      setState(() {
+        _isOrbiting = false;
+        _selectedTokenToUpgrade = null;
+        _selectedTokensToTrade.clear();
+      });
+    }
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────

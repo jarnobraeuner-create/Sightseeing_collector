@@ -17,9 +17,11 @@ class _LootboxDialogState extends State<LootboxDialog>
     with TickerProviderStateMixin {
   late AnimationController _shakeController;
   late AnimationController _revealController;
+  late AnimationController _shinyController;
   late Animation<double> _shakeAnim;
   late Animation<double> _scaleAnim;
   late Animation<double> _fadeAnim;
+  late Animation<double> _shinyAnim;
 
   bool _opened = false;
   TokenTier? _wonTier;
@@ -29,6 +31,11 @@ class _LootboxDialogState extends State<LootboxDialog>
   void initState() {
     super.initState();
 
+    _shinyController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
+    _shinyAnim = Tween<double>(begin: 0, end: 1).animate(_shinyController);
     _shakeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -56,6 +63,7 @@ class _LootboxDialogState extends State<LootboxDialog>
   void dispose() {
     _shakeController.dispose();
     _revealController.dispose();
+    _shinyController.dispose();
     super.dispose();
   }
 
@@ -193,34 +201,51 @@ class _LootboxDialogState extends State<LootboxDialog>
         ),
         const SizedBox(height: 32),
         AnimatedBuilder(
-          animation: _shakeAnim,
+          animation: _shinyAnim,
           builder: (_, child) {
-            final offset = sin(_shakeAnim.value * pi * 8) * 12;
-            return Transform.translate(
-              offset: Offset(offset, 0),
-              child: child,
-            );
-          },
-          child: GestureDetector(
-            onTap: _openBox,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [Colors.amber[400]!, Colors.orange[800]!],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.amber.withValues(alpha: 0.5),
-                    blurRadius: 20,
-                    spreadRadius: 4,
-                  ),
+            return SizedBox(
+              width: 160,
+              height: 160,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Sparkle stars around the box
+                  ..._buildSparkles(_shinyAnim.value),
+                  child!,
                 ],
               ),
-              child: const Center(
-                child: Text('🎁', style: TextStyle(fontSize: 64)),
+            );
+          },
+          child: AnimatedBuilder(
+            animation: _shakeAnim,
+            builder: (_, child) {
+              final offset = sin(_shakeAnim.value * pi * 8) * 12;
+              return Transform.translate(
+                offset: Offset(offset, 0),
+                child: child,
+              );
+            },
+            child: GestureDetector(
+              onTap: _openBox,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [Colors.amber[400]!, Colors.orange[800]!],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.amber.withValues(alpha: 0.5),
+                      blurRadius: 20,
+                      spreadRadius: 4,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text('🎁', style: TextStyle(fontSize: 64)),
+                ),
               ),
             ),
           ),
@@ -316,7 +341,7 @@ class _LootboxDialogState extends State<LootboxDialog>
               border: Border.all(color: color),
             ),
             child: Text(
-              '${_tierEmoji(tier)} ${tier.displayName} · +${tier.pointValue} Punkte',
+              '${_tierEmoji(tier)} ${tier.displayName} · +${tier.pointValue} Coins',
               style: TextStyle(
                   color: color,
                   fontWeight: FontWeight.bold,
@@ -362,6 +387,50 @@ class _LootboxDialogState extends State<LootboxDialog>
         ],
       ),
     );
+  }
+
+  List<Widget> _buildSparkles(double t) {
+    const sparkleData = [
+      // [angle_fraction, distance, size, phase_offset]
+      [0.0, 65.0, 10.0, 0.0],
+      [0.15, 58.0, 7.0, 0.3],
+      [0.28, 70.0, 9.0, 0.6],
+      [0.42, 60.0, 6.0, 0.15],
+      [0.57, 68.0, 10.0, 0.45],
+      [0.71, 55.0, 7.0, 0.75],
+      [0.85, 65.0, 8.0, 0.9],
+    ];
+    return sparkleData.map((d) {
+      final angleFraction = d[0];
+      final distance = d[1];
+      final size = d[2];
+      final phaseOffset = d[3];
+      final angle = (angleFraction + t) * 2 * pi;
+      final phase = ((t + phaseOffset) % 1.0);
+      final opacity = (sin(phase * pi)).clamp(0.0, 1.0);
+      final cx = 80.0 + distance * cos(angle);
+      final cy = 80.0 + distance * sin(angle);
+      return Positioned(
+        left: cx - size / 2,
+        top: cy - size / 2,
+        child: Opacity(
+          opacity: opacity,
+          child: Text(
+            '✦',
+            style: TextStyle(
+              fontSize: size,
+              color: Colors.amber[300],
+              shadows: [
+                Shadow(
+                  color: Colors.amber.withValues(alpha: 0.8),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }).toList();
   }
 
   Widget _chanceBadge(String label, String pct, Color color) {
