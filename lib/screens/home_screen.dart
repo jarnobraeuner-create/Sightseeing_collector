@@ -74,25 +74,27 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (i) => setState(() => _selectedIndex = i),
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.grey[900],
-        selectedItemColor: Colors.amber[600],
-        unselectedItemColor: Colors.grey[500],
         selectedFontSize: 12,
         unselectedFontSize: 11,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.map),
+            icon: Icon(Icons.map, color: Colors.grey[500]),
+            activeIcon: Icon(Icons.map, color: Colors.amber[600]),
             label: 'Karte',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.store),
+            icon: Icon(Icons.store, color: Colors.red[400]),
+            activeIcon: Icon(Icons.store, color: Colors.red[400]),
             label: 'Trading',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.workspace_premium),
+            icon: Icon(Icons.workspace_premium, color: Colors.grey[500]),
+            activeIcon: Icon(Icons.workspace_premium, color: Colors.amber[600]),
             label: 'Sets',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.person, color: Colors.grey[500]),
+            activeIcon: Icon(Icons.person, color: Colors.amber[600]),
             label: 'Profil',
           ),
         ],
