@@ -800,24 +800,39 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
     LandmarkService landmarkService,
   ) {
     final toTier = _getNextTier(_selectedTokenToUpgrade!.tier);
+    final landmark = landmarkService.landmarks
+        .firstWhere((l) => l.id == _selectedTokenToUpgrade!.landmarkId);
+    final newImagePath =
+        landmarkService.getImageUrlForTier(_selectedTokenToUpgrade!.landmarkId, toTier);
+
     collectionService.upgradeSpecificTokens(
       _selectedTokenToUpgrade!.id,
       _selectedTokensToTrade.map((t) => t.id).toList(),
       toTier,
     );
-    final landmark = landmarkService.landmarks
-        .firstWhere((l) => l.id == _selectedTokenToUpgrade!.landmarkId);
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${landmark.name} ${toTier.displayName} erstellt! 🎉'),
-        backgroundColor: Colors.green,
-      ));
       setState(() {
         _isOrbiting = false;
         _selectedTokenToUpgrade = null;
         _selectedTokensToTrade.clear();
       });
+      _showUpgradeResult(landmark, toTier, newImagePath);
     }
+  }
+
+  void _showUpgradeResult(Landmark landmark, TokenTier tier, String imagePath) {
+    final tierColor = _getTierColor(tier);
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (ctx) => _UpgradeResultDialog(
+        landmark: landmark,
+        tier: tier,
+        imagePath: imagePath,
+        tierColor: tierColor,
+      ),
+    );
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -860,4 +875,256 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         return '??';
     }
   }
+}
+
+// ── Upgrade Result Dialog ─────────────────────────────────────────────────
+
+class _UpgradeResultDialog extends StatefulWidget {
+  final Landmark landmark;
+  final TokenTier tier;
+  final String imagePath;
+  final Color tierColor;
+
+  const _UpgradeResultDialog({
+    required this.landmark,
+    required this.tier,
+    required this.imagePath,
+    required this.tierColor,
+  });
+
+  @override
+  State<_UpgradeResultDialog> createState() => _UpgradeResultDialogState();
+}
+
+class _UpgradeResultDialogState extends State<_UpgradeResultDialog>
+    with TickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late AnimationController _glowController;
+  late AnimationController _raysController;
+  late Animation<double> _scaleAnim;
+  late Animation<double> _glowAnim;
+  late Animation<double> _raysAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _scaleAnim = CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.elasticOut,
+    );
+
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _glowAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+
+    _raysController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
+    _raysAnim = Tween<double>(begin: 0, end: 1).animate(_raysController);
+
+    _scaleController.forward();
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    _glowController.dispose();
+    _raysController.dispose();
+    super.dispose();
+  }
+
+  String _tierLabel(TokenTier t) {
+    switch (t) {
+      case TokenTier.bronze: return '🥉 Bronze';
+      case TokenTier.silver: return '🥈 Silber';
+      case TokenTier.gold: return '🥇 Gold';
+      case TokenTier.platinum: return '💎 Platin';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.tierColor;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: ScaleTransition(
+        scale: _scaleAnim,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: color, width: 2),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Text(
+                'Upgrade erfolgreich! 🎉',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Token image with glow + rays
+              AnimatedBuilder(
+                animation: Listenable.merge([_glowAnim, _raysAnim]),
+                builder: (_, child) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Rotating rays
+                      Transform.rotate(
+                        angle: _raysAnim.value * 2 * pi,
+                        child: CustomPaint(
+                          size: const Size(220, 220),
+                          painter: _RaysPainter(
+                            color: color.withValues(alpha: 0.18),
+                            rayCount: 12,
+                          ),
+                        ),
+                      ),
+                      // Glow circle
+                      Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: color.withValues(alpha: _glowAnim.value * 0.7),
+                              blurRadius: 40,
+                              spreadRadius: 15,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Token image
+                      child!,
+                    ],
+                  );
+                },
+                child: Container(
+                  width: 160,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: color, width: 3),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(17),
+                    child: Image.asset(widget.imagePath, fit: BoxFit.cover),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Landmark name
+              Text(
+                widget.landmark.name,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Tier badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.1)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: color, width: 1.5),
+                ),
+                child: Text(
+                  _tierLabel(widget.tier),
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              // Close button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: color,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Super! ✨',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RaysPainter extends CustomPainter {
+  final Color color;
+  final int rayCount;
+
+  _RaysPainter({required this.color, required this.rayCount});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final center = Offset(size.width / 2, size.height / 2);
+    final outerR = size.width / 2;
+    const innerR = 55.0;
+    const halfAngle = 0.12;
+
+    for (int i = 0; i < rayCount; i++) {
+      final baseAngle = (2 * pi / rayCount) * i;
+      final path = Path()
+        ..moveTo(
+          center.dx + innerR * cos(baseAngle - halfAngle),
+          center.dy + innerR * sin(baseAngle - halfAngle),
+        )
+        ..lineTo(
+          center.dx + innerR * cos(baseAngle + halfAngle),
+          center.dy + innerR * sin(baseAngle + halfAngle),
+        )
+        ..lineTo(
+          center.dx + outerR * cos(baseAngle),
+          center.dy + outerR * sin(baseAngle),
+        )
+        ..close();
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RaysPainter old) => old.color != color;
 }

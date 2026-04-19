@@ -65,31 +65,6 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             },
           ),
         ],
-        bottom: _currentPage == 1
-            ? TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'Marktplatz'),
-                  Tab(text: 'Bieten'),
-                  Tab(text: 'Eigene'),
-                ],
-              )
-            : PreferredSize(
-                preferredSize: const Size.fromHeight(2),
-                child: Container(
-                  height: 2,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(color: Colors.amber),
-                      ),
-                      Expanded(
-                        child: Container(color: Colors.grey[700]),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
       ),
       body: Column(
         children: [
@@ -108,6 +83,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           Expanded(
             child: PageView(
               controller: _pageController,
+              physics: const BouncingScrollPhysics(),
               onPageChanged: (page) => setState(() => _currentPage = page),
               children: [
                 _buildShop(),
@@ -140,6 +116,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
         Expanded(
           child: TabBarView(
             controller: _tabController,
+            physics: const NeverScrollableScrollPhysics(),
             children: [
               _buildMarketplace(),
               _buildCreateAuction(),
