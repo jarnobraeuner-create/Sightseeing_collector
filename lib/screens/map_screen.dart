@@ -33,7 +33,6 @@ TokenTier _rollPinTier(Random rng) {
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
-  bool _isMapReady = false;
   bool _hasCenteredOnUser = false;
   final Map<String, BitmapDescriptor> _markerIcons = {};
   final Map<String, BitmapDescriptor> _markerIconsGray = {};
@@ -47,14 +46,10 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     _loadAllMarkerIcons();
     _loadOrRefreshPinTiers();
-    // Verzögerte Initialisierung
-    Future.delayed(const Duration(milliseconds: 300), () {
+    // LocationService im Hintergrund initialisieren ohne Rendering zu blockieren
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final locationService = Provider.of<LocationService>(context, listen: false);
-        locationService.ensureInitialized();
-        setState(() {
-          _isMapReady = true;
-        });
+        Provider.of<LocationService>(context, listen: false).ensureInitialized();
       }
     });
   }
@@ -435,11 +430,7 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
-      body: !_isMapReady
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : Consumer<LocationService>(
+      body: Consumer<LocationService>(
               builder: (context, locationService, child) {
                 final position = locationService.currentPosition;
                 final hasLocation = position != null;
