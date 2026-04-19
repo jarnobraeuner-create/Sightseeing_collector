@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'services/index.dart';
 import 'screens/index.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const SightseeingCollectorApp());
 }
 
@@ -14,6 +17,7 @@ class SightseeingCollectorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => LocationService()),
         ChangeNotifierProvider(create: (_) => LandmarkService()),
         ChangeNotifierProvider(create: (_) => CollectionService()),
@@ -28,7 +32,7 @@ class SightseeingCollectorApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
           useMaterial3: true,
         ),
-        home: const HomeScreen(),
+        home: const AuthGate(),
       ),
     );
   }

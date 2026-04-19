@@ -4,3 +4,4 @@ export 'collection_service.dart';
 export 'auction_service.dart';
 export 'lootbox_service.dart';
 export 'cooldown_service.dart';
+export 'auth_service.dart';

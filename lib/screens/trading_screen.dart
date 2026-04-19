@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/collection_service.dart';
 import '../services/auction_service.dart';
 import '../services/landmark_service.dart';
+import '../services/auth_service.dart';
 import '../models/auction.dart';
 
 class TradingScreen extends StatefulWidget {
@@ -33,6 +34,11 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthService>(context);
+    if (!auth.isLoggedIn) {
+      return _AuthRequiredPage();
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
@@ -1182,6 +1188,46 @@ class _ShopItem extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AuthRequiredPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        backgroundColor: Colors.grey[850],
+        title: const Text('Marktplatz', style: TextStyle(color: Colors.white)),
+        automaticallyImplyLeading: false,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_outline, size: 72, color: Colors.grey[600]),
+              const SizedBox(height: 20),
+              const Text(
+                'Anmeldung erforderlich',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Melde dich an, um den Marktplatz und das Auktionshaus zu nutzen.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[400], fontSize: 14),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

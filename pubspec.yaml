@@ -27,6 +27,11 @@ dependencies:
   # JSON Serialisierung
   json_serializable: ^6.7.0
   
+  # Firebase
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.0.0
+  cloud_firestore: ^5.0.0
+
   # HTTP und API
   http: ^1.1.0
   

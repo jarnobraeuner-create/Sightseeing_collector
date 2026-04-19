@@ -16,12 +16,45 @@ class ProfileScreen extends StatelessWidget {
         elevation: 0,
         title: const Text('Profil', style: TextStyle(color: Colors.white)),
         automaticallyImplyLeading: false,
+        actions: [
+          Consumer<AuthService>(
+            builder: (_, auth, __) => IconButton(
+              icon: const Icon(Icons.logout, color: Colors.grey),
+              tooltip: 'Abmelden',
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: Colors.grey[850],
+                    title: const Text('Abmelden?',
+                        style: TextStyle(color: Colors.white)),
+                    content: const Text('Möchtest du dich wirklich abmelden?',
+                        style: TextStyle(color: Colors.white70)),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Abbrechen'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Abmelden',
+                            style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) auth.logout();
+              },
+            ),
+          ),
+        ],
       ),
-      body: Consumer2<CollectionService, LocationService>(
-        builder: (context, collectionService, locationService, child) {
+      body: Consumer3<CollectionService, LocationService, AuthService>(
+        builder: (context, collectionService, locationService, authService, child) {
           final stats = collectionService.getStatistics();
           final position = locationService.currentPosition;
           final level = _calculateLevel(stats['totalPoints'] ?? 0);
+          final username = authService.appUser?.username ?? 'Explorer';
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -47,13 +80,18 @@ class ProfileScreen extends StatelessWidget {
                   child: const Icon(Icons.person, size: 50, color: Colors.white),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Sightseeing Explorer',
-                  style: TextStyle(
+                Text(
+                  username,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  authService.appUser?.email ?? '',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
                 ),
                 const SizedBox(height: 6),
                 Container(
