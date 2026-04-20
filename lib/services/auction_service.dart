@@ -21,7 +21,6 @@ class AuctionService extends ChangeNotifier {
     _subscription = _db
         .collection('auctions')
         .where('status', isEqualTo: 'active')
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .listen((snapshot) {
       final now = DateTime.now();
@@ -30,7 +29,6 @@ class AuctionService extends ChangeNotifier {
         try {
           final auction = Auction.fromFirestore(doc.data(), doc.id);
           if (auction.endsAt.isBefore(now)) {
-            // Abgelaufene Auktionen automatisch beenden
             _db.collection('auctions').doc(doc.id)
                 .update({'status': 'ended'})
                 .catchError((e) => debugPrint('Error ending auction: $e'));
@@ -41,6 +39,8 @@ class AuctionService extends ChangeNotifier {
           debugPrint('Error parsing auction ${doc.id}: $e');
         }
       }
+      // Im Speicher sortieren statt orderBy (kein Composite Index nötig)
+      _auctions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       _isLoaded = true;
       notifyListeners();
     }, onError: (e) {
@@ -134,6 +134,17 @@ class AuctionService extends ChangeNotifier {
     return snapshot.docs
         .map((doc) => Bid.fromFirestore(doc.data(), doc.id))
         .toList();
+  }
+
+  // Live-Stream der Gebote für eine Auktion (kein manuelles Neuladen nötig)
+  Stream<List<Bid>> bidsStream(String auctionId) {
+    return _db
+        .collection('auctions')
+        .doc(auctionId)
+        .collection('bids')
+        .orderBy('coins', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map((doc) => Bid.fromFirestore(doc.data(), doc.id)).toList());
   }
 
   // â”€â”€â”€ Accept Bid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

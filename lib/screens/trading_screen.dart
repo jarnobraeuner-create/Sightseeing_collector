@@ -278,10 +278,11 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
   }
 
   Widget _buildMarketplace() {
-    return Consumer<AuctionService>(
-      builder: (context, auctionService, child) {
+    return Consumer2<AuctionService, AuthService>(
+      builder: (context, auctionService, auth, child) {
+        final myUid = auth.firebaseUser?.uid ?? '';
         final auctions = auctionService.auctions;
-        
+
         if (auctions.isEmpty) {
           return Center(
             child: Column(
@@ -291,10 +292,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                 const SizedBox(height: 16),
                 Text(
                   'Keine Auktionen verfügbar',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[400],
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.grey[400]),
                 ),
               ],
             ),
@@ -306,14 +304,15 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           itemCount: auctions.length,
           itemBuilder: (context, index) {
             final auction = auctions[index];
+            final isOwn = auction.sellerId == myUid;
             final timeLeft = auction.endsAt.difference(DateTime.now());
             final hasBids = auction.currentBid > auction.startPrice;
 
             return Card(
-              color: Colors.grey[850],
+              color: isOwn ? Colors.grey[800] : Colors.grey[850],
               margin: const EdgeInsets.only(bottom: 16),
               child: InkWell(
-                onTap: () => _showBidDialog(auction),
+                onTap: isOwn ? null : () => _showBidDialog(auction),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -345,13 +344,31 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              auction.title,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    auction.title,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                if (isOwn)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[800],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Deine',
+                                      style: TextStyle(fontSize: 11, color: Colors.white),
+                                    ),
+                                  ),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -382,8 +399,11 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                           ],
                         ),
                       ),
-                      // Bieten-Icon
-                      Icon(Icons.gavel, color: Colors.amber[600]),
+                      // Bieten-Icon oder Eigene-Indikator
+                      if (!isOwn)
+                        Icon(Icons.gavel, color: Colors.amber[600])
+                      else
+                        Icon(Icons.visibility, color: Colors.blue[400]),
                     ],
                   ),
                 ),
@@ -396,6 +416,9 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
   }
 
   void _showBidDialog(Auction auction) {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    if (auction.sellerId == auth.firebaseUser?.uid) return; // Eigene Auktionen nicht bietbar
+
     final collectionService = Provider.of<CollectionService>(context, listen: false);
     final myTokens = collectionService.tokens;
     final myCoins = collectionService.totalPoints;
@@ -992,9 +1015,9 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                     const SizedBox(height: 16),
                     const Divider(color: Colors.grey),
                     const SizedBox(height: 8),
-                    // Gebote aus Subcollection laden
-                    FutureBuilder<List<Bid>>(
-                      future: auctionService.loadBids(auction.id),
+                    // Gebote live aus Subcollection
+                    StreamBuilder<List<Bid>>(
+                      stream: auctionService.bidsStream(auction.id),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator(strokeWidth: 2));
