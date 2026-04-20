@@ -2,31 +2,164 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── User Profile ────────────────────────────────────────────────────────
-    // Jeder eingeloggte User darf nur sein eigenes Profil lesen/schreiben
-    // Lesen der users-Liste ist für alle erlaubt (für Username-Eindeutigkeit bei Registrierung)
-    match /users/{userId} {
-      allow list: if true;  // Username-Eindeutigkeit prüfen (nur Query, kein volles Dokument)
-      allow get: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    // ─────────────────────────────────────────────────────────────
+    // Hilfsfunktionen
+    // ─────────────────────────────────────────────────────────────
+    function signedIn() {
+      return request.auth != null;
+    }
 
-      // Tokens: nur der eigene User darf lesen/schreiben
+    function isOwnUser(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAuctionSeller() {
+      return signedIn() && resource.data.sellerId == request.auth.uid;
+    }
+
+    function isValidUserCreate(userId) {
+      return isOwnUser(userId)
+        && request.resource.data.keys().hasOnly([
+          'uid', 'username', 'email', 'createdAt', 'coins'
+        ])
+        && request.resource.data.keys().hasAll([
+          'uid', 'username', 'email', 'createdAt'
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.username is string
+        && request.resource.data.username.size() >= 3
+        && request.resource.data.username.size() <= 20
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0
+        && request.resource.data.createdAt is timestamp
+        && (!('coins' in request.resource.data)
+            || request.resource.data.coins is number);
+    }
+
+    function isValidUserUpdate(userId) {
+      return isOwnUser(userId)
+        && request.resource.data.keys().hasOnly([
+          'uid', 'username', 'email', 'createdAt', 'coins'
+        ])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.username is string
+        && request.resource.data.username.size() >= 3
+        && request.resource.data.username.size() <= 20
+        && (!('coins' in request.resource.data)
+            || request.resource.data.coins is number);
+    }
+
+    // Nur coins darf per merge aktualisiert werden (CollectionService)
+    function isOwnCoinsUpdate(userId) {
+      return isOwnUser(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coins'])
+        && request.resource.data.coins is number
+        && request.resource.data.coins >= 0;
+    }
+
+    function isValidAuctionCreate() {
+      return request.resource.data.keys().hasOnly([
+        'sellerId', 'title', 'description', 'startPrice', 'currentBid',
+        'highestBidderId', 'imageUrl', 'category', 'status', 'createdAt', 'endsAt'
+      ])
+      && request.resource.data.keys().hasAll([
+        'sellerId', 'title', 'startPrice', 'currentBid', 'status', 'createdAt', 'endsAt'
+      ])
+      && request.resource.data.sellerId == request.auth.uid
+      && request.resource.data.title is string
+      && request.resource.data.title.size() > 0
+      && request.resource.data.title.size() <= 100
+      && (!('description' in request.resource.data)
+          || request.resource.data.description is string)
+      && request.resource.data.startPrice is number
+      && request.resource.data.currentBid is number
+      && request.resource.data.startPrice >= 0
+      && request.resource.data.currentBid >= request.resource.data.startPrice
+      && (!('highestBidderId' in request.resource.data)
+          || request.resource.data.highestBidderId == null
+          || request.resource.data.highestBidderId is string)
+      && (!('imageUrl' in request.resource.data)
+          || request.resource.data.imageUrl is string)
+      && (!('category' in request.resource.data)
+          || request.resource.data.category is string)
+      && request.resource.data.status in ['active', 'ended', 'cancelled']
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.endsAt is timestamp
+      && request.resource.data.endsAt > request.resource.data.createdAt;
+    }
+
+    function isValidAuctionUpdateBySeller() {
+      return isAuctionSeller()
+      && request.resource.data.sellerId == resource.data.sellerId
+      && request.resource.data.createdAt == resource.data.createdAt
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'title', 'description', 'imageUrl', 'category', 'status', 'endsAt'
+      ])
+      && request.resource.data.title is string
+      && request.resource.data.title.size() > 0
+      && request.resource.data.title.size() <= 100
+      && (!('description' in request.resource.data)
+          || request.resource.data.description is string)
+      && (!('imageUrl' in request.resource.data)
+          || request.resource.data.imageUrl is string)
+      && (!('category' in request.resource.data)
+          || request.resource.data.category is string)
+      && request.resource.data.status in ['active', 'ended', 'cancelled']
+      && request.resource.data.endsAt is timestamp;
+    }
+
+    function isValidBidUpdate() {
+      return signedIn()
+      && resource.data.status == 'active'
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'currentBid', 'highestBidderId'
+      ])
+      && request.resource.data.sellerId == resource.data.sellerId
+      && request.resource.data.currentBid is number
+      && request.resource.data.currentBid > resource.data.currentBid
+      && request.resource.data.highestBidderId == request.auth.uid
+      && request.resource.data.title == resource.data.title
+      && request.resource.data.startPrice == resource.data.startPrice
+      && request.resource.data.createdAt == resource.data.createdAt
+      && request.resource.data.endsAt == resource.data.endsAt
+      && request.resource.data.status == resource.data.status;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Users
+    // ─────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Username-Eindeutigkeit prüfen vor dem Login (Registrierung)
+      allow list: if true;
+
+      allow get: if isOwnUser(userId);
+      allow create: if isValidUserCreate(userId);
+      // Profil-Update (username) ODER nur Coins-Update (CollectionService)
+      allow update: if isValidUserUpdate(userId) || isOwnCoinsUpdate(userId);
+      allow delete: if isOwnUser(userId);
+
       match /tokens/{tokenId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwnUser(userId);
       }
     }
 
-    // ── Auctions ─────────────────────────────────────────────────────────────
-    // Alle eingeloggten User dürfen Auktionen lesen
-    // Erstellen: nur mit eigener sellerId
-    // Aktualisieren (bieten, stornieren): nur eingeloggte User
+    // ─────────────────────────────────────────────────────────────
+    // Auctions
+    // ─────────────────────────────────────────────────────────────
     match /auctions/{auctionId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-                    && request.resource.data.sellerId == request.auth.uid;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null
-                    && resource.data.sellerId == request.auth.uid;
+      allow read: if signedIn();
+      allow create: if signedIn() && isValidAuctionCreate();
+      allow update: if isValidAuctionUpdateBySeller() || isValidBidUpdate();
+      allow delete: if isAuctionSeller();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Alles andere verbieten
+    // ─────────────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

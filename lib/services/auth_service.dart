@@ -25,6 +25,7 @@ class AppUser {
   }
 
   Map<String, dynamic> toFirestore() => {
+        'uid': uid,
         'email': email,
         'username': username,
         'createdAt': Timestamp.fromDate(createdAt),
