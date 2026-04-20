@@ -483,10 +483,10 @@ class _MapScreenState extends State<MapScreen> {
 
     final ByteData assetData = await rootBundle.load(assetPath);
     final ui.Codec pinCodec = await ui.instantiateImageCodec(
-        assetData.buffer.asUint8List(), targetWidth: 200, targetHeight: 200);
+        assetData.buffer.asUint8List(), targetWidth: 260, targetHeight: 260);
     final ui.Image pinImage = (await pinCodec.getNextFrame()).image;
 
-    const int size = 260;
+    const int size = 340;
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(
         recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
@@ -495,15 +495,15 @@ class _MapScreenState extends State<MapScreen> {
     final pinSrc =
         Rect.fromLTWH(0, 0, pinImage.width.toDouble(), pinImage.height.toDouble());
     final pinDst = Rect.fromLTWH(
-        (size - 180) / 2, (size - 180) / 2, 180, 180);
+        (size - 240) / 2, (size - 240) / 2, 240, 240);
     canvas.drawImageRect(pinImage, pinSrc, pinDst, Paint());
 
     // Badge circle in top-right corner
     final badgeCenter = Offset(size * 0.72, size * 0.28);
-    canvas.drawCircle(badgeCenter, 32,
+    canvas.drawCircle(badgeCenter, 42,
         Paint()..color = const Color(0xDD212121));
     canvas.drawCircle(
-      badgeCenter, 32,
+      badgeCenter, 42,
       Paint()
         ..color = Colors.amber
         ..style = PaintingStyle.stroke
