@@ -483,10 +483,10 @@ class _MapScreenState extends State<MapScreen> {
 
     final ByteData assetData = await rootBundle.load(assetPath);
     final ui.Codec pinCodec = await ui.instantiateImageCodec(
-        assetData.buffer.asUint8List(), targetWidth: 120, targetHeight: 120);
+        assetData.buffer.asUint8List(), targetWidth: 200, targetHeight: 200);
     final ui.Image pinImage = (await pinCodec.getNextFrame()).image;
 
-    const int size = 160;
+    const int size = 260;
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(
         recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
@@ -495,19 +495,19 @@ class _MapScreenState extends State<MapScreen> {
     final pinSrc =
         Rect.fromLTWH(0, 0, pinImage.width.toDouble(), pinImage.height.toDouble());
     final pinDst = Rect.fromLTWH(
-        (size - 100) / 2, (size - 100) / 2, 100, 100);
+        (size - 180) / 2, (size - 180) / 2, 180, 180);
     canvas.drawImageRect(pinImage, pinSrc, pinDst, Paint());
 
     // Badge circle in top-right corner
     final badgeCenter = Offset(size * 0.72, size * 0.28);
-    canvas.drawCircle(badgeCenter, 22,
+    canvas.drawCircle(badgeCenter, 32,
         Paint()..color = const Color(0xDD212121));
     canvas.drawCircle(
-      badgeCenter, 22,
+      badgeCenter, 32,
       Paint()
         ..color = Colors.amber
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5,
+        ..strokeWidth = 3,
     );
 
     // Count number in badge
@@ -516,7 +516,7 @@ class _MapScreenState extends State<MapScreen> {
           text: '$count',
           style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 28,
               fontWeight: FontWeight.bold)),
       textDirection: TextDirection.ltr,
     )..layout();
@@ -531,14 +531,14 @@ class _MapScreenState extends State<MapScreen> {
           text: label,
           style: const TextStyle(
               color: Colors.white,
-              fontSize: 13,
+              fontSize: 18,
               fontWeight: FontWeight.w700,
               shadows: [Shadow(color: Colors.black, blurRadius: 4)])),
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: 140);
+    )..layout(maxWidth: 220);
     labelPainter.paint(
         canvas,
-        Offset((size - labelPainter.width) / 2, size * 0.78));
+        Offset((size - labelPainter.width) / 2, size * 0.80));
 
     final picture = recorder.endRecording();
     final img = await picture.toImage(size, size);
@@ -601,6 +601,7 @@ class _MapScreenState extends State<MapScreen> {
                       onCameraMove: (pos) {
                         if ((pos.zoom - _currentZoom).abs() >= 0.4) {
                           _currentZoom = pos.zoom;
+                          _clusterIconCache.clear(); // force re-render at new size
                           _updateMarkers();
                         }
                       },
