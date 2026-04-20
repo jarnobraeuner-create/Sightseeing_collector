@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/auction.dart';
+import 'collection_service.dart';
 
 class AuctionService extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -29,9 +30,18 @@ class AuctionService extends ChangeNotifier {
         try {
           final auction = Auction.fromFirestore(doc.data(), doc.id);
           if (auction.endsAt.isBefore(now)) {
-            _db.collection('auctions').doc(doc.id)
-                .update({'status': 'ended'})
-                .catchError((e) => debugPrint('Error ending auction: $e'));
+            final hasNoBids = auction.currentBid <= auction.startPrice;
+            if (hasNoBids) {
+              // Abgelaufen ohne Gebot: Auktion loeschen (Token bleibt beim Verkaeufer)
+              _db.collection('auctions').doc(doc.id)
+                  .delete()
+                  .catchError((e) => debugPrint('Error deleting expired auction: $e'));
+            } else {
+              // Abgelaufen mit Geboten: als beendet markieren
+              _db.collection('auctions').doc(doc.id)
+                  .update({'status': 'ended'})
+                  .catchError((e) => debugPrint('Error ending auction: $e'));
+            }
           } else {
             _auctions.add(auction);
           }
@@ -64,8 +74,9 @@ class AuctionService extends ChangeNotifier {
     String tokenId,
     String tokenName,
     String tokenImageUrl,
-    int minimumCoins,
-  ) async {
+    int minimumCoins, {
+    Map<String, dynamic>? tokenData,
+  }) async {
     final now = DateTime.now();
     final auction = Auction(
       id: '',
@@ -74,6 +85,7 @@ class AuctionService extends ChangeNotifier {
       title: tokenName,
       imageUrl: tokenImageUrl,
       category: tokenId,
+      tokenData: tokenData,
       startPrice: minimumCoins,
       currentBid: minimumCoins,
       status: 'active',
@@ -149,8 +161,30 @@ class AuctionService extends ChangeNotifier {
 
   // â”€â”€â”€ Accept Bid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  Future<void> acceptBid(String auctionId, String bidId) async {
-    await _db.collection('auctions').doc(auctionId).update({'status': 'ended'});
+  Future<void> acceptBid(
+    String auctionId,
+    Bid bid,
+    CollectionService collectionService,
+  ) async {
+    final auction = _auctions.where((a) => a.id == auctionId).firstOrNull;
+
+    // 1. Auktion als beendet markieren + Gewinner setzen
+    await _db.collection('auctions').doc(auctionId).update({
+      'status': 'ended',
+      'winnerId': bid.bidderId,
+      'winnerCoins': bid.coins,
+      'tokenClaimed': false,
+    });
+
+    // 2. Token aus Verkaeufer-Sammlung entfernen
+    if (auction?.category != null) {
+      collectionService.removeTokenById(auction!.category!);
+    }
+
+    // 3. Coins an Verkaeufer gutschreiben
+    if (bid.coins > 0) {
+      collectionService.addPoints(bid.coins);
+    }
   }
 
   // â”€â”€â”€ Cancel Auction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

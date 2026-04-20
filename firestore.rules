@@ -62,7 +62,8 @@ service cloud.firestore {
     function isValidAuctionCreate() {
       return request.resource.data.keys().hasOnly([
         'sellerId', 'sellerName', 'title', 'description', 'startPrice', 'currentBid',
-        'highestBidderId', 'imageUrl', 'category', 'status', 'createdAt', 'endsAt'
+        'highestBidderId', 'imageUrl', 'category', 'status', 'createdAt', 'endsAt',
+        'tokenData', 'tokenClaimed', 'winnerCoins'
       ])
       && request.resource.data.keys().hasAll([
         'sellerId', 'title', 'startPrice', 'currentBid', 'status', 'createdAt', 'endsAt'
@@ -127,6 +128,30 @@ service cloud.firestore {
       && request.resource.data.status == resource.data.status;
     }
 
+    // Verkaeufer nimmt Gebot an: setzt Gewinner + beendet Auktion
+    function isValidAcceptBidUpdate() {
+      return isAuctionSeller()
+      && resource.data.status == 'active'
+      && request.resource.data.status == 'ended'
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'status', 'winnerId', 'tokenClaimed', 'winnerCoins'
+      ])
+      && request.resource.data.sellerId == resource.data.sellerId
+      && request.resource.data.winnerId is string
+      && request.resource.data.tokenClaimed == false
+      && request.resource.data.winnerCoins is number;
+    }
+
+    // Gewinner loest Token ein: setzt tokenClaimed = true
+    function isValidClaimUpdate() {
+      return signedIn()
+      && resource.data.winnerId == request.auth.uid
+      && resource.data.status == 'ended'
+      && resource.data.tokenClaimed == false
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tokenClaimed'])
+      && request.resource.data.tokenClaimed == true;
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Users
     // ─────────────────────────────────────────────────────────────
@@ -151,7 +176,7 @@ service cloud.firestore {
     match /auctions/{auctionId} {
       allow read: if signedIn();
       allow create: if signedIn() && isValidAuctionCreate();
-      allow update: if isValidAuctionUpdateBySeller() || isValidBidUpdate();
+      allow update: if isValidAuctionUpdateBySeller() || isValidBidUpdate() || isValidAcceptBidUpdate() || isValidClaimUpdate();
       allow delete: if isAuctionSeller();
 
       // Gebote als Subcollection – jeder eingeloggte User darf lesen und eigene Gebote erstellen

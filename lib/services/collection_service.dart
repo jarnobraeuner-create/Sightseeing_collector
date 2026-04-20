@@ -60,10 +60,51 @@ class CollectionService extends ChangeNotifier {
       _rebuildSetsState();
       _isLoaded = true;
       notifyListeners();
+
+      // Gewonnene Auktionen einloesen (Token empfangen + Coins abziehen)
+      await claimWonAuctions(uid);
     } catch (e) {
       debugPrint('Error loading collection from Firestore: $e');
       _isLoaded = true;
       notifyListeners();
+    }
+  }
+
+  /// Prueft ob der User Auktionen gewonnen hat und empfaengt die Token automatisch.
+  Future<void> claimWonAuctions(String uid) async {
+    try {
+      final snap = await _db
+          .collection('auctions')
+          .where('winnerId', isEqualTo: uid)
+          .where('status', isEqualTo: 'ended')
+          .where('tokenClaimed', isEqualTo: false)
+          .get();
+
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final tokenJson = data['tokenData'] != null
+            ? Map<String, dynamic>.from(data['tokenData'] as Map)
+            : null;
+        if (tokenJson == null) continue;
+
+        final coins = (data['winnerCoins'] as num?)?.toInt() ?? 0;
+
+        // Token in eigene Sammlung aufnehmen
+        final token = Token.fromJson(tokenJson);
+        addToken(token);
+
+        // Coins abziehen
+        if (coins > 0) spendPoints(coins);
+
+        // Als eingeloest markieren
+        await _db
+            .collection('auctions')
+            .doc(doc.id)
+            .update({'tokenClaimed': true})
+            .catchError((e) => debugPrint('Error marking claimed: $e'));
+      }
+    } catch (e) {
+      debugPrint('Error claiming won auctions: $e');
     }
   }
 

@@ -1,22 +1,26 @@
 ﻿import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Felder entsprechen exakt den Firestore Security Rules
 class Auction {
   final String id;
   final String sellerId;
-  final String sellerName; // Anzeigename â€“ in Firestore gespeichert
-  final String title;      // = Token-Name
+  final String sellerName;
+  final String title;
   final String? description;
-  final String? imageUrl;  // = Token-Bild
-  final String? category;  // = tokenId (Referenz)
-  final int startPrice;    // = Mindestgebot
-  int currentBid;          // aktuell hÃ¶chstes Coin-Gebot
+  final String? imageUrl;
+  final String? category; // tokenId (UUID der Token-Instanz)
+  final int startPrice;
+  int currentBid;
   String? highestBidderId;
-  String status;           // 'active' | 'ended' | 'cancelled'
+  String status; // 'active' | 'ended' | 'cancelled'
   final DateTime createdAt;
   final DateTime endsAt;
 
-  // Gebote werden on-demand aus Subcollection geladen
+  // Gebot-Annahme Felder
+  final String? winnerId;
+  final Map<String, dynamic>? tokenData;
+  final bool tokenClaimed;
+  final int winnerCoins;
+
   List<Bid> bids;
 
   Auction({
@@ -33,12 +37,15 @@ class Auction {
     required this.status,
     required this.createdAt,
     required this.endsAt,
+    this.winnerId,
+    this.tokenData,
+    this.tokenClaimed = false,
+    this.winnerCoins = 0,
     this.bids = const [],
   });
 
   bool get isActive => status == 'active' && endsAt.isAfter(DateTime.now());
 
-  // HÃ¶chstes Gebot aus geladenen Bids (nur nach loadBids befÃ¼llt)
   Bid? get highestBid {
     if (bids.isEmpty) return null;
     return bids.reduce((a, b) => a.coins > b.coins ? a : b);
@@ -51,10 +58,13 @@ class Auction {
     if (description != null) 'description': description,
     if (imageUrl != null) 'imageUrl': imageUrl,
     if (category != null) 'category': category,
+    if (tokenData != null) 'tokenData': tokenData,
     'startPrice': startPrice,
     'currentBid': currentBid,
     'highestBidderId': null,
     'status': status,
+    'tokenClaimed': false,
+    'winnerCoins': 0,
     'createdAt': Timestamp.fromDate(createdAt),
     'endsAt': Timestamp.fromDate(endsAt),
   };
@@ -68,12 +78,18 @@ class Auction {
       description: data['description'] as String?,
       imageUrl: data['imageUrl'] as String?,
       category: data['category'] as String?,
+      tokenData: data['tokenData'] != null
+          ? Map<String, dynamic>.from(data['tokenData'] as Map)
+          : null,
       startPrice: (data['startPrice'] as num?)?.toInt() ?? 0,
       currentBid: (data['currentBid'] as num?)?.toInt() ?? 0,
       highestBidderId: data['highestBidderId'] as String?,
       status: data['status'] as String? ?? 'active',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       endsAt: (data['endsAt'] as Timestamp).toDate(),
+      winnerId: data['winnerId'] as String?,
+      tokenClaimed: data['tokenClaimed'] as bool? ?? false,
+      winnerCoins: (data['winnerCoins'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -102,9 +118,9 @@ class Bid {
   String get description {
     if (offeredTokenIds.isEmpty) return '$coins Coins';
     if (coins == 0) {
-      return '${offeredTokenIds.length} Token${offeredTokenIds.length > 1 ? 's' : ''}';
+      return '${offeredTokenIds.length} Token${offeredTokenIds.length > 1 ? "s" : ""}';
     }
-    return '${offeredTokenIds.length} Token${offeredTokenIds.length > 1 ? 's' : ''} + $coins Coins';
+    return '${offeredTokenIds.length} Token${offeredTokenIds.length > 1 ? "s" : ""} + $coins Coins';
   }
 
   Map<String, dynamic> toFirestore() => {

@@ -861,6 +861,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   landmark.name,
                   landmark.imageUrl,
                   minimumCoins,
+                  tokenData: token.toJson(),
                 );
                 
                 Navigator.pop(context);
@@ -1093,8 +1094,9 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                                                       color: Colors.grey[400]))),
                                             ElevatedButton(
                                               onPressed: () {
+                                                final collectionService = Provider.of<CollectionService>(context, listen: false);
                                                 auctionService.acceptBid(
-                                                    auction.id, bid.id);
+                                                    auction.id, bid, collectionService);
                                                 Navigator.pop(ctx);
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(const SnackBar(
