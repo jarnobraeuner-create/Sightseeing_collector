@@ -1,63 +1,81 @@
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
+
+// Felder entsprechen exakt den Firestore Security Rules
 class Auction {
   final String id;
   final String sellerId;
-  final String sellerName;
-  final String tokenId;
-  final String tokenName;
-  final String tokenImageUrl;
-  final int minimumCoins;
+  final String sellerName; // Anzeigename â€“ in Firestore gespeichert
+  final String title;      // = Token-Name
+  final String? description;
+  final String? imageUrl;  // = Token-Bild
+  final String? category;  // = tokenId (Referenz)
+  final int startPrice;    // = Mindestgebot
+  int currentBid;          // aktuell hÃ¶chstes Coin-Gebot
+  String? highestBidderId;
+  String status;           // 'active' | 'ended' | 'cancelled'
   final DateTime createdAt;
-  final DateTime expiresAt;
+  final DateTime endsAt;
+
+  // Gebote werden on-demand aus Subcollection geladen
   List<Bid> bids;
-  bool isActive;
 
   Auction({
     required this.id,
     required this.sellerId,
     required this.sellerName,
-    required this.tokenId,
-    required this.tokenName,
-    required this.tokenImageUrl,
-    required this.minimumCoins,
+    required this.title,
+    this.description,
+    this.imageUrl,
+    this.category,
+    required this.startPrice,
+    required this.currentBid,
+    this.highestBidderId,
+    required this.status,
     required this.createdAt,
-    required this.expiresAt,
+    required this.endsAt,
     this.bids = const [],
-    this.isActive = true,
   });
 
+  bool get isActive => status == 'active' && endsAt.isAfter(DateTime.now());
+
+  // HÃ¶chstes Gebot aus geladenen Bids (nur nach loadBids befÃ¼llt)
   Bid? get highestBid {
     if (bids.isEmpty) return null;
-    return bids.reduce((a, b) => a.totalValue > b.totalValue ? a : b);
+    return bids.reduce((a, b) => a.coins > b.coins ? a : b);
   }
 
-  // Für Firebase/Datenbank
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'sellerId': sellerId,
-        'sellerName': sellerName,
-        'tokenId': tokenId,
-        'tokenName': tokenName,
-        'tokenImageUrl': tokenImageUrl,
-        'minimumCoins': minimumCoins,
-        'createdAt': createdAt.toIso8601String(),
-        'expiresAt': expiresAt.toIso8601String(),
-        'bids': bids.map((b) => b.toJson()).toList(),
-        'isActive': isActive,
-      };
+  Map<String, dynamic> toFirestore() => {
+    'sellerId': sellerId,
+    'sellerName': sellerName,
+    'title': title,
+    if (description != null) 'description': description,
+    if (imageUrl != null) 'imageUrl': imageUrl,
+    if (category != null) 'category': category,
+    'startPrice': startPrice,
+    'currentBid': currentBid,
+    'highestBidderId': null,
+    'status': status,
+    'createdAt': Timestamp.fromDate(createdAt),
+    'endsAt': Timestamp.fromDate(endsAt),
+  };
 
-  factory Auction.fromJson(Map<String, dynamic> json) => Auction(
-        id: json['id'] as String,
-        sellerId: json['sellerId'] as String,
-        sellerName: json['sellerName'] as String,
-        tokenId: json['tokenId'] as String,
-        tokenName: json['tokenName'] as String,
-        tokenImageUrl: json['tokenImageUrl'] as String,
-        minimumCoins: json['minimumCoins'] as int,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        expiresAt: DateTime.parse(json['expiresAt'] as String),
-        bids: (json['bids'] as List).map((b) => Bid.fromJson(b)).toList(),
-        isActive: json['isActive'] as bool,
-      );
+  factory Auction.fromFirestore(Map<String, dynamic> data, String id) {
+    return Auction(
+      id: id,
+      sellerId: data['sellerId'] as String? ?? '',
+      sellerName: data['sellerName'] as String? ?? 'Unbekannt',
+      title: data['title'] as String? ?? '',
+      description: data['description'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      category: data['category'] as String?,
+      startPrice: (data['startPrice'] as num?)?.toInt() ?? 0,
+      currentBid: (data['currentBid'] as num?)?.toInt() ?? 0,
+      highestBidderId: data['highestBidderId'] as String?,
+      status: data['status'] as String? ?? 'active',
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      endsAt: (data['endsAt'] as Timestamp).toDate(),
+    );
+  }
 }
 
 class Bid {
@@ -69,7 +87,7 @@ class Bid {
   final List<String> offeredTokenNames;
   final DateTime createdAt;
 
-  Bid({
+  const Bid({
     required this.id,
     required this.bidderId,
     required this.bidderName,
@@ -79,39 +97,32 @@ class Bid {
     required this.createdAt,
   });
 
-  int get totalValue {
-    // Jeder Token ist etwa 100 Punkte wert + coins
-    return (offeredTokenIds.length * 100) + coins;
-  }
+  int get totalValue => (offeredTokenIds.length * 100) + coins;
 
   String get description {
-    if (offeredTokenIds.isEmpty && coins > 0) {
-      return '$coins Coins';
-    } else if (offeredTokenIds.isNotEmpty && coins == 0) {
+    if (offeredTokenIds.isEmpty) return '$coins Coins';
+    if (coins == 0) {
       return '${offeredTokenIds.length} Token${offeredTokenIds.length > 1 ? 's' : ''}';
-    } else {
-      return '${offeredTokenIds.length} Token${offeredTokenIds.length > 1 ? 's' : ''} + $coins Coins';
     }
+    return '${offeredTokenIds.length} Token${offeredTokenIds.length > 1 ? 's' : ''} + $coins Coins';
   }
 
-  // Für Firebase/Datenbank
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'bidderId': bidderId,
-        'bidderName': bidderName,
-        'coins': coins,
-        'offeredTokenIds': offeredTokenIds,
-        'offeredTokenNames': offeredTokenNames,
-        'createdAt': createdAt.toIso8601String(),
-      };
+  Map<String, dynamic> toFirestore() => {
+    'bidderId': bidderId,
+    'bidderName': bidderName,
+    'coins': coins,
+    'offeredTokenIds': offeredTokenIds,
+    'offeredTokenNames': offeredTokenNames,
+    'createdAt': Timestamp.fromDate(createdAt),
+  };
 
-  factory Bid.fromJson(Map<String, dynamic> json) => Bid(
-        id: json['id'] as String,
-        bidderId: json['bidderId'] as String,
-        bidderName: json['bidderName'] as String,
-        coins: json['coins'] as int,
-        offeredTokenIds: List<String>.from(json['offeredTokenIds'] as List),
-        offeredTokenNames: List<String>.from(json['offeredTokenNames'] as List),
-        createdAt: DateTime.parse(json['createdAt'] as String),
-      );
+  factory Bid.fromFirestore(Map<String, dynamic> data, String id) => Bid(
+    id: id,
+    bidderId: data['bidderId'] as String? ?? '',
+    bidderName: data['bidderName'] as String? ?? 'Unbekannt',
+    coins: (data['coins'] as num?)?.toInt() ?? 0,
+    offeredTokenIds: List<String>.from(data['offeredTokenIds'] as List? ?? []),
+    offeredTokenNames: List<String>.from(data['offeredTokenNames'] as List? ?? []),
+    createdAt: (data['createdAt'] as Timestamp).toDate(),
+  );
 }

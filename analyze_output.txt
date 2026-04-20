@@ -1,11 +1,85 @@
-Analyzing sightseeing_collector...                              
+﻿Analyzing sightseeing_collector...                              
 
    info - Unnecessary use of a block function body - lib\main.dart:20:38 - prefer_expression_function_bodies
-   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:14:3 - sort_constructors_first
-   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:48:11 - sort_constructors_first
-   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:72:3 - sort_constructors_first
-   info - Unnecessary use of a block function body - lib\models\auction.dart:82:22 - prefer_expression_function_bodies
-   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:108:11 - sort_constructors_first
+  error - 'dynamic' doesn't conform to the bound 'ChangeNotifier?' of the type parameter 'T' - lib\main.dart:36:9 - type_argument_not_matching_bounds
+  error - Couldn't infer type parameter 'T'.
+
+Tried to infer 'dynamic' for 'T' which doesn't work:
+  Type parameter 'T' is declared to extend 'ChangeNotifier?' producing 'ChangeNotifier?'.
+The type 'dynamic' was inferred from:
+  Parameter 'create' declared as     'T Function(BuildContext)'
+                     but argument is 'dynamic Function(BuildContext)'.
+
+Consider passing explicit type argument(s) to the generic.
+
+ - lib\main.dart:36:9 - could_not_infer
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:22:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:62:11 - sort_constructors_first
+  error - The name of a factory constructor must be the same as the name of the immediately enclosing class - lib\models\auction.dart:62:11 - invalid_factory_name_not_a_class
+   info - Unnecessary use of a block function body - lib\models\auction.dart:62:71 - prefer_expression_function_bodies
+  error - The named parameter 'expiresAt' is required, but there's no corresponding argument - lib\models\auction.dart:63:12 - missing_required_argument
+  error - The named parameter 'minimumCoins' is required, but there's no corresponding argument - lib\models\auction.dart:63:12 - missing_required_argument
+  error - The named parameter 'tokenId' is required, but there's no corresponding argument - lib\models\auction.dart:63:12 - missing_required_argument
+  error - The named parameter 'tokenImageUrl' is required, but there's no corresponding argument - lib\models\auction.dart:63:12 - missing_required_argument
+  error - The named parameter 'tokenName' is required, but there's no corresponding argument - lib\models\auction.dart:63:12 - missing_required_argument
+  error - The named parameter 'title' isn't defined - lib\models\auction.dart:67:7 - undefined_named_parameter
+  error - The named parameter 'description' isn't defined - lib\models\auction.dart:68:7 - undefined_named_parameter
+  error - The named parameter 'imageUrl' isn't defined - lib\models\auction.dart:69:7 - undefined_named_parameter
+  error - The named parameter 'category' isn't defined - lib\models\auction.dart:70:7 - undefined_named_parameter
+  error - The named parameter 'startPrice' isn't defined - lib\models\auction.dart:71:7 - undefined_named_parameter
+  error - The named parameter 'currentBid' isn't defined - lib\models\auction.dart:72:7 - undefined_named_parameter
+  error - The named parameter 'highestBidderId' isn't defined - lib\models\auction.dart:73:7 - undefined_named_parameter
+  error - The named parameter 'status' isn't defined - lib\models\auction.dart:74:7 - undefined_named_parameter
+  error - The named parameter 'endsAt' isn't defined - lib\models\auction.dart:76:7 - undefined_named_parameter
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:90:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:119:11 - sort_constructors_first
+  error - The final variable 'minimumCoins' must be initialized - lib\models\auction.dart:130:13 - final_not_initialized
+  error - The final variable 'createdAt' must be initialized - lib\models\auction.dart:131:18 - final_not_initialized
+  error - The final variable 'expiresAt' must be initialized - lib\models\auction.dart:132:18 - final_not_initialized
+  error - The non-nullable variable 'bids' must be initialized - lib\models\auction.dart:133:13 - not_initialized_non_nullable_variable
+  error - The non-nullable variable 'isActive' must be initialized - lib\models\auction.dart:134:8 - not_initialized_non_nullable_variable
+   info - Missing type annotation on a public API - lib\models\auction.dart:136:3 - type_annotate_public_apis
+   info - The function 'Auction' should have a return type but doesn't - lib\models\auction.dart:136:3 - always_declare_return_types
+   info - The variable name 'Auction' isn't a lowerCamelCase identifier - lib\models\auction.dart:136:3 - non_constant_identifier_names
+  error - The name 'Auction' is already defined - lib\models\auction.dart:136:3 - duplicate_definition
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:137:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:138:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:139:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:140:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:141:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:142:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:143:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:144:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:145:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:146:5 - field_initializer_outside_constructor
+  error - Initializing formal parameters can only be used in constructors - lib\models\auction.dart:147:5 - field_initializer_outside_constructor
+  error - A function body must be provided - lib\models\auction.dart:148:5 - missing_function_body
+  error - Undefined name 'id' - lib\models\auction.dart:157:15 - undefined_identifier
+  error - Undefined name 'sellerId' - lib\models\auction.dart:158:21 - undefined_identifier
+  error - Undefined name 'sellerName' - lib\models\auction.dart:159:23 - undefined_identifier
+  error - Undefined name 'tokenId' - lib\models\auction.dart:160:20 - undefined_identifier
+  error - Undefined name 'tokenName' - lib\models\auction.dart:161:22 - undefined_identifier
+  error - Undefined name 'tokenImageUrl' - lib\models\auction.dart:162:26 - undefined_identifier
+  error - The method 'toJson' isn't defined for the type 'Bid' - lib\models\auction.dart:166:35 - undefined_method
+  error - Top-level declarations can't be declared to be 'factory' - lib\models\auction.dart:170:3 - factory_top_level_declaration
+   info - Missing type annotation on a public API - lib\models\auction.dart:170:11 - type_annotate_public_apis
+   info - The function 'Auction' should have a return type but doesn't - lib\models\auction.dart:170:11 - always_declare_return_types
+   info - The variable name 'Auction' isn't a lowerCamelCase identifier - lib\models\auction.dart:170:11 - non_constant_identifier_names
+  error - Functions must have an explicit list of parameters - lib\models\auction.dart:170:11 - missing_function_parameters
+  error - The name 'Auction' is already defined - lib\models\auction.dart:170:11 - duplicate_definition
+  error - A function body must be provided - lib\models\auction.dart:170:18 - missing_function_body
+  error - Expected a method, getter, setter or operator declaration - lib\models\auction.dart:170:18 - expected_executable
+   info - Missing type annotation on a public API - lib\models\auction.dart:170:19 - type_annotate_public_apis
+   info - The function 'fromJson' should have a return type but doesn't - lib\models\auction.dart:170:19 - always_declare_return_types
+   info - Closure should be a tearoff - lib\models\auction.dart:180:42 - unnecessary_lambdas
+  error - The method 'fromJson' isn't defined for the type 'Bid' - lib\models\auction.dart:180:53 - undefined_method
+  error - Expected a method, getter, setter or operator declaration - lib\models\auction.dart:183:1 - expected_executable
+  error - The name 'Bid' is already defined - lib\models\auction.dart:185:7 - duplicate_definition
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:194:3 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\models\auction.dart:204:22 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\models\auction.dart:230:11 - sort_constructors_first
+  error - The name of a factory constructor must be the same as the name of the immediately enclosing class - lib\models\auction.dart:230:11 - invalid_factory_name_not_a_class
+  error - A value of type 'Bid (where Bid is defined in C:\Users\jarno\OneDrive\Desktop\sightseeing_collector\lib\models\auction.dart)' can't be returned from the constructor 'Bid.fromJson' because it has a return type of 'Bid (where Bid is defined in C:\Users\jarno\OneDrive\Desktop\sightseeing_collector\lib\models\auction.dart)' - lib\models\auction.dart:230:54 - return_of_invalid_type
    info - Constructor declarations should be before non-constructor declarations - lib\models\collection_set.dart:11:3 - sort_constructors_first
    info - Unnecessary use of a block function body - lib\models\collection_set.dart:30:6 - prefer_expression_function_bodies
    info - Constructor declarations should be before non-constructor declarations - lib\models\collection_set.dart:54:11 - sort_constructors_first
@@ -40,13 +114,13 @@ Analyzing sightseeing_collector...
    info - Constructor declarations should be before non-constructor declarations - lib\screens\collection_screen.dart:358:9 - sort_constructors_first
    info - Unnecessary use of a block function body - lib\screens\collection_screen.dart:444:38 - prefer_expression_function_bodies
    info - Unnecessary use of a block function body - lib\screens\home_screen.dart:38:38 - prefer_expression_function_bodies
-   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:137:38 - prefer_expression_function_bodies
-   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:143:58 - prefer_expression_function_bodies
-   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:166:56 - prefer_expression_function_bodies
-   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:238:52 - prefer_expression_function_bodies
-   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:262:5 - prefer_expression_function_bodies
-   info - Constructor declarations should be before non-constructor declarations - lib\screens\home_screen.dart:275:9 - sort_constructors_first
-   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:281:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:127:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:133:58 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:156:56 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:228:52 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:252:5 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\home_screen.dart:265:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\home_screen.dart:271:38 - prefer_expression_function_bodies
    info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart' - lib\screens\map_screen.dart:3:8 - unnecessary_import
    info - 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead - lib\screens\map_screen.dart:149:56 - deprecated_member_use
    info - 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead - lib\screens\map_screen.dart:162:60 - deprecated_member_use
@@ -59,12 +133,12 @@ Analyzing sightseeing_collector...
    info - Use 'const' with the constructor to improve performance - lib\screens\map_screen_safe.dart:94:13 - prefer_const_constructors
    info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:11:38 - prefer_expression_function_bodies
    info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:24:38 - prefer_expression_function_bodies
-   info - Constructor declarations should be before non-constructor declarations - lib\screens\profile_screen.dart:297:9 - sort_constructors_first
-   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:306:38 - prefer_expression_function_bodies
-   info - Constructor declarations should be before non-constructor declarations - lib\screens\profile_screen.dart:365:9 - sort_constructors_first
-   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:368:38 - prefer_expression_function_bodies
-   info - Constructor declarations should be before non-constructor declarations - lib\screens\profile_screen.dart:402:9 - sort_constructors_first
-   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:410:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\profile_screen.dart:344:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:353:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\profile_screen.dart:412:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:415:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\profile_screen.dart:449:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\profile_screen.dart:457:38 - prefer_expression_function_bodies
    info - Unnecessary use of a block function body - lib\screens\sets_screen.dart:38:38 - prefer_expression_function_bodies
    info - Constructor declarations should be before non-constructor declarations - lib\screens\sets_screen.dart:83:9 - sort_constructors_first
    info - Constructor declarations should be before non-constructor declarations - lib\screens\sets_screen.dart:313:9 - sort_constructors_first
@@ -88,23 +162,76 @@ Analyzing sightseeing_collector...
    info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:105:31 - prefer_expression_function_bodies
    info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:137:23 - prefer_expression_function_bodies
    info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:280:30 - prefer_expression_function_bodies
-   info - Local variables should be final - lib\screens\trading_screen.dart:410:5 - prefer_final_locals
-   info - Use 'const' with the constructor to improve performance - lib\screens\trading_screen.dart:490:17 - prefer_const_constructors
-   info - Use 'const' with the constructor to improve performance - lib\screens\trading_screen.dart:525:17 - prefer_const_constructors
-   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:666:32 - prefer_expression_function_bodies
-   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:858:29 - prefer_expression_function_bodies
-   info - Constructor declarations should be before non-constructor declarations - lib\screens\trading_screen.dart:1103:9 - sort_constructors_first
-   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:1106:38 - prefer_expression_function_bodies
-   info - Constructor declarations should be before non-constructor declarations - lib\screens\trading_screen.dart:1139:9 - sort_constructors_first
-   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:1148:38 - prefer_expression_function_bodies
-   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:1201:38 - prefer_expression_function_bodies
+  error - The name 'AuctionService' isn't a type, so it can't be used as a type argument - lib\screens\trading_screen.dart:281:21 - non_type_as_type_argument
+  error - The property 'auctions' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\trading_screen.dart:283:41 - unchecked_use_of_nullable_value
+  error - Auction isn't a type - lib\screens\trading_screen.dart:398:23 - not_a_type
+   info - Local variables should be final - lib\screens\trading_screen.dart:404:5 - prefer_final_locals
+   info - Use 'const' with the constructor to improve performance - lib\screens\trading_screen.dart:495:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\screens\trading_screen.dart:530:17 - prefer_const_constructors
+  error - The name 'AuctionService' isn't a type, so it can't be used as a type argument - lib\screens\trading_screen.dart:633:58 - non_type_as_type_argument
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:671:32 - prefer_expression_function_bodies
+  error - The name 'AuctionService' isn't a type, so it can't be used as a type argument - lib\screens\trading_screen.dart:672:41 - non_type_as_type_argument
+  error - The name 'AuctionService' isn't a type, so it can't be used as a type argument - lib\screens\trading_screen.dart:832:52 - non_type_as_type_argument
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:863:29 - prefer_expression_function_bodies
+  error - The name 'AuctionService' isn't a type, so it can't be used as a type argument - lib\screens\trading_screen.dart:864:21 - non_type_as_type_argument
+  error - The method 'getMyAuctions' can't be unconditionally invoked because the receiver can be 'null' - lib\screens\trading_screen.dart:867:43 - unchecked_use_of_nullable_value
+  error - The method 'cancelAuction' can't be unconditionally invoked because the receiver can be 'null' - lib\screens\trading_screen.dart:976:54 - unchecked_use_of_nullable_value
+  error - The method 'loadBids' can't be unconditionally invoked because the receiver can be 'null' - lib\screens\trading_screen.dart:997:46 - unchecked_use_of_nullable_value
+  error - The method 'acceptBid' can't be unconditionally invoked because the receiver can be 'null' - lib\screens\trading_screen.dart:1073:64 - unchecked_use_of_nullable_value
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\trading_screen.dart:1117:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:1120:38 - prefer_expression_function_bodies
+   info - Constructor declarations should be before non-constructor declarations - lib\screens\trading_screen.dart:1153:9 - sort_constructors_first
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:1162:38 - prefer_expression_function_bodies
+   info - Unnecessary use of a block function body - lib\screens\trading_screen.dart:1215:38 - prefer_expression_function_bodies
+  error - The name 'Auction' isn't a type, so it can't be used as a type argument - lib\services\auction_service.dart:10:14 - non_type_as_type_argument
+  error - The name 'Auction' isn't a type, so it can't be used as a type argument - lib\services\auction_service.dart:13:8 - non_type_as_type_argument
    info - Constructor declarations should be before non-constructor declarations - lib\services\auction_service.dart:16:3 - sort_constructors_first
-   info - Unnecessary use of a block function body - lib\services\auction_service.dart:128:46 - prefer_expression_function_bodies
-   info - Unnecessary use of a block function body - lib\services\auction_service.dart:132:42 - prefer_expression_function_bodies
+  error - The method 'fromFirestore' isn't defined for the type 'Function' - lib\services\auction_service.dart:31:35 - undefined_method
+  error - The named parameter 'id' isn't defined - lib\services\auction_service.dart:71:7 - undefined_named_parameter
+  error - The named parameter 'sellerId' isn't defined - lib\services\auction_service.dart:72:7 - undefined_named_parameter
+  error - The named parameter 'sellerName' isn't defined - lib\services\auction_service.dart:73:7 - undefined_named_parameter
+  error - The named parameter 'title' isn't defined - lib\services\auction_service.dart:74:7 - undefined_named_parameter
+  error - The named parameter 'imageUrl' isn't defined - lib\services\auction_service.dart:75:7 - undefined_named_parameter
+  error - The named parameter 'category' isn't defined - lib\services\auction_service.dart:76:7 - undefined_named_parameter
+  error - The named parameter 'startPrice' isn't defined - lib\services\auction_service.dart:77:7 - undefined_named_parameter
+  error - The named parameter 'currentBid' isn't defined - lib\services\auction_service.dart:78:7 - undefined_named_parameter
+  error - The named parameter 'status' isn't defined - lib\services\auction_service.dart:79:7 - undefined_named_parameter
+  error - The named parameter 'createdAt' isn't defined - lib\services\auction_service.dart:80:7 - undefined_named_parameter
+  error - The named parameter 'endsAt' isn't defined - lib\services\auction_service.dart:81:7 - undefined_named_parameter
+  error - The method 'toFirestore' isn't defined for the type 'Bid' - lib\services\auction_service.dart:113:18 - undefined_method
+  error - The method 'fromFirestore' isn't defined for the type 'Bid' - lib\services\auction_service.dart:135:27 - undefined_method
+  error - The name 'Auction' isn't a type, so it can't be used as a type argument - lib\services\auction_service.dart:153:8 - non_type_as_type_argument
+   info - Unnecessary use of a block function body - lib\services\auction_service.dart:153:46 - prefer_expression_function_bodies
+  error - The name 'Auction' isn't a type, so it can't be used as a type argument - lib\services\auction_service.dart:157:8 - non_type_as_type_argument
+   info - Unnecessary use of a block function body - lib\services\auction_service.dart:157:42 - prefer_expression_function_bodies
+  error - The name 'Auction' isn't a type, so it can't be used as a type argument - lib\services\auction_service.dart:165:14 - non_type_as_type_argument
+  error - The name 'Auction' isn't a type, so it can't be used as a type argument - lib\services\auction_service.dart:168:8 - non_type_as_type_argument
+   info - Missing type annotation on a public API - lib\services\auction_service.dart:171:3 - type_annotate_public_apis
+   info - The function 'AuctionService' should have a return type but doesn't - lib\services\auction_service.dart:171:3 - always_declare_return_types
+   info - The variable name 'AuctionService' isn't a lowerCamelCase identifier - lib\services\auction_service.dart:171:3 - non_constant_identifier_names
+  error - The name 'AuctionService' is already defined - lib\services\auction_service.dart:171:3 - duplicate_definition
+  error - The method 'fromJson' isn't defined for the type 'Function' - lib\services\auction_service.dart:185:35 - undefined_method
+  error - The function 'notifyListeners' isn't defined - lib\services\auction_service.dart:197:7 - undefined_function
+  error - The function 'notifyListeners' isn't defined - lib\services\auction_service.dart:201:7 - undefined_function
+  error - Invalid context for 'super' invocation - lib\services\auction_service.dart:208:5 - super_in_invalid_context
+  error - The named parameter 'id' isn't defined - lib\services\auction_service.dart:223:7 - undefined_named_parameter
+  error - The named parameter 'sellerId' isn't defined - lib\services\auction_service.dart:224:7 - undefined_named_parameter
+  error - The named parameter 'sellerName' isn't defined - lib\services\auction_service.dart:225:7 - undefined_named_parameter
+  error - The named parameter 'tokenId' isn't defined - lib\services\auction_service.dart:226:7 - undefined_named_parameter
+  error - The named parameter 'tokenName' isn't defined - lib\services\auction_service.dart:227:7 - undefined_named_parameter
+  error - The named parameter 'tokenImageUrl' isn't defined - lib\services\auction_service.dart:228:7 - undefined_named_parameter
+  error - The named parameter 'minimumCoins' isn't defined - lib\services\auction_service.dart:229:7 - undefined_named_parameter
+  error - The named parameter 'createdAt' isn't defined - lib\services\auction_service.dart:230:7 - undefined_named_parameter
+  error - The named parameter 'expiresAt' isn't defined - lib\services\auction_service.dart:231:7 - undefined_named_parameter
+  error - The name 'Auction' isn't a type, so it can't be used as a type argument - lib\services\auction_service.dart:283:8 - non_type_as_type_argument
+   info - Unnecessary use of a block function body - lib\services\auction_service.dart:283:46 - prefer_expression_function_bodies
+  error - The name 'Auction' isn't a type, so it can't be used as a type argument - lib\services\auction_service.dart:287:8 - non_type_as_type_argument
+   info - Unnecessary use of a block function body - lib\services\auction_service.dart:287:42 - prefer_expression_function_bodies
+  error - Expected a method, getter, setter or operator declaration - lib\services\auction_service.dart:292:1 - expected_executable
    info - Constructor declarations should be before non-constructor declarations - lib\services\auth_service.dart:11:9 - sort_constructors_first
    info - Constructor declarations should be before non-constructor declarations - lib\services\auth_service.dart:18:11 - sort_constructors_first
    info - Unnecessary use of a block function body - lib\services\auth_service.dart:18:72 - prefer_expression_function_bodies
-   info - Constructor declarations should be before non-constructor declarations - lib\services\auth_service.dart:53:3 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\auth_service.dart:54:3 - sort_constructors_first
    info - Constructor declarations should be before non-constructor declarations - lib\services\collection_service.dart:20:3 - sort_constructors_first
    info - The variable 'setId' should be final - lib\services\collection_service.dart:201:14 - prefer_final_in_for_each
    info - Unnecessary use of a block function body - lib\services\collection_service.dart:243:45 - prefer_expression_function_bodies
@@ -145,4 +272,3 @@ Analyzing sightseeing_collector...
    info - Dependencies not sorted alphabetically - pubspec.yaml:18:3 - sort_pub_dependencies
    info - Dependencies not sorted alphabetically - pubspec.yaml:50:3 - sort_pub_dependencies
 
-144 issues found. (ran in 5.0s)

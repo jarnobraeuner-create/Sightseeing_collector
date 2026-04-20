@@ -61,7 +61,7 @@ service cloud.firestore {
 
     function isValidAuctionCreate() {
       return request.resource.data.keys().hasOnly([
-        'sellerId', 'title', 'description', 'startPrice', 'currentBid',
+        'sellerId', 'sellerName', 'title', 'description', 'startPrice', 'currentBid',
         'highestBidderId', 'imageUrl', 'category', 'status', 'createdAt', 'endsAt'
       ])
       && request.resource.data.keys().hasAll([
@@ -131,6 +131,9 @@ service cloud.firestore {
     // Users
     // ─────────────────────────────────────────────────────────────
     match /users/{userId} {
+      // Username-Eindeutigkeit prüfen (nur für authentifizierte User)
+      allow list: if signedIn();
+
       allow get: if isOwnUser(userId);
       allow create: if isValidUserCreate(userId);
       // Profil-Update (username) ODER nur Coins-Update (CollectionService)
@@ -150,6 +153,17 @@ service cloud.firestore {
       allow create: if signedIn() && isValidAuctionCreate();
       allow update: if isValidAuctionUpdateBySeller() || isValidBidUpdate();
       allow delete: if isAuctionSeller();
+
+      // Gebote als Subcollection – jeder eingeloggte User darf lesen und eigene Gebote erstellen
+      match /bids/{bidId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.keys().hasAll(['bidderId', 'bidderName', 'coins', 'offeredTokenIds', 'offeredTokenNames', 'createdAt'])
+          && request.resource.data.bidderId == request.auth.uid
+          && request.resource.data.coins is number
+          && request.resource.data.coins >= 0
+          && request.resource.data.createdAt is timestamp;
+      }
     }
 
     // ─────────────────────────────────────────────────────────────

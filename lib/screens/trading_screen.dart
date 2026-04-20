@@ -306,9 +306,9 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           itemCount: auctions.length,
           itemBuilder: (context, index) {
             final auction = auctions[index];
-            final timeLeft = auction.expiresAt.difference(DateTime.now());
-            final highestBid = auction.highestBid;
-            
+            final timeLeft = auction.endsAt.difference(DateTime.now());
+            final hasBids = auction.currentBid > auction.startPrice;
+
             return Card(
               color: Colors.grey[850],
               margin: const EdgeInsets.only(bottom: 16),
@@ -321,12 +321,23 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                       // Token Bild
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          auction.tokenImageUrl,
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                        ),
+                        child: auction.imageUrl != null
+                            ? Image.asset(
+                                auction.imageUrl!,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 80, height: 80,
+                                  color: Colors.grey[700],
+                                  child: const Icon(Icons.image, color: Colors.grey),
+                                ),
+                              )
+                            : Container(
+                                width: 80, height: 80,
+                                color: Colors.grey[700],
+                                child: const Icon(Icons.image, color: Colors.grey),
+                              ),
                       ),
                       const SizedBox(width: 16),
                       // Info
@@ -335,7 +346,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              auction.tokenName,
+                              auction.title,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -359,37 +370,20 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                               ],
                             ),
                             const SizedBox(height: 4),
-                            if (highestBid != null)
-                              Text(
-                                'Höchstes Gebot: ${highestBid.description}',
-                                style: const TextStyle(
-                                  color: Colors.amber,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            else
-                              Text(
-                                'Mindestgebot: ${auction.minimumCoins} Coins',
-                                style: TextStyle(color: Colors.grey[400]),
+                            Text(
+                              hasBids
+                                  ? 'Höchstes Gebot: ${auction.currentBid} Coins'
+                                  : 'Mindestgebot: ${auction.startPrice} Coins',
+                              style: TextStyle(
+                                color: hasBids ? Colors.amber : Colors.grey[400],
+                                fontWeight: hasBids ? FontWeight.bold : FontWeight.normal,
                               ),
+                            ),
                           ],
                         ),
                       ),
-                      // Anzahl Gebote
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.amber[700],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${auction.bids.length}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
+                      // Bieten-Icon
+                      Icon(Icons.gavel, color: Colors.amber[600]),
                     ],
                   ),
                 ),
@@ -406,7 +400,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
     final myTokens = collectionService.tokens;
     final myCoins = collectionService.totalPoints;
     
-    int coinBid = auction.highestBid?.coins ?? auction.minimumCoins;
+    int coinBid = auction.currentBid + 1;
     List<String> selectedTokenIds = [];
     final TextEditingController coinController = TextEditingController(text: coinBid.toString());
     
@@ -432,12 +426,23 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        auction.tokenImageUrl,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                      ),
+                      child: auction.imageUrl != null
+                          ? Image.asset(
+                              auction.imageUrl!,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 60, height: 60,
+                                color: Colors.grey[700],
+                                child: const Icon(Icons.image, color: Colors.grey),
+                              ),
+                            )
+                          : Container(
+                              width: 60, height: 60,
+                              color: Colors.grey[700],
+                              child: const Icon(Icons.image, color: Colors.grey),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -445,7 +450,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            auction.tokenName,
+                            auction.title,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -885,9 +890,8 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           itemCount: myAuctions.length,
           itemBuilder: (context, index) {
             final auction = myAuctions[index];
-            final timeLeft = auction.expiresAt.difference(DateTime.now());
-            final highestBid = auction.highestBid;
-            
+            final timeLeft = auction.endsAt.difference(DateTime.now());
+
             return Card(
               color: Colors.grey[850],
               margin: const EdgeInsets.only(bottom: 16),
@@ -900,12 +904,23 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            auction.tokenImageUrl,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                          ),
+                          child: auction.imageUrl != null
+                              ? Image.asset(
+                                  auction.imageUrl!,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 80, height: 80,
+                                    color: Colors.grey[700],
+                                    child: const Icon(Icons.image, color: Colors.grey),
+                                  ),
+                                )
+                              : Container(
+                                  width: 80, height: 80,
+                                  color: Colors.grey[700],
+                                  child: const Icon(Icons.image, color: Colors.grey),
+                                ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -913,7 +928,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                auction.tokenName,
+                                auction.title,
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -977,112 +992,111 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                     const SizedBox(height: 16),
                     const Divider(color: Colors.grey),
                     const SizedBox(height: 8),
-                    Text(
-                      'Gebote (${auction.bids.length}):',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (auction.bids.isEmpty)
-                      Text(
-                        'Noch keine Gebote',
-                        style: TextStyle(color: Colors.grey[500]),
-                      )
-                    else
-                      ...auction.bids.map((bid) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        bid.bidderName,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        bid.description,
-                                        style: const TextStyle(color: Colors.amber),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (bid == highestBid)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green[700],
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Text(
-                                      'Höchstes',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                const SizedBox(width: 8),
-                                IconButton(
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        backgroundColor: Colors.grey[900],
-                                        title: const Text(
-                                          'Gebot annehmen?',
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                        content: Text(
-                                          'Möchtest du das Gebot von ${bid.bidderName} annehmen?\n\nGebot: ${bid.description}',
-                                          style: const TextStyle(color: Colors.white70),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context),
-                                            child: Text(
-                                              'Abbrechen',
-                                              style: TextStyle(color: Colors.grey[400]),
-                                            ),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              auctionService.acceptBid(auction.id, bid.id);
-                                              Navigator.pop(context);
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Gebot angenommen!'),
-                                                  backgroundColor: Colors.green,
-                                                ),
-                                              );
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green[700],
-                                            ),
-                                            child: const Text('Annehmen'),
-                                          ),
+                    // Gebote aus Subcollection laden
+                    FutureBuilder<List<Bid>>(
+                      future: auctionService.loadBids(auction.id),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                        }
+                        final bids = snapshot.data ?? [];
+                        final highestBid = bids.isEmpty
+                            ? null
+                            : bids.reduce((a, b) => a.coins > b.coins ? a : b);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Gebote (${bids.length}):',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (bids.isEmpty)
+                              Text('Noch keine Gebote',
+                                  style: TextStyle(color: Colors.grey[500]))
+                            else
+                              ...bids.map((bid) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(bid.bidderName,
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold)),
+                                          Text(bid.description,
+                                              style: const TextStyle(color: Colors.amber)),
                                         ],
                                       ),
-                                    );
-                                  },
-                                  icon: Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green[400],
-                                  ),
+                                    ),
+                                    if (bid.id == highestBid?.id)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green[700],
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text('Höchstes',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold)),
+                                      ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      onPressed: () => showDialog(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          backgroundColor: Colors.grey[900],
+                                          title: const Text('Gebot annehmen?',
+                                              style: TextStyle(color: Colors.white)),
+                                          content: Text(
+                                            'Gebot von ${bid.bidderName} annehmen?\n\n${bid.description}',
+                                            style:
+                                                const TextStyle(color: Colors.white70),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx),
+                                              child: Text('Abbrechen',
+                                                  style: TextStyle(
+                                                      color: Colors.grey[400]))),
+                                            ElevatedButton(
+                                              onPressed: () {
+                                                auctionService.acceptBid(
+                                                    auction.id, bid.id);
+                                                Navigator.pop(ctx);
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(const SnackBar(
+                                                  content:
+                                                      Text('Gebot angenommen!'),
+                                                  backgroundColor: Colors.green,
+                                                ));
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.green[700]),
+                                              child: const Text('Annehmen'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      icon: Icon(Icons.check_circle,
+                                          color: Colors.green[400]),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          )),
+                              )),
+                          ],
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
