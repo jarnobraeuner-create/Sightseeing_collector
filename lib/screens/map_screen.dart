@@ -41,6 +41,10 @@ class _MapScreenState extends State<MapScreen> {
   // Random pin tiers, refreshed every 24h
   Map<String, TokenTier> _pinTiers = {};
 
+  // Zoom-based clustering
+  double _currentZoom = 13.0;
+  final Map<String, BitmapDescriptor> _clusterIconCache = {};
+
   @override
   void initState() {
     super.initState();
@@ -330,73 +334,180 @@ class _MapScreenState extends State<MapScreen> {
 
   void _updateMarkers() {
     if (!mounted || _isUpdatingMarkers) return;
-    
     _isUpdatingMarkers = true;
-    
-    // Debounce: Warte kurz bevor Update
-    Future.delayed(const Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 100), () async {
       if (!mounted) {
         _isUpdatingMarkers = false;
         return;
       }
-      
       final landmarkService = Provider.of<LandmarkService>(context, listen: false);
       final collectionService = Provider.of<CollectionService>(context, listen: false);
-      
-      final newMarkers = landmarkService.landmarks.map((landmark) {
-        final token = collectionService.getToken(landmark.id);
-        final isCollected = token != null;
-        
-        // Random pin tier (refreshed every 24h)
-        final pinTier = _pinTiers[landmark.id] ?? TokenTier.bronze;
-        
-        // Pin-Typ basierend auf randomisiertem Tier
-        String pinType;
-        switch (pinTier) {
-          case TokenTier.silver:
-            pinType = 'silver';
-            break;
-          case TokenTier.gold:
-            pinType = 'gold';
-            break;
-          case TokenTier.platinum:
-            pinType = 'platin';
-            break;
-          default:
-            pinType = 'bronze';
-        }
-        
-        // Wähle das passende Icon
-        BitmapDescriptor markerIcon;
-        if (isCollected) {
-          // Gesammelt: Verwende Graustufen-Version
-          markerIcon = _markerIconsGray[pinType] ?? BitmapDescriptor.defaultMarker;
-        } else {
-          // Nicht gesammelt: Verwende farbige Version
-          markerIcon = _markerIcons[pinType] ?? BitmapDescriptor.defaultMarker;
-        }
-        
-        return Marker(
-          markerId: MarkerId(landmark.id),
-          position: LatLng(landmark.latitude, landmark.longitude),
-          icon: markerIcon,
-          alpha: isCollected ? 0.7 : 1.0,
-          onTap: () => _showLandmarkDetails(landmark, pinTier),
-          infoWindow: InfoWindow(
-            title: landmark.name,
-            snippet: isCollected ? 'Gesammelt ✓' : '${landmark.pointsReward} Coins (${pinTier.displayName})',
-          ),
-        );
-      }).toSet();
-      
-      if (mounted) {
-        setState(() {
-          _markers = newMarkers;
-        });
+      final Set<Marker> newMarkers;
+      if (_currentZoom >= 10.0) {
+        newMarkers = _buildIndividualMarkers(landmarkService, collectionService);
+      } else {
+        newMarkers = await _buildClusteredMarkers(landmarkService, collectionService);
       }
-      
+      if (mounted) setState(() => _markers = newMarkers);
       _isUpdatingMarkers = false;
     });
+  }
+
+  Marker _buildSingleMarker(Landmark landmark, CollectionService cs) {
+    final isCollected = cs.getToken(landmark.id) != null;
+    final pinTier = _pinTiers[landmark.id] ?? TokenTier.bronze;
+    String pinType;
+    switch (pinTier) {
+      case TokenTier.silver:   pinType = 'silver'; break;
+      case TokenTier.gold:     pinType = 'gold';   break;
+      case TokenTier.platinum: pinType = 'platin'; break;
+      default:                 pinType = 'bronze';
+    }
+    final markerIcon = isCollected
+        ? (_markerIconsGray[pinType] ?? BitmapDescriptor.defaultMarker)
+        : (_markerIcons[pinType] ?? BitmapDescriptor.defaultMarker);
+    return Marker(
+      markerId: MarkerId(landmark.id),
+      position: LatLng(landmark.latitude, landmark.longitude),
+      icon: markerIcon,
+      alpha: isCollected ? 0.7 : 1.0,
+      onTap: () => _showLandmarkDetails(landmark, pinTier),
+      infoWindow: InfoWindow(
+        title: landmark.name,
+        snippet: isCollected
+            ? 'Gesammelt ✓'
+            : '${landmark.pointsReward} Coins (${pinTier.displayName})',
+      ),
+    );
+  }
+
+  Set<Marker> _buildIndividualMarkers(LandmarkService ls, CollectionService cs) =>
+      ls.landmarks.map((lm) => _buildSingleMarker(lm, cs)).toSet();
+
+  Future<Set<Marker>> _buildClusteredMarkers(
+      LandmarkService ls, CollectionService cs) async {
+    final clusters = _computeClusters(ls.landmarks);
+    final markers = <Marker>{};
+    for (final cluster in clusters) {
+      if (cluster.landmarks.length == 1) {
+        markers.add(_buildSingleMarker(cluster.landmarks[0], cs));
+      } else {
+        final label = _clusterCityName(cluster.landmarks);
+        final cacheKey = '${cluster.landmarks.length}_$label';
+        _clusterIconCache[cacheKey] ??=
+            await _createClusterIcon(cluster.landmarks.length, label);
+        markers.add(Marker(
+          markerId: MarkerId(
+              'cluster_${cluster.center.latitude.toStringAsFixed(2)}_${cluster.center.longitude.toStringAsFixed(2)}'),
+          position: cluster.center,
+          icon: _clusterIconCache[cacheKey]!,
+          onTap: () => _mapController?.animateCamera(
+            CameraUpdate.newLatLngZoom(cluster.center, _currentZoom + 3.0),
+          ),
+          infoWindow: InfoWindow(
+            title: label,
+            snippet: '${cluster.landmarks.length} Sehenswürdigkeiten',
+          ),
+        ));
+      }
+    }
+    return markers;
+  }
+
+  List<_Cluster> _computeClusters(List<Landmark> landmarks) {
+    final double cellSize = _currentZoom < 8 ? 1.0 : 0.2;
+    final Map<String, _Cluster> cells = {};
+    for (final lm in landmarks) {
+      final cellLat = (lm.latitude / cellSize).floor() * cellSize;
+      final cellLng = (lm.longitude / cellSize).floor() * cellSize;
+      final key = '$cellLat,$cellLng';
+      if (cells.containsKey(key)) {
+        cells[key]!.landmarks.add(lm);
+      } else {
+        cells[key] = _Cluster(
+          center: LatLng(lm.latitude, lm.longitude),
+          landmarks: [lm],
+        );
+      }
+    }
+    return cells.values.map((c) {
+      final avgLat = c.landmarks.map((l) => l.latitude).reduce((a, b) => a + b) /
+          c.landmarks.length;
+      final avgLng = c.landmarks.map((l) => l.longitude).reduce((a, b) => a + b) /
+          c.landmarks.length;
+      return _Cluster(center: LatLng(avgLat, avgLng), landmarks: c.landmarks);
+    }).toList();
+  }
+
+  String _clusterCityName(List<Landmark> landmarks) {
+    for (final lm in landmarks) {
+      if (lm.relatedSetIds.contains('set_hamburg')) return 'Hamburg';
+      if (lm.relatedSetIds.contains('set_leipzig')) return 'Leipzig';
+    }
+    return '${landmarks.length} Orte';
+  }
+
+  Future<BitmapDescriptor> _createClusterIcon(int count, String label) async {
+    const int size = 130;
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(
+        recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
+    final center = Offset(size / 2, size / 2);
+
+    // Glow
+    canvas.drawCircle(
+      center, 52,
+      Paint()
+        ..color = Colors.orange.withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+    );
+    // Main circle
+    canvas.drawCircle(center, 44, Paint()..color = const Color(0xFFE65100));
+    // Border
+    canvas.drawCircle(
+      center, 44,
+      Paint()
+        ..color = Colors.amber[400]!
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+
+    // Count text
+    final countPainter = TextPainter(
+      text: TextSpan(
+        text: '$count',
+        style: const TextStyle(
+            color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    countPainter.paint(
+      canvas,
+      Offset((size - countPainter.width) / 2,
+          center.dy - countPainter.height / 2 - 8),
+    );
+
+    // City name text
+    final labelPainter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: TextStyle(
+            color: Colors.amber[200],
+            fontSize: 12,
+            fontWeight: FontWeight.w600),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: 90);
+    labelPainter.paint(
+      canvas,
+      Offset((size - labelPainter.width) / 2,
+          center.dy + countPainter.height / 2 - 8),
+    );
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(size, size);
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
 
   @override
@@ -451,6 +562,12 @@ class _MapScreenState extends State<MapScreen> {
                   children: [
                     GoogleMap(
                       onMapCreated: _onMapCreated,
+                      onCameraMove: (pos) {
+                        if ((pos.zoom - _currentZoom).abs() >= 0.4) {
+                          _currentZoom = pos.zoom;
+                          _updateMarkers();
+                        }
+                      },
                       initialCameraPosition: const CameraPosition(
                         target: LatLng(53.5500, 10.0000), // Hamburg Fallback
                         zoom: 13.0,
@@ -906,4 +1023,13 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
       ),
     );
   }
+}
+
+// ── Cluster helper ───────────────────────────────────────────────────────────
+
+class _Cluster {
+  LatLng center;
+  List<Landmark> landmarks;
+
+  _Cluster({required this.center, required this.landmarks});
 }

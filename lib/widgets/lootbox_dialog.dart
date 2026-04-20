@@ -70,6 +70,8 @@ class _LootboxDialogState extends State<LootboxDialog>
 
   Future<void> _openBox() async {
     if (_opened) return;
+    final lootboxService = context.read<LootboxService>();
+    if (!lootboxService.canOpen) return;
 
     // Shake animation
     await _shakeController.forward();
@@ -78,7 +80,6 @@ class _LootboxDialogState extends State<LootboxDialog>
     _shakeController.reset();
 
     // Open lootbox
-    final lootboxService = context.read<LootboxService>();
     final tier = await lootboxService.openLootbox();
 
     // Pick random landmark

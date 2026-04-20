@@ -25,6 +25,7 @@ class LootboxService extends ChangeNotifier {
   /// Returns the won tier. Probabilities:
   /// Platinum 1%, Gold 10%, Silver 20%, Bronze 69%
   Future<TokenTier> openLootbox() async {
+    if (!_canOpen) throw StateError('Lootbox already opened today');
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now();
     final todayStr = '${today.year}-${today.month}-${today.day}';

@@ -147,14 +147,22 @@ class _LoggedInProfile extends StatelessWidget {
                           final canOpen = lootboxService.canOpen;
                           return _ActionButton(
                             icon: Icons.card_giftcard,
-                            label: canOpen ? 'Lootbox! 🎁' : 'Lootbox',
+                            label: canOpen ? 'Lootbox! 🎁' : 'Morgen wieder',
                             color: canOpen ? Colors.orange[700]! : Colors.grey[700]!,
                             badge: canOpen,
-                            onTap: () => showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (_) => const LootboxDialog(),
-                            ),
+                            onTap: canOpen
+                                ? () => showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (_) => const LootboxDialog(),
+                                  )
+                                : () => ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Du hast heute schon eine Lootbox geöffnet. Komm morgen wieder! 🎁'),
+                                      backgroundColor: Colors.grey,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  ),
                           );
                         },
                       ),
