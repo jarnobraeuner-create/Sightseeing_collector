@@ -44,7 +44,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
       appBar: AppBar(
         backgroundColor: Colors.grey[850],
         title: Text(
-          _currentPage == 0 ? 'Shop' : 'Auktionshaus',
+          _currentPage == 0 ? 'Marktplatz' : 'Shop',
           style: const TextStyle(color: Colors.white),
         ),
         automaticallyImplyLeading: false,
@@ -80,9 +80,9 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _PageDot(active: _currentPage == 0, label: 'Shop'),
+                _PageDot(active: _currentPage == 0, label: 'Marktplatz'),
                 const SizedBox(width: 16),
-                _PageDot(active: _currentPage == 1, label: 'Auktionen'),
+                _PageDot(active: _currentPage == 1, label: 'Shop'),
               ],
             ),
           ),
@@ -92,8 +92,8 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
               physics: const BouncingScrollPhysics(),
               onPageChanged: (page) => setState(() => _currentPage = page),
               children: [
-                _buildShop(),
                 _buildAuctionsPage(),
+                _buildShop(),
               ],
             ),
           ),
@@ -113,7 +113,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.amber,
             tabs: const [
-              Tab(text: 'Marktplatz'),
+              Tab(text: 'Auktionen'),
               Tab(text: 'Bieten'),
               Tab(text: 'Eigene'),
             ],
@@ -256,7 +256,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             child: Column(
               children: [
                 Text(
-                  '👆 Nach links wischen für Auktionen',
+                  '👆 Nach links wischen für Shop',
                   style: TextStyle(color: Colors.grey[500], fontSize: 13),
                 ),
                 const SizedBox(height: 4),
@@ -265,7 +265,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   children: [
                     const Icon(Icons.swipe_left, color: Colors.grey, size: 18),
                     const SizedBox(width: 4),
-                    Text('Auktionshaus', style: TextStyle(color: Colors.grey[400])),
+                    Text('Shop', style: TextStyle(color: Colors.grey[400])),
                   ],
                 ),
               ],
