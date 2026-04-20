@@ -87,8 +87,15 @@ class AuthService extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    UserCredential? credential;
     try {
-      // Check username uniqueness
+      // 1. Firebase Auth-User erstellen (jetzt eingeloggt)
+      credential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+
+      // 2. Username-Eindeutigkeit prüfen (jetzt authentifiziert)
       final usernameQuery = await _db
           .collection('users')
           .where('username', isEqualTo: username.trim())
@@ -96,17 +103,15 @@ class AuthService extends ChangeNotifier {
           .get();
 
       if (usernameQuery.docs.isNotEmpty) {
+        // Username vergeben → Auth-User wieder löschen
+        await credential.user!.delete();
         _error = 'Dieser Benutzername ist bereits vergeben.';
         _isLoading = false;
         notifyListeners();
         return false;
       }
 
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-
+      // 3. Profil in Firestore schreiben
       final newUser = AppUser(
         uid: credential.user!.uid,
         email: email.trim(),
@@ -129,8 +134,12 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
+      // Firestore-Fehler: Auth-User aufräumen falls bereits erstellt
       debugPrint('Register error: $e');
-      _error = 'Ein unbekannter Fehler ist aufgetreten: $e';
+      if (credential != null) {
+        await credential.user?.delete().catchError((_) {});
+      }
+      _error = 'Registrierung fehlgeschlagen: $e';
       _isLoading = false;
       notifyListeners();
       return false;

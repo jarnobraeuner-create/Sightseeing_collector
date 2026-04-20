@@ -131,9 +131,6 @@ service cloud.firestore {
     // Users
     // ─────────────────────────────────────────────────────────────
     match /users/{userId} {
-      // Username-Eindeutigkeit prüfen vor dem Login (Registrierung)
-      allow list: if true;
-
       allow get: if isOwnUser(userId);
       allow create: if isValidUserCreate(userId);
       // Profil-Update (username) ODER nur Coins-Update (CollectionService)
