@@ -241,13 +241,25 @@ class _CollectionScreenState extends State<CollectionScreen>
   }
 
   Widget _buildTokensTab() {
-    return Consumer<CollectionService>(
-      builder: (context, collectionService, child) {
+    return Consumer2<CollectionService, AuthService>(
+      builder: (context, collectionService, auth, child) {
+        Future<void> onRefresh() async {
+          final uid = auth.firebaseUser?.uid;
+          if (uid != null) await collectionService.reloadFromFirestore(uid);
+        }
+
         if (collectionService.tokens.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          return RefreshIndicator(
+            onRefresh: onRefresh,
+            color: Colors.amber,
+            child: ListView(
               children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                 Icon(
                   Icons.collections,
                   size: 80,
@@ -267,10 +279,14 @@ class _CollectionScreenState extends State<CollectionScreen>
                 ),
               ],
             ),
-          );
+          ),
+        );
         }
 
-        return CustomScrollView(
+        return RefreshIndicator(
+          onRefresh: onRefresh,
+          color: Colors.amber,
+          child: CustomScrollView(
           slivers: [
             // ── Completed set reward badges (first row) ──────────────────
             () {
@@ -326,25 +342,35 @@ class _CollectionScreenState extends State<CollectionScreen>
               ),
             ),
           ],
+          ),
         );
       },
     );
   }
 
   Widget _buildSetsTab() {
-    return Consumer<CollectionService>(
-      builder: (context, collectionService, child) {
+    return Consumer2<CollectionService, AuthService>(
+      builder: (context, collectionService, auth, child) {
+        Future<void> onRefresh() async {
+          final uid = auth.firebaseUser?.uid;
+          if (uid != null) await collectionService.reloadFromFirestore(uid);
+        }
+
         if (collectionService.sets.isEmpty) {
           return const Center(
             child: Text('No sets available'),
           );
         }
 
-        return ListView.builder(
-          itemCount: collectionService.sets.length,
-          itemBuilder: (context, index) {
-            return SetCard(set: collectionService.sets[index]);
-          },
+        return RefreshIndicator(
+          onRefresh: onRefresh,
+          color: Colors.amber,
+          child: ListView.builder(
+            itemCount: collectionService.sets.length,
+            itemBuilder: (context, index) {
+              return SetCard(set: collectionService.sets[index]);
+            },
+          ),
         );
       },
     );

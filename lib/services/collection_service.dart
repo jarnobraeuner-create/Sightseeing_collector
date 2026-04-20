@@ -34,6 +34,11 @@ class CollectionService extends ChangeNotifier {
   }
 
   Future<void> _loadFromFirestore(String uid) async {
+    return reloadFromFirestore(uid);
+  }
+
+  /// Öffentlich aufrufbar für Pull-to-Refresh
+  Future<void> reloadFromFirestore(String uid) async {
     _isLoaded = false;
     notifyListeners();
     try {
@@ -139,10 +144,17 @@ class CollectionService extends ChangeNotifier {
       CollectionSet(
         id: 'set_dissen',
         name: 'Dissen Klassiker',
-        description: 'Entdecke alle SehenswÃ¼rdigkeiten in Dissen',
+        description: 'Entdecke alle Sehenswürdigkeiten in Dissen',
         requiredTokenIds: ['7', '8', '9', '10', '11', '12'],
         bonusPoints: 500,
         rewardImageUrl: 'assets/images/Dissen_Wappen_small.png',
+      ),
+      CollectionSet(
+        id: 'set_leipzig',
+        name: 'Leipzig Klassiker',
+        description: 'Entdecke alle Sehenswürdigkeiten in Leipzig',
+        requiredTokenIds: ['52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68'],
+        bonusPoints: 700,
       ),
     ]);
   }
