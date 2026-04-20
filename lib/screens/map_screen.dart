@@ -386,26 +386,26 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<Set<Marker>> _buildClusteredMarkers(
       LandmarkService ls, CollectionService cs) async {
-    final clusters = _computeClusters(ls.landmarks);
+    final clusters = _computeSetClusters(ls.landmarks);
     final markers = <Marker>{};
     for (final cluster in clusters) {
       if (cluster.landmarks.length == 1) {
         markers.add(_buildSingleMarker(cluster.landmarks[0], cs));
       } else {
-        final label = _clusterCityName(cluster.landmarks);
-        final cacheKey = '${cluster.landmarks.length}_$label';
-        _clusterIconCache[cacheKey] ??=
-            await _createClusterIcon(cluster.landmarks.length, label);
+        // Determine dominant tier for pin color
+        final pinType = _dominantPinType(cluster.landmarks);
+        final cacheKey = '${cluster.landmarks.length}_${cluster.setId}_$pinType';
+        _clusterIconCache[cacheKey] ??= await _createClusterIcon(
+            cluster.landmarks.length, cluster.label, pinType);
         markers.add(Marker(
-          markerId: MarkerId(
-              'cluster_${cluster.center.latitude.toStringAsFixed(2)}_${cluster.center.longitude.toStringAsFixed(2)}'),
+          markerId: MarkerId('cluster_${cluster.setId}'),
           position: cluster.center,
           icon: _clusterIconCache[cacheKey]!,
           onTap: () => _mapController?.animateCamera(
             CameraUpdate.newLatLngZoom(cluster.center, _currentZoom + 3.0),
           ),
           infoWindow: InfoWindow(
-            title: label,
+            title: cluster.label,
             snippet: '${cluster.landmarks.length} Sehenswürdigkeiten',
           ),
         ));
@@ -414,95 +414,131 @@ class _MapScreenState extends State<MapScreen> {
     return markers;
   }
 
-  List<_Cluster> _computeClusters(List<Landmark> landmarks) {
-    final double cellSize = _currentZoom < 8 ? 1.0 : 0.2;
-    final Map<String, _Cluster> cells = {};
+  // Group landmarks by their first relatedSetId — only city sets get clustered
+  static const _citySets = {'set_hamburg', 'set_dissen', 'set_leipzig'};
+
+  List<_Cluster> _computeSetClusters(List<Landmark> landmarks) {
+    final Map<String, _Cluster> bySet = {};
     for (final lm in landmarks) {
-      final cellLat = (lm.latitude / cellSize).floor() * cellSize;
-      final cellLng = (lm.longitude / cellSize).floor() * cellSize;
-      final key = '$cellLat,$cellLng';
-      if (cells.containsKey(key)) {
-        cells[key]!.landmarks.add(lm);
+      final setId = lm.relatedSetIds.isNotEmpty ? lm.relatedSetIds.first : 'misc';
+      // Non-city sets → treat each landmark as its own "cluster" of 1
+      final clusterKey = _citySets.contains(setId) ? setId : 'single_${lm.id}';
+      if (bySet.containsKey(clusterKey)) {
+        bySet[clusterKey]!.landmarks.add(lm);
       } else {
-        cells[key] = _Cluster(
+        bySet[clusterKey] = _Cluster(
+          setId: clusterKey,
+          label: _setLabel(setId),
           center: LatLng(lm.latitude, lm.longitude),
           landmarks: [lm],
         );
       }
     }
-    return cells.values.map((c) {
+    // Recalculate center as average
+    return bySet.values.map((c) {
       final avgLat = c.landmarks.map((l) => l.latitude).reduce((a, b) => a + b) /
           c.landmarks.length;
       final avgLng = c.landmarks.map((l) => l.longitude).reduce((a, b) => a + b) /
           c.landmarks.length;
-      return _Cluster(center: LatLng(avgLat, avgLng), landmarks: c.landmarks);
+      return _Cluster(
+          setId: c.setId,
+          label: c.label,
+          center: LatLng(avgLat, avgLng),
+          landmarks: c.landmarks);
     }).toList();
   }
 
-  String _clusterCityName(List<Landmark> landmarks) {
-    for (final lm in landmarks) {
-      if (lm.relatedSetIds.contains('set_hamburg')) return 'Hamburg';
-      if (lm.relatedSetIds.contains('set_leipzig')) return 'Leipzig';
+  String _setLabel(String setId) {
+    switch (setId) {
+      case 'set_hamburg':  return 'Hamburg';
+      case 'set_dissen':   return 'Dissen';
+      case 'set_leipzig':  return 'Leipzig';
+      case 'set_monuments': return 'Denkmäler';
+      default: return setId;
     }
-    return '${landmarks.length} Orte';
   }
 
-  Future<BitmapDescriptor> _createClusterIcon(int count, String label) async {
-    const int size = 130;
+  String _dominantPinType(List<Landmark> landmarks) {
+    // Pick highest tier present in the cluster
+    int gold = 0, silver = 0;
+    for (final lm in landmarks) {
+      final t = _pinTiers[lm.id];
+      if (t == TokenTier.gold || t == TokenTier.platinum) gold++;
+      else if (t == TokenTier.silver) silver++;
+    }
+    if (gold > 0) return 'gold';
+    if (silver > 0) return 'silver';
+    return 'bronze';
+  }
+
+  Future<BitmapDescriptor> _createClusterIcon(
+      int count, String label, String pinType) async {
+    // Load the real map pin asset
+    final assetPath = {
+      'gold':   'assets/images/map_pin_gold.png',
+      'silver': 'assets/images/Map_pin_silber.png',
+      'platin': 'assets/images/Platin_mappin_platin.png',
+      'bronze': 'assets/images/Map_Pin_Bronze.png',
+    }[pinType] ?? 'assets/images/Map_Pin_Bronze.png';
+
+    final ByteData assetData = await rootBundle.load(assetPath);
+    final ui.Codec pinCodec = await ui.instantiateImageCodec(
+        assetData.buffer.asUint8List(), targetWidth: 120, targetHeight: 120);
+    final ui.Image pinImage = (await pinCodec.getNextFrame()).image;
+
+    const int size = 160;
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(
         recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
-    final center = Offset(size / 2, size / 2);
 
-    // Glow
+    // Draw the map pin centered
+    final pinSrc =
+        Rect.fromLTWH(0, 0, pinImage.width.toDouble(), pinImage.height.toDouble());
+    final pinDst = Rect.fromLTWH(
+        (size - 100) / 2, (size - 100) / 2, 100, 100);
+    canvas.drawImageRect(pinImage, pinSrc, pinDst, Paint());
+
+    // Badge circle in top-right corner
+    final badgeCenter = Offset(size * 0.72, size * 0.28);
+    canvas.drawCircle(badgeCenter, 22,
+        Paint()..color = const Color(0xDD212121));
     canvas.drawCircle(
-      center, 52,
+      badgeCenter, 22,
       Paint()
-        ..color = Colors.orange.withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
-    );
-    // Main circle
-    canvas.drawCircle(center, 44, Paint()..color = const Color(0xFFE65100));
-    // Border
-    canvas.drawCircle(
-      center, 44,
-      Paint()
-        ..color = Colors.amber[400]!
+        ..color = Colors.amber
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3,
+        ..strokeWidth = 2.5,
     );
 
-    // Count text
+    // Count number in badge
     final countPainter = TextPainter(
       text: TextSpan(
-        text: '$count',
-        style: const TextStyle(
-            color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
-      ),
+          text: '$count',
+          style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold)),
       textDirection: TextDirection.ltr,
     )..layout();
     countPainter.paint(
-      canvas,
-      Offset((size - countPainter.width) / 2,
-          center.dy - countPainter.height / 2 - 8),
-    );
+        canvas,
+        Offset(badgeCenter.dx - countPainter.width / 2,
+            badgeCenter.dy - countPainter.height / 2));
 
-    // City name text
+    // City label below pin
     final labelPainter = TextPainter(
       text: TextSpan(
-        text: label,
-        style: TextStyle(
-            color: Colors.amber[200],
-            fontSize: 12,
-            fontWeight: FontWeight.w600),
-      ),
+          text: label,
+          style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              shadows: [Shadow(color: Colors.black, blurRadius: 4)])),
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: 90);
+    )..layout(maxWidth: 140);
     labelPainter.paint(
-      canvas,
-      Offset((size - labelPainter.width) / 2,
-          center.dy + countPainter.height / 2 - 8),
-    );
+        canvas,
+        Offset((size - labelPainter.width) / 2, size * 0.78));
 
     final picture = recorder.endRecording();
     final img = await picture.toImage(size, size);
@@ -1028,8 +1064,15 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
 // ── Cluster helper ───────────────────────────────────────────────────────────
 
 class _Cluster {
+  final String setId;
+  final String label;
   LatLng center;
   List<Landmark> landmarks;
 
-  _Cluster({required this.center, required this.landmarks});
+  _Cluster({
+    required this.setId,
+    required this.label,
+    required this.center,
+    required this.landmarks,
+  });
 }
