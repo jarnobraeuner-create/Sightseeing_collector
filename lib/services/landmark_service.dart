@@ -46,7 +46,7 @@ class LandmarkService extends ChangeNotifier {
         difficulty: 'easy',
         pointsReward: 100,
         imageUrl: 'assets/images/Token_gold_speicherstadt.png',
-        relatedSetIds: ['set_hamburg', 'set_monuments'],
+        relatedSetIds: ['set_hamburg'],
         quests: [
           Quest(
             id: 'q1',
@@ -67,7 +67,7 @@ class LandmarkService extends ChangeNotifier {
         difficulty: 'easy',
         pointsReward: 120,
         imageUrl: 'assets/images/Token_Elbphilhamonie_Bronze.png',
-        relatedSetIds: ['set_hamburg', 'set_monuments'],
+        relatedSetIds: ['set_hamburg'],
         quests: [
           Quest(
             id: 'q2',

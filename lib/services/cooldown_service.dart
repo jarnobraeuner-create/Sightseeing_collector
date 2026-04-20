@@ -74,6 +74,17 @@ class CooldownService extends ChangeNotifier {
     );
   }
 
+  /// Dev-only: Löscht alle Cooldowns (Token-Sammeln + Lootbox).
+  Future<void> resetAllCooldowns() async {
+    _lastCollected.clear();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith(_prefPrefix)).toList();
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
+
   /// Formats a duration into a human-readable string.
   static String formatDuration(Duration d) {
     if (d.inSeconds < 60) {

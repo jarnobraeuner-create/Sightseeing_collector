@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/index.dart';
 import '../widgets/lootbox_dialog.dart';
@@ -330,6 +331,45 @@ class _LoggedInProfile extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                if (kDebugMode) ...[
+                  _DarkCard(
+                    title: '🛠 Developer Mode',
+                    children: [
+                      Consumer2<CooldownService, LootboxService>(
+                        builder: (context, cooldownService, lootboxService, _) =>
+                            SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.greenAccent,
+                              side: const BorderSide(color: Colors.green),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Alle Cooldowns zurücksetzen'),
+                            onPressed: () async {
+                              await cooldownService.resetAllCooldowns();
+                              await lootboxService.resetForTesting();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('✅ Alle Cooldowns zurückgesetzt'),
+                                    backgroundColor: Colors.green,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 const SizedBox(height: 32),
               ],
             ),

@@ -135,13 +135,6 @@ class CollectionService extends ChangeNotifier {
         rewardImageUrl: 'assets/images/Hamburg_Wappen_small.png',
       ),
       CollectionSet(
-        id: 'set_monuments',
-        name: 'Hamburgs DenkmÃ¤ler',
-        description: 'Besuche die berÃ¼hmtesten DenkmÃ¤ler Hamburgs',
-        requiredTokenIds: ['1', '2'],
-        bonusPoints: 250,
-      ),
-      CollectionSet(
         id: 'set_dissen',
         name: 'Dissen Klassiker',
         description: 'Entdecke alle Sehenswürdigkeiten in Dissen',
