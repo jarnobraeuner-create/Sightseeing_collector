@@ -32,6 +32,10 @@ dependencies:
   firebase_auth: ^5.0.0
   cloud_firestore: ^5.0.0
 
+  # Benachrichtigungen
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.0
+
   # HTTP und API
   http: ^1.1.0
   

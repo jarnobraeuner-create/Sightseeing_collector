@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/index.dart';
+import 'notification_service.dart';
 
 class CollectionService extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -97,6 +98,9 @@ class CollectionService extends ChangeNotifier {
         // Token in eigene Sammlung aufnehmen
         final token = Token.fromJson(tokenJson);
         addToken(token);
+
+        // Benachrichtigung: Gebot angenommen
+        NotificationService.instance.showBidAccepted(token.name);
 
         // Coins abziehen
         if (coins > 0) spendPoints(coins);

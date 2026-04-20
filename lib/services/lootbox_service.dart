@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/index.dart';
+import 'notification_service.dart';
 
 class LootboxService extends ChangeNotifier {
   static const _prefKey = 'last_lootbox_date';
@@ -32,6 +33,9 @@ class LootboxService extends ChangeNotifier {
     await prefs.setString(_prefKey, todayStr);
     _canOpen = false;
     notifyListeners();
+
+    // Benachrichtigung in 24h planen
+    NotificationService.instance.scheduleLootboxReady();
 
     final rand = Random().nextDouble() * 100;
     if (rand < 1) return TokenTier.platinum;

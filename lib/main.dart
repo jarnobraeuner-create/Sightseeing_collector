@@ -10,6 +10,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await NotificationService.instance.initialize();
   runApp(const SightseeingCollectorApp());
 }
 
@@ -33,7 +34,15 @@ class SightseeingCollectorApp extends StatelessWidget {
             return service;
           },
         ),
-        ChangeNotifierProvider(create: (_) => AuctionService()),
+        ChangeNotifierProxyProvider<AuthService, AuctionService>(
+          create: (_) => AuctionService(),
+          update: (_, auth, service) {
+            service!.setCurrentUserId(
+              auth.isLoggedIn ? auth.firebaseUser?.uid : null,
+            );
+            return service;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => LootboxService()),
         ChangeNotifierProvider(create: (_) => CooldownService()),
       ],

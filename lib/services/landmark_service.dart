@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/index.dart';
+import 'notification_service.dart';
 
 class LandmarkService extends ChangeNotifier {
   final List<Landmark> _landmarks = [];
@@ -29,6 +30,9 @@ class LandmarkService extends ChangeNotifier {
       _isLoaded = true;
       _loadLandmarks();
       _applyFilter();
+      // Prüfen ob neue Landmarks hinzugekommen sind
+      NotificationService.instance
+          .checkAndNotifyMapUpdated(_landmarks.length);
     }
   }
 

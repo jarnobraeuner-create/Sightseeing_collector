@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/auction.dart';
 import 'collection_service.dart';
+import 'notification_service.dart';
 
 class AuctionService extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -10,12 +11,20 @@ class AuctionService extends ChangeNotifier {
 
   final List<Auction> _auctions = [];
   bool _isLoaded = false;
+  String? _currentUserId;
+  bool _streamInitialized = false;
+  // landmarkId → letzter bekannter Bid-Betrag (für Bid-Erkennung)
+  final Map<String, int> _lastKnownBids = {};
 
   List<Auction> get auctions => _auctions.toList();
   bool get isLoaded => _isLoaded;
 
   AuctionService() {
     _listenToAuctions();
+  }
+
+  void setCurrentUserId(String? uid) {
+    _currentUserId = uid;
   }
 
   void _listenToAuctions() {
@@ -41,8 +50,23 @@ class AuctionService extends ChangeNotifier {
               _db.collection('auctions').doc(doc.id)
                   .update({'status': 'ended'})
                   .catchError((e) => debugPrint('Error ending auction: $e'));
+              // Verkäufer benachrichtigen wenn Auktion diesem User gehört
+              if (_streamInitialized && _currentUserId != null &&
+                  auction.sellerId == _currentUserId) {
+                NotificationService.instance.showAuctionExpired(auction.title);
+              }
             }
           } else {
+            // Neues Gebot auf eigene Auktion erkennen
+            if (_streamInitialized && _currentUserId != null &&
+                auction.sellerId == _currentUserId) {
+              final prev = _lastKnownBids[auction.id];
+              if (prev != null && auction.currentBid > prev) {
+                NotificationService.instance
+                    .showBidReceived(auction.title, auction.currentBid);
+              }
+            }
+            _lastKnownBids[auction.id] = auction.currentBid;
             _auctions.add(auction);
           }
         } catch (e) {
@@ -52,6 +76,7 @@ class AuctionService extends ChangeNotifier {
       // Im Speicher sortieren statt orderBy (kein Composite Index nötig)
       _auctions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       _isLoaded = true;
+      _streamInitialized = true;
       notifyListeners();
     }, onError: (e) {
       debugPrint('Auction stream error: $e');
