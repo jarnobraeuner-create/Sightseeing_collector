@@ -372,12 +372,7 @@ class _MapScreenState extends State<MapScreen> {
       icon: markerIcon,
       alpha: isCollected ? 0.7 : 1.0,
       onTap: () => _showLandmarkDetails(landmark, pinTier),
-      infoWindow: InfoWindow(
-        title: landmark.name,
-        snippet: isCollected
-            ? 'Gesammelt ✓'
-            : '${landmark.pointsReward} Coins (${pinTier.displayName})',
-      ),
+      infoWindow: InfoWindow.noText,
     );
   }
 
@@ -404,10 +399,7 @@ class _MapScreenState extends State<MapScreen> {
           onTap: () => _mapController?.animateCamera(
             CameraUpdate.newLatLngZoom(cluster.center, _currentZoom + 3.0),
           ),
-          infoWindow: InfoWindow(
-            title: cluster.label,
-            snippet: '${cluster.landmarks.length} Sehenswürdigkeiten',
-          ),
+          infoWindow: InfoWindow.noText,
         ));
       }
     }
