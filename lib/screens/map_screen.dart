@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -589,6 +590,9 @@ class _MapScreenState extends State<MapScreen> {
                 return Stack(
                   children: [
                     GoogleMap(
+                      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                        Factory<EagerGestureRecognizer>(() => EagerGestureRecognizer()),
+                      },
                       onMapCreated: _onMapCreated,
                       onCameraMove: (pos) {
                         if ((pos.zoom - _currentZoom).abs() >= 0.4) {

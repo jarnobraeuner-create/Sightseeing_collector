@@ -100,7 +100,7 @@ class CollectionService extends ChangeNotifier {
         addToken(token);
 
         // Benachrichtigung: Gebot angenommen
-        NotificationService.instance.showBidAccepted(token.name);
+        NotificationService.instance.showBidAccepted(token.landmarkName);
 
         // Coins abziehen
         if (coins > 0) spendPoints(coins);
