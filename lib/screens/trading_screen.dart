@@ -246,16 +246,16 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
               icon: '🎰',
               title: 'Extra Lootbox',
               subtitle: 'Eine zusätzliche Lootbox kaufen',
-              price: 800,
-              canAfford: collection.totalPoints >= 800,
+              price: 2000,
+              canAfford: collection.totalPoints >= 2000,
               onBuy: () async {
-                if (collection.totalPoints < 800) {
+                if (collection.totalPoints < 2000) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Zu wenig Coins!')),
                   );
                   return;
                 }
-                collection.spendPoints(800);
+                collection.spendPoints(2000);
                 await lootbox.addExtraLootboxes(1);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
