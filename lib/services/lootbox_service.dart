@@ -5,10 +5,17 @@ import '../models/index.dart';
 import 'notification_service.dart';
 
 class LootboxService extends ChangeNotifier {
-  static const _prefKey = 'last_lootbox_date';
+  static const _prefKey       = 'last_lootbox_date';
+  static const _prefExtraKey  = 'extra_lootboxes';
 
   bool _canOpen = false;
   bool get canOpen => _canOpen;
+
+  int _extraLootboxes = 0;
+  int get extraLootboxes => _extraLootboxes;
+
+  /// Total openable: daily free + bought extras
+  bool get canOpenAny => _canOpen || _extraLootboxes > 0;
 
   LootboxService() {
     _checkAvailability();
@@ -20,38 +27,56 @@ class LootboxService extends ChangeNotifier {
     final today = DateTime.now();
     final todayStr = '${today.year}-${today.month}-${today.day}';
     _canOpen = lastDate != todayStr;
+    _extraLootboxes = prefs.getInt(_prefExtraKey) ?? 0;
+    notifyListeners();
+  }
+
+  /// Adds [count] extra lootboxes to the inventory.
+  Future<void> addExtraLootboxes(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    _extraLootboxes += count;
+    await prefs.setInt(_prefExtraKey, _extraLootboxes);
     notifyListeners();
   }
 
   /// Returns the won tier. Probabilities:
   /// Platinum 1%, Gold 10%, Silver 20%, Bronze 69%
   Future<TokenTier> openLootbox() async {
-    if (!_canOpen) throw StateError('Lootbox already opened today');
+    if (!canOpenAny) throw StateError('No lootboxes available');
     final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month}-${today.day}';
-    await prefs.setString(_prefKey, todayStr);
-    _canOpen = false;
+
+    if (_canOpen) {
+      // Use the free daily lootbox
+      final today = DateTime.now();
+      final todayStr = '${today.year}-${today.month}-${today.day}';
+      await prefs.setString(_prefKey, todayStr);
+      _canOpen = false;
+      NotificationService.instance.scheduleLootboxReady();
+    } else {
+      // Use an extra lootbox
+      _extraLootboxes -= 1;
+      await prefs.setInt(_prefExtraKey, _extraLootboxes);
+    }
     notifyListeners();
 
-    // Benachrichtigung in 24h planen
-    NotificationService.instance.scheduleLootboxReady();
+    return _rollTier();
+  }
 
+  TokenTier _rollTier() {
     final rand = Random().nextDouble() * 100;
-    if (rand < 1) return TokenTier.platinum;
+    if (rand < 1)  return TokenTier.platinum;
     if (rand < 11) return TokenTier.gold;
     if (rand < 31) return TokenTier.silver;
     return TokenTier.bronze;
   }
 
-  /// Opens a lootbox with guaranteed Silver minimum (for Sunday daily reward).
-  /// Does NOT use or check the daily lootbox cooldown.
+  /// Opens a lootbox with guaranteed Silver minimum (for daily reward day 7).
+  /// Does NOT use or check any cooldown.
   TokenTier openGuaranteedSilverLootbox() {
     final rand = Random().nextDouble() * 100;
-    if (rand < 1) return TokenTier.platinum;
+    if (rand < 1)  return TokenTier.platinum;
     if (rand < 11) return TokenTier.gold;
-    if (rand < 31) return TokenTier.silver;
-    return TokenTier.silver; // guaranteed silver minimum
+    return TokenTier.silver;
   }
 
   /// For testing: reset so lootbox can be opened again today

@@ -71,7 +71,7 @@ class _LootboxDialogState extends State<LootboxDialog>
   Future<void> _openBox() async {
     if (_opened) return;
     final lootboxService = context.read<LootboxService>();
-    if (!lootboxService.canOpen) return;
+    if (!lootboxService.canOpenAny) return;
 
     // Shake animation
     await _shakeController.forward();

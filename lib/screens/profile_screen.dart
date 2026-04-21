@@ -160,10 +160,21 @@ class _LoggedInProfile extends StatelessWidget {
                     Expanded(
                       child: Consumer<LootboxService>(
                         builder: (context, lootboxService, _) {
-                          final canOpen = lootboxService.canOpen;
+                          final canOpen = lootboxService.canOpenAny;
+                          final extra = lootboxService.extraLootboxes;
+                          String label;
+                          if (lootboxService.canOpen && extra > 0) {
+                            label = 'Lootbox 🎁 (+$extra)';
+                          } else if (lootboxService.canOpen) {
+                            label = 'Lootbox! 🎁';
+                          } else if (extra > 0) {
+                            label = 'Lootbox 🎁 ×$extra';
+                          } else {
+                            label = 'Morgen wieder';
+                          }
                           return _ActionButton(
                             icon: Icons.card_giftcard,
-                            label: canOpen ? 'Lootbox! 🎁' : 'Morgen wieder',
+                            label: label,
                             color: canOpen ? Colors.orange[700]! : Colors.grey[700]!,
                             badge: canOpen,
                             onTap: canOpen
@@ -174,7 +185,7 @@ class _LoggedInProfile extends StatelessWidget {
                                   )
                                 : () => ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Du hast heute schon eine Lootbox geöffnet. Komm morgen wieder! 🎁'),
+                                      content: Text('Du hast heute schon eine Lootbox geöffnet. Kaufe mehr im Shop! 🎁'),
                                       backgroundColor: Colors.grey,
                                       behavior: SnackBarBehavior.floating,
                                     ),

@@ -4,6 +4,8 @@ import '../services/collection_service.dart';
 import '../services/auction_service.dart';
 import '../services/landmark_service.dart';
 import '../services/auth_service.dart';
+import '../services/lootbox_service.dart';
+import '../services/cooldown_service.dart';
 import '../models/auction.dart';
 
 class TradingScreen extends StatefulWidget {
@@ -190,26 +192,43 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Extra Münzen Paket',
+                  '10x Lootbox Paket',
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  '500 Coins für 375 Coins',
+                  '10 Lootboxen für 15.000 Coins (statt 16.000)',
                   style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
                 const SizedBox(height: 14),
-                ElevatedButton(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Bald verfügbar!')),
+                Consumer2<CollectionService, LootboxService>(
+                  builder: (context, collection, lootbox, _) => ElevatedButton(
+                    onPressed: () async {
+                      if (collection.totalPoints < 15000) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Zu wenig Coins! Du brauchst 15.000 🪙')),
+                        );
+                        return;
+                      }
+                      collection.spendPoints(15000);
+                      await lootbox.addExtraLootboxes(10);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('🎰 10 Lootboxen gekauft! Öffne sie im Profil.'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.orange[800],
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('15.000 🪙 kaufen', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.orange[800],
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: const Text('Kaufen', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -222,33 +241,59 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          _ShopItem(
-            icon: '🎰',
-            title: 'Extra Lootbox',
-            subtitle: 'Eine zusätzliche Lootbox öffnen',
-            price: 200,
-            onBuy: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Bald verfügbar!')),
+          Consumer2<CollectionService, LootboxService>(
+            builder: (context, collection, lootbox, _) => _ShopItem(
+              icon: '🎰',
+              title: 'Extra Lootbox',
+              subtitle: 'Eine zusätzliche Lootbox kaufen',
+              price: 800,
+              canAfford: collection.totalPoints >= 800,
+              onBuy: () async {
+                if (collection.totalPoints < 800) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Zu wenig Coins!')),
+                  );
+                  return;
+                }
+                collection.spendPoints(800);
+                await lootbox.addExtraLootboxes(1);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('🎰 Lootbox gekauft! Öffne sie im Profil.'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
             ),
           ),
           const SizedBox(height: 10),
-          _ShopItem(
-            icon: '⚡',
-            title: 'Cooldown Skip',
-            subtitle: 'Einen Cooldown sofort aufheben',
-            price: 150,
-            onBuy: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Bald verfügbar!')),
-            ),
-          ),
-          const SizedBox(height: 10),
-          _ShopItem(
-            icon: '🗺️',
-            title: 'Radar-Boost',
-            subtitle: 'Zeige alle Tokens in 500m Radius',
-            price: 100,
-            onBuy: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Bald verfügbar!')),
+          Consumer2<CollectionService, CooldownService>(
+            builder: (context, collection, cooldown, _) => _ShopItem(
+              icon: '⚡',
+              title: 'Cooldown Skip',
+              subtitle: 'Alle Sammel-Cooldowns sofort zurücksetzen',
+              price: 1500,
+              canAfford: collection.totalPoints >= 1500,
+              onBuy: () async {
+                if (collection.totalPoints < 1500) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Zu wenig Coins!')),
+                  );
+                  return;
+                }
+                collection.spendPoints(1500);
+                await cooldown.resetAllCooldowns();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('⚡ Cooldowns zurückgesetzt!'),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
+                }
+              },
             ),
           ),
           const SizedBox(height: 24),
@@ -415,24 +460,9 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
     );
   }
 
-  void _showBidDialog(Auction auction) async {
+  void _showBidDialog(Auction auction) {
     final auth = Provider.of<AuthService>(context, listen: false);
     if (auction.sellerId == auth.firebaseUser?.uid) return; // Eigene Auktionen nicht bietbar
-
-    final uid = auth.firebaseUser?.uid ?? '';
-    final auctionService = Provider.of<AuctionService>(context, listen: false);
-    final alreadyBid = await auctionService.hasUserBid(auction.id, uid);
-    if (!mounted) return;
-    if (alreadyBid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Du hast auf diese Auktion bereits geboten.'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
 
     final collectionService = Provider.of<CollectionService>(context, listen: false);
     final myTokens = collectionService.tokens;
@@ -709,17 +739,8 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
   Widget _buildCreateAuction() {
     return Consumer3<CollectionService, AuctionService, LandmarkService>(
       builder: (context, collectionService, auctionService, landmarkService, child) {
-        final auth = Provider.of<AuthService>(context, listen: false);
-        final myUid = auth.firebaseUser?.uid ?? '';
-        final auctionedTokenIds = auctionService
-            .getMyAuctions(myUid)
-            .map((a) => a.category)
-            .whereType<String>()
-            .toSet();
-        final myTokens = collectionService.tokens
-            .where((t) => !auctionedTokenIds.contains(t.id))
-            .toList();
-
+        final myTokens = collectionService.tokens;
+        
         if (myTokens.isEmpty) {
           return Center(
             child: Column(
@@ -803,7 +824,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
   }
 
   void _showCreateAuctionDialog(token, landmark) {
-    final coinsController = TextEditingController(text: '50');
+    int minimumCoins = 50;
     
     showDialog(
       context: context,
@@ -843,29 +864,21 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                 ],
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Mindestgebot (Coins)',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+              Text(
+                'Mindestgebot: $minimumCoins Coins',
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: coinsController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'z. B. 50',
-                  hintStyle: TextStyle(color: Colors.grey[500]),
-                  suffixText: 'Coins',
-                  suffixStyle: TextStyle(color: Colors.amber[400]),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey[600]!),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.amber[700]!),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
+              Slider(
+                value: minimumCoins.toDouble(),
+                min: 0,
+                max: 200,
+                divisions: 20,
+                activeColor: Colors.amber[700],
+                onChanged: (value) {
+                  setDialogState(() {
+                    minimumCoins = value.toInt();
+                  });
+                },
               ),
               const SizedBox(height: 8),
               Text(
@@ -876,10 +889,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                coinsController.dispose();
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
               child: Text(
                 'Abbrechen',
                 style: TextStyle(color: Colors.grey[400]),
@@ -887,7 +897,6 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             ),
             ElevatedButton(
               onPressed: () {
-                final minimumCoins = int.tryParse(coinsController.text) ?? 0;
                 final auctionService = Provider.of<AuctionService>(context, listen: false);
                 final auth = Provider.of<AuthService>(context, listen: false);
                 auctionService.createAuction(
@@ -900,7 +909,6 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   tokenData: token.toJson(),
                 );
                 
-                coinsController.dispose();
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -1210,6 +1218,7 @@ class _ShopItem extends StatelessWidget {
   final String title;
   final String subtitle;
   final int price;
+  final bool canAfford;
   final VoidCallback onBuy;
 
   const _ShopItem({
@@ -1218,6 +1227,7 @@ class _ShopItem extends StatelessWidget {
     required this.subtitle,
     required this.price,
     required this.onBuy,
+    this.canAfford = true,
   });
 
   @override
@@ -1227,7 +1237,7 @@ class _ShopItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.grey[850],
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey[700]!),
+        border: Border.all(color: canAfford ? Colors.grey[700]! : Colors.grey[800]!),
       ),
       child: Row(
         children: [
@@ -1255,7 +1265,7 @@ class _ShopItem extends StatelessWidget {
           ElevatedButton(
             onPressed: onBuy,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber[700],
+              backgroundColor: canAfford ? Colors.amber[700] : Colors.grey[700],
               foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               shape: RoundedRectangleBorder(
