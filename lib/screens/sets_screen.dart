@@ -16,6 +16,8 @@ class SetsScreen extends StatelessWidget {
         return 'assets/images/Token_Elbphilhamonie_silber.png';
       case 'set_dissen':
         return 'assets/images/Dissen_Wappen_small.png';
+      case 'set_leipzig':
+        return 'assets/images/Leipzig_Wappen_Set_token.png';
       default:
         return 'assets/images/Token_gold_speicherstadt.png';
     }
@@ -29,6 +31,8 @@ class SetsScreen extends StatelessWidget {
         return '🏛️';
       case 'set_dissen':
         return '🌿';
+      case 'set_leipzig':
+        return '🏙️';
       default:
         return '🎖️';
     }

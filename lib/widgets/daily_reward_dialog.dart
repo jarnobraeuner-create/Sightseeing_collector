@@ -116,7 +116,7 @@ class _DailyRewardDialogState extends State<DailyRewardDialog> {
   @override
   Widget build(BuildContext context) {
     final rewardService = context.watch<DailyRewardService>();
-    final today = DateTime.now().weekday; // 1=Mo ... 7=So
+    final currentDay = rewardService.currentDay;
     final todaysReward = rewardService.todaysReward;
 
     return Dialog(
@@ -143,7 +143,7 @@ class _DailyRewardDialogState extends State<DailyRewardDialog> {
             ),
             const SizedBox(height: 16),
 
-            // 7 weekday reward cards
+            // 7 streak-day reward cards
             GridView.count(
               crossAxisCount: 4,
               shrinkWrap: true,
@@ -154,15 +154,17 @@ class _DailyRewardDialogState extends State<DailyRewardDialog> {
               children: [
                 ...DailyRewardService.rewards.take(4).map((r) => _RewardCard(
                   reward: r,
-                  isToday: r.weekday == today,
-                  isClaimed: rewardService.claimedToday && r.weekday == today,
+                  isToday: r.day == currentDay,
+                  isClaimed: r.day < currentDay ||
+                      (r.day == currentDay && rewardService.claimedToday),
                 )),
                 // empty spacer for centering last 3
                 const SizedBox.shrink(),
                 ...DailyRewardService.rewards.skip(4).map((r) => _RewardCard(
                   reward: r,
-                  isToday: r.weekday == today,
-                  isClaimed: rewardService.claimedToday && r.weekday == today,
+                  isToday: r.day == currentDay,
+                  isClaimed: r.day < currentDay ||
+                      (r.day == currentDay && rewardService.claimedToday),
                 )),
               ],
             ),
