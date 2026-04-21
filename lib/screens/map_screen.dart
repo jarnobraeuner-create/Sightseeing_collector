@@ -11,6 +11,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/index.dart';
 import '../services/index.dart';
+import '../widgets/event_dialog.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -613,6 +614,12 @@ class _MapScreenState extends State<MapScreen> {
                       zoomControlsEnabled: true,
                       compassEnabled: true,
                     ),
+                    // ── Event-Icon oben links (immer sichtbar) ───
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: _EventMapButton(),
+                    ),
                     // Overlay-Spinner solange kein Standort bekannt
                     if (!hasLocation)
                       Positioned(
@@ -762,6 +769,8 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
 
   // Distanz in km; <= checkInRadiusKm = innerhalb Sammelbereich
   bool get _isNearby {
+    // Dev-Mode: Standortbeschränkung aufheben
+    if (Provider.of<DevModeService>(context, listen: false).enabled) return true;
     final d = widget.distance;
     if (d == null) return false; // kein GPS = nicht sammelbar
     return d <= widget.landmark.checkInRadiusKm;
@@ -845,9 +854,26 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
 
   void _collectChurchBonus(BuildContext ctx) {
     final landmark = widget.landmark;
-    // Church bonus gives 50 coins and adds a special church token
-    widget.collectionService.collectTokenAllowDuplicate(
-      '${landmark.id}_church',
+    final churchId = '${landmark.id}_church';
+
+    // Einmalig: Prüfen ob bereits gesammelt
+    if (widget.collectionService.hasCollectedToken(churchId)) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(
+          content: Text('Kirchensegen dieser Kirche bereits gesammelt!'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _flyCtrl.forward().then((_) {
+        if (mounted) setState(() { _churchBonusCollected = true; _flyCtrl.reset(); });
+      });
+      return;
+    }
+
+    // Church bonus: 50 Coins, einmaliger Token
+    widget.collectionService.collectToken(
+      churchId,
       '${landmark.name} – Kirchensegen',
       landmark.category,
       50,
@@ -855,6 +881,10 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       tier: TokenTier.bronze,
     );
     widget.onCollected();
+
+    // Event-Service benachrichtigen
+    Provider.of<EventService>(ctx, listen: false)
+        .recordChurchCollected(landmark.id);
 
     _flyCtrl.forward().then((_) {
       if (mounted) {
@@ -1238,4 +1268,108 @@ class _Cluster {
     required this.center,
     required this.landmarks,
   });
+}
+
+// ── Event-Map-Button ──────────────────────────────────────────────────────────
+
+class _EventMapButton extends StatelessWidget {
+  const _EventMapButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<EventService>(
+      builder: (context, eventService, _) {
+        // Badge-Zahl: Anzahl der Events mit anstehendem Reward
+        final hasPending = eventService.pendingReward() != null;
+        // Fortschritt des ersten aktiven Events für Mini-Badge
+        final firstEvent = EventService.allEvents.isNotEmpty
+            ? EventService.allEvents.first
+            : null;
+        final count = firstEvent != null
+            ? eventService.collectedCount(firstEvent.id)
+            : 0;
+        final required = firstEvent?.requiredCount ?? 1;
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => showDialog<void>(
+              context: context,
+              useRootNavigator: true,
+              builder: (_) => const EventDialog(),
+            ),
+            child: Ink(
+              decoration: BoxDecoration(
+                color: const Color(0xCC1A1A2E),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasPending ? Colors.amber : Colors.purple[400]!,
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: (hasPending ? Colors.amber : Colors.purple)
+                        .withValues(alpha: 0.35),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Text(
+                        hasPending ? '🎁' : '🎉',
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                      if (hasPending)
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(
+                              color: Colors.amber,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 6),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Events',
+                        style: TextStyle(
+                          color: hasPending ? Colors.amber : Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '$count/$required ⛪',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

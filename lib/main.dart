@@ -46,6 +46,8 @@ class SightseeingCollectorApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LootboxService()),
         ChangeNotifierProvider(create: (_) => CooldownService()),
         ChangeNotifierProvider(create: (_) => DailyRewardService()),
+        ChangeNotifierProvider(create: (_) => DevModeService()),
+        ChangeNotifierProvider(create: (_) => EventService()),
       ],
       child: MaterialApp(
         title: 'Sightseeing Collector',

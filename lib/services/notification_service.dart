@@ -21,6 +21,11 @@ class NotificationService {
   static const int _idBidAccepted = 3;
   static const int _idLootboxReady = 4;
   static const int _idMapUpdated = 5;
+  static const int _idSetCompleted = 6;
+
+  static const _setChannelId = 'sightseeing_set_completed';
+  static const _setChannelName = 'Set-Abschluss';
+  static const _setChannelDesc = 'Benachrichtigungen wenn du ein Sammelset abgeschlossen hast';
 
   static const _prefLandmarkCount = 'notif_landmark_count';
 
@@ -143,5 +148,36 @@ class NotificationService {
         _details,
       );
     }
+  }
+
+  // ── 6. Set abgeschlossen ──────────────────────────────────────
+  Future<void> showSetCompleted(String setName, int bonusPoints) async {
+    if (!_initialized) return;
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _setChannelId,
+        _setChannelName,
+        channelDescription: _setChannelDesc,
+        importance: Importance.max,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+        // Zeigt die Benachrichtigung auch auf dem Sperrbildschirm
+        visibility: NotificationVisibility.public,
+        // Ticker-Text für Zugänglichkeit
+        ticker: 'Set abgeschlossen: $setName',
+        styleInformation: BigTextStyleInformation(
+          'Du hast das Set "$setName" vervollständigt und +$bonusPoints Coins erhalten! 🏆',
+        ),
+      ),
+      iOS: const DarwinNotificationDetails(
+        interruptionLevel: InterruptionLevel.active,
+      ),
+    );
+    await _plugin.show(
+      _idSetCompleted,
+      '🏆 Set abgeschlossen!',
+      '"$setName" vervollständigt • +$bonusPoints Coins',
+      details,
+    );
   }
 }

@@ -6,6 +6,7 @@ import '../services/landmark_service.dart';
 import '../services/auth_service.dart';
 import '../services/lootbox_service.dart';
 import '../services/cooldown_service.dart';
+import '../services/dev_mode_service.dart';
 import '../models/auction.dart';
 
 class TradingScreen extends StatefulWidget {
@@ -204,13 +205,14 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                 Consumer2<CollectionService, LootboxService>(
                   builder: (context, collection, lootbox, _) => ElevatedButton(
                     onPressed: () async {
-                      if (collection.totalPoints < 15000) {
+                      final devMode = Provider.of<DevModeService>(context, listen: false).enabled;
+                      if (!devMode && collection.totalPoints < 15000) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Zu wenig Coins! Du brauchst 15.000 🪙')),
                         );
                         return;
                       }
-                      collection.spendPoints(15000);
+                      if (!devMode) collection.spendPoints(15000);
                       await lootbox.addExtraLootboxes(10);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -247,15 +249,16 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
               title: 'Extra Lootbox',
               subtitle: 'Eine zusätzliche Lootbox kaufen',
               price: 2000,
-              canAfford: collection.totalPoints >= 2000,
+              canAfford: collection.totalPoints >= 2000 || Provider.of<DevModeService>(context, listen: false).enabled,
               onBuy: () async {
-                if (collection.totalPoints < 2000) {
+                final devMode = Provider.of<DevModeService>(context, listen: false).enabled;
+                if (!devMode && collection.totalPoints < 2000) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Zu wenig Coins!')),
                   );
                   return;
                 }
-                collection.spendPoints(2000);
+                if (!devMode) collection.spendPoints(2000);
                 await lootbox.addExtraLootboxes(1);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -275,15 +278,16 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
               title: 'Cooldown Skip',
               subtitle: 'Alle Sammel-Cooldowns sofort zurücksetzen',
               price: 1500,
-              canAfford: collection.totalPoints >= 1500,
+              canAfford: collection.totalPoints >= 1500 || Provider.of<DevModeService>(context, listen: false).enabled,
               onBuy: () async {
-                if (collection.totalPoints < 1500) {
+                final devMode = Provider.of<DevModeService>(context, listen: false).enabled;
+                if (!devMode && collection.totalPoints < 1500) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Zu wenig Coins!')),
                   );
                   return;
                 }
-                collection.spendPoints(1500);
+                if (!devMode) collection.spendPoints(1500);
                 await cooldown.resetAllCooldowns();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

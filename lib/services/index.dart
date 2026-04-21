@@ -7,3 +7,5 @@ export 'cooldown_service.dart';
 export 'auth_service.dart';
 export 'notification_service.dart';
 export 'daily_reward_service.dart';
+export 'dev_mode_service.dart';
+export 'event_service.dart';

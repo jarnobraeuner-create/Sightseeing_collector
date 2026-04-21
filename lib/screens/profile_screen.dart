@@ -1,5 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/index.dart';
 import '../widgets/lootbox_dialog.dart';
@@ -358,10 +357,62 @@ class _LoggedInProfile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                if (kDebugMode) ...[
-                  _DarkCard(
+                Consumer<DevModeService>(
+                  builder: (context, devMode, _) => _DarkCard(
                     title: '🛠 Developer Mode',
                     children: [
+                      // ── Dev-Mode Toggle ──────────────────────────
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: devMode.enabled
+                              ? Colors.green.withValues(alpha: 0.15)
+                              : Colors.grey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: devMode.enabled ? Colors.green : Colors.grey[700]!,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              devMode.enabled ? Icons.developer_mode : Icons.developer_mode_outlined,
+                              color: devMode.enabled ? Colors.greenAccent : Colors.grey,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    devMode.enabled ? 'Dev-Mode aktiv' : 'Dev-Mode inaktiv',
+                                    style: TextStyle(
+                                      color: devMode.enabled ? Colors.greenAccent : Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    devMode.enabled
+                                        ? 'Standort- & Coin-Beschränkungen aufgehoben'
+                                        : 'Normale Spielbeschränkungen aktiv',
+                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: devMode.enabled,
+                              onChanged: (_) => devMode.toggle(),
+                              activeColor: Colors.greenAccent,
+                              inactiveTrackColor: Colors.grey[800],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // ── Cooldowns zurücksetzen ───────────────────
                       Consumer2<CooldownService, LootboxService>(
                         builder: (context, cooldownService, lootboxService, _) =>
                             SizedBox(
@@ -394,8 +445,8 @@ class _LoggedInProfile extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
+                const SizedBox(height: 16),
                 const SizedBox(height: 32),
               ],
             ),

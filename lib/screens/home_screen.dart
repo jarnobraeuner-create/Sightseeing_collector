@@ -27,7 +27,32 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _initialPage);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowDailyReward());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeShowDailyReward();
+      // Listener für Set-Abschluss Banner
+      context.read<CollectionService>().addListener(_onCollectionChanged);
+    });
+  }
+
+  void _onCollectionChanged() {
+    final service = context.read<CollectionService>();
+    final completed = service.lastCompletedSet;
+    if (completed == null) return;
+    service.clearLastCompletedSet();
+    _showSetCompletedBanner(completed);
+  }
+
+  void _showSetCompletedBanner(CollectionSet set) {
+    if (!mounted) return;
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => _SetCompletedBanner(
+        set: set,
+        onDismiss: () => entry.remove(),
+      ),
+    );
+    overlay.insert(entry);
   }
 
   void _maybeShowDailyReward() {
@@ -43,6 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    // ignore if service no longer available
+    try {
+      context.read<CollectionService>().removeListener(_onCollectionChanged);
+    } catch (_) {}
     _pageController.dispose();
     super.dispose();
   }
@@ -521,6 +550,160 @@ class LandmarkDetailScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Color _getDifficultyColor(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case 'easy': return Colors.green[300]!;
+      case 'medium': return Colors.orange[300]!;
+      case 'hard': return Colors.red[300]!;
+      default: return Colors.grey[300]!;
+    }
+  }
+
+  IconData _getQuestIcon(String taskType) {
+    switch (taskType.toLowerCase()) {
+      case 'photo': return Icons.camera_alt;
+      case 'visit': return Icons.location_on;
+      case 'quiz': return Icons.quiz;
+      case 'collect': return Icons.token;
+      default: return Icons.task_alt;
+    }
+  }
+}
+
+// ── In-App Set-Abschluss Banner ────────────────────────────────────────────
+
+class _SetCompletedBanner extends StatefulWidget {
+  final CollectionSet set;
+  final VoidCallback onDismiss;
+
+  const _SetCompletedBanner({required this.set, required this.onDismiss});
+
+  @override
+  State<_SetCompletedBanner> createState() => _SetCompletedBannerState();
+}
+
+class _SetCompletedBannerState extends State<_SetCompletedBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<Offset> _slide;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _slide = Tween<Offset>(begin: const Offset(0, -1.2), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
+    _fade = Tween<double>(begin: 0, end: 1)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
+    _ctrl.forward();
+    // Auto-dismiss nach 5 Sekunden
+    Future.delayed(const Duration(seconds: 5), _dismiss);
+  }
+
+  void _dismiss() {
+    if (!mounted) return;
+    _ctrl.reverse().then((_) => widget.onDismiss());
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    return Positioned(
+      top: mediaQuery.padding.top + 8,
+      left: 16,
+      right: 16,
+      child: SlideTransition(
+        position: _slide,
+        child: FadeTransition(
+          opacity: _fade,
+          child: Material(
+            elevation: 12,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A1A2E), Color(0xFF2A2A4E)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.amber, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.amber.withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  // Wappen-Bild oder Trophäen-Icon
+                  if (widget.set.rewardImageUrl != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        widget.set.rewardImageUrl!,
+                        width: 52,
+                        height: 52,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const Icon(Icons.emoji_events, color: Colors.amber, size: 40),
+                      ),
+                    )
+                  else
+                    const Icon(Icons.emoji_events, color: Colors.amber, size: 40),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          '🏆 Set abgeschlossen!',
+                          style: TextStyle(
+                            color: Colors.amber,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.set.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '+${widget.set.bonusPoints} Bonus-Coins erhalten!',
+                          style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: _dismiss,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

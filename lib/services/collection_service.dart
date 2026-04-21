@@ -12,11 +12,19 @@ class CollectionService extends ChangeNotifier {
   final List<CollectionSet> _sets = [];
   int _totalPoints = 0;
   bool _isLoaded = false;
+  CollectionSet? _lastCompletedSet;
 
   List<Token> get tokens => _tokens;
   List<CollectionSet> get sets => _sets;
   int get totalPoints => _totalPoints;
   bool get isLoaded => _isLoaded;
+  /// Enthält das zuletzt abgeschlossene Set (null wenn keines). 
+  /// Nach Anzeige via [clearLastCompletedSet] zurücksetzen.
+  CollectionSet? get lastCompletedSet => _lastCompletedSet;
+
+  void clearLastCompletedSet() {
+    _lastCompletedSet = null;
+  }
 
   CollectionService() {
     _initializeSets();
@@ -269,7 +277,9 @@ class CollectionService extends ChangeNotifier {
 
       if (isComplete && !set.completed) {
         _totalPoints += set.bonusPoints;
+        _lastCompletedSet = _sets[setIndex];
         debugPrint('Set completed: ${set.name}. Bonus: ${set.bonusPoints}');
+        NotificationService.instance.showSetCompleted(set.name, set.bonusPoints);
       }
     }
   }
