@@ -43,6 +43,7 @@ class Landmark {
   final List<String> relatedSetIds;
   final TokenTier defaultTier;
   final double checkInRadiusKm;
+  final bool isChurch;
 
   Landmark({
     required this.id,
@@ -58,6 +59,7 @@ class Landmark {
     this.relatedSetIds = const [],
     this.defaultTier = TokenTier.bronze,
     this.checkInRadiusKm = 0.1,
+    this.isChurch = false,
   });
 
   // Calculate distance to user using Haversine formula

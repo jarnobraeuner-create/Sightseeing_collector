@@ -116,6 +116,7 @@ class LandmarkService extends ChangeNotifier {
         imageUrl: 'assets/images/Token_Michel_silber.png',
         relatedSetIds: ['set_hamburg'],
         defaultTier: TokenTier.silver,
+        isChurch: true,
         quests: [
           Quest(
             id: 'q4',
@@ -244,6 +245,7 @@ class LandmarkService extends ChangeNotifier {
         pointsReward: 95,
         imageUrl: 'assets/images/dissen St. Mauritius Kirche.png',
         relatedSetIds: ['set_dissen'],
+        isChurch: true,
         quests: [
           Quest(
             id: 'q10',
@@ -599,6 +601,7 @@ class LandmarkService extends ChangeNotifier {
         pointsReward: 110,
         imageUrl: 'assets/images/default_token.jpeg',
         relatedSetIds: ['set_hamburg'],
+        isChurch: true,
         quests: [Quest(id: 'q28', title: 'St. Nikolai besuchen', taskType: 'checkin', completed: false)],
       ),
       Landmark(
@@ -768,6 +771,7 @@ class LandmarkService extends ChangeNotifier {
         pointsReward: 100,
         imageUrl: 'assets/images/default_token.jpeg',
         relatedSetIds: ['set_hamburg'],
+        isChurch: true,
         quests: [Quest(id: 'q41', title: 'St. Petri besuchen', taskType: 'checkin', completed: false)],
       ),
       Landmark(

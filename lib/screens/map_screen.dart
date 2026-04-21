@@ -708,16 +708,40 @@ class _LandmarkBottomSheet extends StatefulWidget {
   State<_LandmarkBottomSheet> createState() => _LandmarkBottomSheetState();
 }
 
-class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
+class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
+    with SingleTickerProviderStateMixin {
   late Duration? _remaining;
   bool _canCollect = false;
+
+  // Church two-phase collect
+  bool _mainCollected = false;      // main token was collected
+  bool _churchBonusCollected = false; // default church token was collected too
+
+  // Fly-away animation
+  late final AnimationController _flyCtrl;
+  late final Animation<Offset> _flyOffset;
+  late final Animation<double> _flyOpacity;
 
   @override
   void initState() {
     super.initState();
     _refreshCooldown();
-    // Refresh countdown every second if in cooldown
     _startTimer();
+
+    _flyCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+    _flyOffset = Tween<Offset>(begin: Offset.zero, end: const Offset(0, -1.5))
+        .animate(CurvedAnimation(parent: _flyCtrl, curve: Curves.easeIn));
+    _flyOpacity = Tween<double>(begin: 1.0, end: 0.0)
+        .animate(CurvedAnimation(parent: _flyCtrl, curve: Curves.easeIn));
+  }
+
+  @override
+  void dispose() {
+    _flyCtrl.dispose();
+    super.dispose();
   }
 
   void _refreshCooldown() {
@@ -785,13 +809,65 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
     );
     widget.cooldownService.recordCollection(landmark.id);
     widget.onCollected();
-    Navigator.pop(ctx);
-    ScaffoldMessenger.of(ctx).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Token gesammelt! +${landmark.pointsReward} Coins (${widget.pinTier.displayName})',
+
+    if (landmark.isChurch) {
+      // Fly-away animation, then show church bonus token
+      _flyCtrl.forward().then((_) {
+        if (mounted) {
+          setState(() {
+            _mainCollected = true;
+            _flyCtrl.reset();
+          });
+        }
+      });
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Token gesammelt! +${landmark.pointsReward} Coins (${widget.pinTier.displayName})',
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
         ),
-        backgroundColor: Colors.green,
+      );
+    } else {
+      Navigator.pop(ctx);
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Token gesammelt! +${landmark.pointsReward} Coins (${widget.pinTier.displayName})',
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _collectChurchBonus(BuildContext ctx) {
+    final landmark = widget.landmark;
+    // Church bonus gives 50 coins and adds a special church token
+    widget.collectionService.collectTokenAllowDuplicate(
+      '${landmark.id}_church',
+      '${landmark.name} – Kirchensegen',
+      landmark.category,
+      50,
+      landmark.relatedSetIds,
+      tier: TokenTier.bronze,
+    );
+    widget.onCollected();
+
+    _flyCtrl.forward().then((_) {
+      if (mounted) {
+        setState(() {
+          _churchBonusCollected = true;
+          _flyCtrl.reset();
+        });
+      }
+    });
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      const SnackBar(
+        content: Text('Kirchensegen erhalten! +50 Coins ⛪'),
+        backgroundColor: Colors.teal,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -838,39 +914,56 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Token Image
+          // Token Image (with fly-away animation)
           Center(
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: _tierColor.withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: landmark.imageUrl.isNotEmpty
-                    ? Image.asset(
-                        widget.landmarkService
-                            .getImageUrlForTier(landmark.id, tier),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: Colors.grey[800],
-                          child: const Icon(Icons.image_not_supported,
-                              size: 60, color: Colors.white54),
-                        ),
-                      )
-                    : Container(
-                        color: Colors.grey[800],
-                        child: const Icon(Icons.location_on,
-                            size: 60, color: Colors.amber),
+            child: SlideTransition(
+              position: _flyOffset,
+              child: FadeTransition(
+                opacity: _flyOpacity,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _tierColor.withValues(alpha: 0.4),
+                        blurRadius: 20,
+                        spreadRadius: 2,
                       ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: _mainCollected
+                        // Phase 2: show church default token
+                        ? Image.asset(
+                            'assets/images/Kirche_default_token.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey[800],
+                              child: const Icon(Icons.church, size: 60, color: Colors.white54),
+                            ),
+                          )
+                        // Phase 1: show specific landmark token
+                        : (landmark.imageUrl.isNotEmpty
+                            ? Image.asset(
+                                widget.landmarkService
+                                    .getImageUrlForTier(landmark.id, tier),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: Colors.grey[800],
+                                  child: const Icon(Icons.image_not_supported,
+                                      size: 60, color: Colors.white54),
+                                ),
+                              )
+                            : Container(
+                                color: Colors.grey[800],
+                                child: const Icon(Icons.location_on,
+                                    size: 60, color: Colors.amber),
+                              )),
+                  ),
+                ),
               ),
             ),
           ),
@@ -879,7 +972,9 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
             children: [
               Expanded(
                 child: Text(
-                  landmark.name,
+                  _mainCollected
+                      ? '⛪ Kirchensegen'
+                      : landmark.name,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -895,7 +990,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
                   border: Border.all(color: _tierColor, width: 1),
                 ),
                 child: Text(
-                  tier.displayName,
+                  _mainCollected ? 'Bonus' : tier.displayName,
                   style: TextStyle(color: _tierColor, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
@@ -903,7 +998,9 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            landmark.description,
+            _mainCollected
+                ? 'Du hast die Kirche besucht! Sammle jetzt den Kirchensegen als Bonus-Token (+50 Coins).'
+                : landmark.description,
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
@@ -973,7 +1070,75 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
             const SizedBox(height: 12),
           ],
           // Buttons
-          if (!_isNearby) ...[                
+          if (_mainCollected) ...[
+            // ── Phase 2: church bonus token ──
+            if (_churchBonusCollected) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.teal),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.tealAccent, size: 26),
+                    SizedBox(height: 4),
+                    Text('Kirchensegen gesammelt! ⛪',
+                        style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.grey),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Schließen', style: TextStyle(color: Colors.grey)),
+                ),
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.church),
+                        label: const Text('Kirchensegen +50 🪙'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal[600],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 6,
+                        ),
+                        onPressed: () => _collectChurchBonus(context),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    height: 50,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.grey),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Überspringen', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ] else if (!_isNearby) ...[                
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
