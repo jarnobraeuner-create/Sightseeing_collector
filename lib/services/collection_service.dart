@@ -152,6 +152,7 @@ class CollectionService extends ChangeNotifier {
         description: 'Entdecke alle Sehenswürdigkeiten in Leipzig',
         requiredTokenIds: ['52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68'],
         bonusPoints: 700,
+        rewardImageUrl: 'assets/images/Leipzig_Wappen_Set_token.png',
       ),
     ]);
   }

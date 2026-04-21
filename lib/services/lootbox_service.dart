@@ -44,6 +44,16 @@ class LootboxService extends ChangeNotifier {
     return TokenTier.bronze;
   }
 
+  /// Opens a lootbox with guaranteed Silver minimum (for Sunday daily reward).
+  /// Does NOT use or check the daily lootbox cooldown.
+  TokenTier openGuaranteedSilverLootbox() {
+    final rand = Random().nextDouble() * 100;
+    if (rand < 1) return TokenTier.platinum;
+    if (rand < 11) return TokenTier.gold;
+    if (rand < 31) return TokenTier.silver;
+    return TokenTier.silver; // guaranteed silver minimum
+  }
+
   /// For testing: reset so lootbox can be opened again today
   Future<void> resetForTesting() async {
     final prefs = await SharedPreferences.getInstance();

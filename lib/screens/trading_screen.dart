@@ -415,9 +415,24 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
     );
   }
 
-  void _showBidDialog(Auction auction) {
+  void _showBidDialog(Auction auction) async {
     final auth = Provider.of<AuthService>(context, listen: false);
     if (auction.sellerId == auth.firebaseUser?.uid) return; // Eigene Auktionen nicht bietbar
+
+    final uid = auth.firebaseUser?.uid ?? '';
+    final auctionService = Provider.of<AuctionService>(context, listen: false);
+    final alreadyBid = await auctionService.hasUserBid(auction.id, uid);
+    if (!mounted) return;
+    if (alreadyBid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Du hast auf diese Auktion bereits geboten.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     final collectionService = Provider.of<CollectionService>(context, listen: false);
     final myTokens = collectionService.tokens;
@@ -694,8 +709,17 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
   Widget _buildCreateAuction() {
     return Consumer3<CollectionService, AuctionService, LandmarkService>(
       builder: (context, collectionService, auctionService, landmarkService, child) {
-        final myTokens = collectionService.tokens;
-        
+        final auth = Provider.of<AuthService>(context, listen: false);
+        final myUid = auth.firebaseUser?.uid ?? '';
+        final auctionedTokenIds = auctionService
+            .getMyAuctions(myUid)
+            .map((a) => a.category)
+            .whereType<String>()
+            .toSet();
+        final myTokens = collectionService.tokens
+            .where((t) => !auctionedTokenIds.contains(t.id))
+            .toList();
+
         if (myTokens.isEmpty) {
           return Center(
             child: Column(
@@ -779,7 +803,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
   }
 
   void _showCreateAuctionDialog(token, landmark) {
-    int minimumCoins = 50;
+    final coinsController = TextEditingController(text: '50');
     
     showDialog(
       context: context,
@@ -819,21 +843,29 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                 ],
               ),
               const SizedBox(height: 24),
-              Text(
-                'Mindestgebot: $minimumCoins Coins',
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+              const Text(
+                'Mindestgebot (Coins)',
+                style: TextStyle(color: Colors.white, fontSize: 16),
               ),
-              Slider(
-                value: minimumCoins.toDouble(),
-                min: 0,
-                max: 200,
-                divisions: 20,
-                activeColor: Colors.amber[700],
-                onChanged: (value) {
-                  setDialogState(() {
-                    minimumCoins = value.toInt();
-                  });
-                },
+              const SizedBox(height: 8),
+              TextField(
+                controller: coinsController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'z. B. 50',
+                  hintStyle: TextStyle(color: Colors.grey[500]),
+                  suffixText: 'Coins',
+                  suffixStyle: TextStyle(color: Colors.amber[400]),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey[600]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.amber[700]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -844,7 +876,10 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                coinsController.dispose();
+                Navigator.pop(context);
+              },
               child: Text(
                 'Abbrechen',
                 style: TextStyle(color: Colors.grey[400]),
@@ -852,6 +887,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             ),
             ElevatedButton(
               onPressed: () {
+                final minimumCoins = int.tryParse(coinsController.text) ?? 0;
                 final auctionService = Provider.of<AuctionService>(context, listen: false);
                 final auth = Provider.of<AuthService>(context, listen: false);
                 auctionService.createAuction(
@@ -864,6 +900,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   tokenData: token.toJson(),
                 );
                 
+                coinsController.dispose();
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

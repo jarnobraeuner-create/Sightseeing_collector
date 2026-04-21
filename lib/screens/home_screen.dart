@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/index.dart';
 import '../widgets/index.dart';
+import '../widgets/daily_reward_dialog.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
 import 'trading_screen.dart';
@@ -17,21 +18,33 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+  // Page order: Trading(0) | Karte(1) | Sets(2) | Profil(3)
+  static const int _initialPage = 1;
+  late final PageController _pageController;
+  int _currentPage = _initialPage;
 
-  Widget _buildPage(int index) {
-    switch (index) {
-      case 0:
-        return const MapScreen();
-      case 1:
-        return const TradingScreen();
-      case 2:
-        return const SetsScreen();
-      case 3:
-        return const ProfileScreen();
-      default:
-        return const MapScreen();
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _initialPage);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowDailyReward());
+  }
+
+  void _maybeShowDailyReward() {
+    final rewardService = context.read<DailyRewardService>();
+    if (rewardService.shouldShowPopup) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const DailyRewardDialog(),
+      );
     }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -39,67 +52,41 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          IndexedStack(
-            index: _selectedIndex,
-            children: [
-              _buildPage(0),
-              _buildPage(1),
-              _buildPage(2),
-              _buildPage(3),
+          PageView(
+            controller: _pageController,
+            onPageChanged: (i) => setState(() => _currentPage = i),
+            children: const [
+              _KeepAlivePage(child: TradingScreen()),
+              _KeepAlivePage(child: MapScreen()),
+              _KeepAlivePage(child: SetsScreen()),
+              _KeepAlivePage(child: ProfileScreen()),
             ],
           ),
-          // Upgrade-Button nur auf der Karte
-          if (_selectedIndex == 0)
-            Positioned(
-              top: 120,
-              right: 16,
-              child: FloatingActionButton.small(
-                heroTag: 'upgrade',
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TokenUpgradeScreen(),
-                  ),
-                ),
-                tooltip: 'Token Upgrades',
-                backgroundColor: Colors.purple[700],
-                child: const Icon(Icons.upgrade, color: Colors.white),
-              ),
-            ),
-        ],
-      ),
-      // ── Feste untere Navigation ──────────────────────────────────────────
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.grey[900],
-        selectedFontSize: 12,
-        unselectedFontSize: 11,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map, color: Colors.grey[500]),
-            activeIcon: Icon(Icons.map, color: Colors.amber[600]),
-            label: 'Karte',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.store, color: Colors.red[400]),
-            activeIcon: Icon(Icons.store, color: Colors.red[400]),
-            label: 'Trading',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.workspace_premium, color: Colors.grey[500]),
-            activeIcon: Icon(Icons.workspace_premium, color: Colors.amber[600]),
-            label: 'Sets',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person, color: Colors.grey[500]),
-            activeIcon: Icon(Icons.person, color: Colors.amber[600]),
-            label: 'Profil',
-          ),
+
         ],
       ),
     );
+  }
+}
+
+/// Keeps a page alive in the PageView so state is not lost when swiping away.
+class _KeepAlivePage extends StatefulWidget {
+  final Widget child;
+  const _KeepAlivePage({required this.child});
+
+  @override
+  State<_KeepAlivePage> createState() => _KeepAlivePageState();
+}
+
+class _KeepAlivePageState extends State<_KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 
@@ -279,7 +266,7 @@ class LandmarkDetailScreen extends StatelessWidget {
           final distance = position != null
               ? landmark.getDistance(position.latitude, position.longitude)
               : null;
-          final isNearby = distance != null && distance <= 0.1; // 100m
+          final isNearby = distance != null && distance <= landmark.checkInRadiusKm;
           final isCollected = collectionService.hasCollectedToken(landmark.id);
 
           return SingleChildScrollView(

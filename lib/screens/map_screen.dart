@@ -731,11 +731,11 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet> {
     });
   }
 
-  // Distanz in km; <= 0.1 km = innerhalb 100 Meter
+  // Distanz in km; <= checkInRadiusKm = innerhalb Sammelbereich
   bool get _isNearby {
     final d = widget.distance;
     if (d == null) return false; // kein GPS = nicht sammelbar
-    return d <= 0.25;
+    return d <= widget.landmark.checkInRadiusKm;
   }
 
   Color get _tierColor {

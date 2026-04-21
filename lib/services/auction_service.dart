@@ -227,4 +227,15 @@ class AuctionService extends ChangeNotifier {
   List<Auction> getMyBids(String userId) {
     return _auctions.where((a) => a.highestBidderId == userId).toList();
   }
+
+  Future<bool> hasUserBid(String auctionId, String userId) async {
+    final snapshot = await _db
+        .collection('auctions')
+        .doc(auctionId)
+        .collection('bids')
+        .where('bidderId', isEqualTo: userId)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
+  }
 }

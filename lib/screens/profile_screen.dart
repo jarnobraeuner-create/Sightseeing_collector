@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/index.dart';
 import '../widgets/lootbox_dialog.dart';
 import 'collection_screen.dart';
+import 'token_upgrade_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -137,6 +138,20 @@ class _LoggedInProfile extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const CollectionScreen(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _ActionButton(
+                        icon: Icons.upgrade,
+                        label: 'Token Fusion',
+                        color: Colors.purple[700]!,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TokenUpgradeScreen(),
                           ),
                         ),
                       ),

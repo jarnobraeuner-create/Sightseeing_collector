@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
@@ -25,6 +24,8 @@ class NotificationService {
 
   static const _prefLandmarkCount = 'notif_landmark_count';
 
+  /// Initialisiert den Plugin-Kern (ohne Permission-Dialog).
+  /// Muss vor dem ersten show()-Aufruf laufen, kann in main() aufgerufen werden.
   Future<void> initialize() async {
     if (_initialized) return;
     tz_data.initializeTimeZones();
@@ -32,20 +33,36 @@ class NotificationService {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
     const initSettings =
         InitializationSettings(android: androidSettings, iOS: iosSettings);
 
     await _plugin.initialize(initSettings);
-
-    if (!kIsWeb) {
-      await Permission.notification.request();
-    }
-
     _initialized = true;
+  }
+
+  /// Fragt den User nach Notification-Erlaubnis.
+  /// MUSS nach runApp() aufgerufen werden (Activity muss bereit sein).
+  Future<void> requestPermissions() async {
+    if (!_initialized) return;
+
+    // Android 13+ (API 33)
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    await android?.requestNotificationsPermission();
+
+    // Exakte Alarme für Lootbox-Scheduled-Notif
+    await android?.requestExactAlarmsPermission();
+
+    // iOS
+    final iOS = _plugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+    await iOS?.requestPermissions(alert: true, badge: true, sound: true);
   }
 
   NotificationDetails get _details => NotificationDetails(

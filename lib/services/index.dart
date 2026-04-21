@@ -6,3 +6,4 @@ export 'lootbox_service.dart';
 export 'cooldown_service.dart';
 export 'auth_service.dart';
 export 'notification_service.dart';
+export 'daily_reward_service.dart';
