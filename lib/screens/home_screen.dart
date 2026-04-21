@@ -47,6 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  static const List<_NavItem> _navItems = [
+    _NavItem(icon: Icons.swap_horiz, label: 'Trading'),
+    _NavItem(icon: Icons.map, label: 'Karte'),
+    _NavItem(icon: Icons.collections, label: 'Sets'),
+    _NavItem(icon: Icons.person, label: 'Profil'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           PageView(
             controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
             onPageChanged: (i) => setState(() => _currentPage = i),
             children: const [
               _KeepAlivePage(child: TradingScreen()),
@@ -62,11 +70,32 @@ class _HomeScreenState extends State<HomeScreen> {
               _KeepAlivePage(child: ProfileScreen()),
             ],
           ),
-
         ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentPage,
+        onTap: (i) {
+          _pageController.jumpToPage(i);
+          setState(() => _currentPage = i);
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: const Color(0xFF1A1A2E),
+        selectedItemColor: Colors.amber,
+        unselectedItemColor: Colors.grey,
+        selectedFontSize: 11,
+        unselectedFontSize: 11,
+        items: _navItems
+            .map((n) => BottomNavigationBarItem(icon: Icon(n.icon), label: n.label))
+            .toList(),
       ),
     );
   }
+}
+
+class _NavItem {
+  final IconData icon;
+  final String label;
+  const _NavItem({required this.icon, required this.label});
 }
 
 /// Keeps a page alive in the PageView so state is not lost when swiping away.
