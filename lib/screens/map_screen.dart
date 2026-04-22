@@ -865,23 +865,8 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     final landmark = widget.landmark;
     final churchId = '${landmark.id}_church';
 
-    // Einmalig: Prüfen ob bereits gesammelt
-    if (widget.collectionService.hasCollectedToken(churchId)) {
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(
-          content: Text('Kirchensegen dieser Kirche bereits gesammelt!'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      _flyCtrl.forward().then((_) {
-        if (mounted) setState(() { _churchBonusCollected = true; _flyCtrl.reset(); });
-      });
-      return;
-    }
-
-    // Church bonus: 50 Coins, einmaliger Token
-    widget.collectionService.collectToken(
+    // Church bonus: 50 Coins, darf bei späteren Besuchen erneut gesammelt werden
+    widget.collectionService.collectTokenAllowDuplicate(
       churchId,
       '${landmark.name} – Kirchensegen',
       landmark.category,

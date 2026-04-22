@@ -250,7 +250,11 @@ class _CollectionScreenState extends State<CollectionScreen>
           if (uid != null) await collectionService.reloadFromFirestore(uid);
         }
 
-        if (collectionService.tokens.isEmpty) {
+        final visibleTokens = collectionService.tokens
+            .where((t) => !t.landmarkId.endsWith('_church'))
+            .toList();
+
+        if (visibleTokens.isEmpty) {
           return RefreshIndicator(
             onRefresh: onRefresh,
             color: Colors.amber,
@@ -320,7 +324,7 @@ class _CollectionScreenState extends State<CollectionScreen>
               sliver: SliverGrid(
                 delegate: SliverChildBuilderDelegate(
                   (_, index) {
-                    final token = collectionService.tokens[index];
+                    final token = visibleTokens[index];
                     return TokenCard(
                       token: token,
                       onTap: () => _showTokenDetail(context, token),
@@ -335,7 +339,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                       },
                     );
                   },
-                  childCount: collectionService.tokens.length,
+                  childCount: visibleTokens.length,
                 ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
