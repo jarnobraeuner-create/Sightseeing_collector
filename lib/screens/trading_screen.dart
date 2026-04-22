@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/collection_service.dart';
 import '../services/auction_service.dart';
@@ -7,7 +8,7 @@ import '../services/auth_service.dart';
 import '../services/lootbox_service.dart';
 import '../services/cooldown_service.dart';
 import '../services/dev_mode_service.dart';
-import '../models/auction.dart';
+import '../models/index.dart';
 
 class TradingScreen extends StatefulWidget {
   const TradingScreen({Key? key}) : super(key: key);
@@ -215,11 +216,11 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                       if (!devMode) collection.spendPoints(15000);
                       await lootbox.addExtraLootboxes(10);
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('🎰 10 Lootboxen gekauft! Öffne sie im Profil.'),
-                            backgroundColor: Colors.orange,
-                          ),
+                        await _showLootboxReceivedPopup(
+                          title: 'Lootboxen erhalten',
+                          message: 'Du hast 10 Extra-Lootboxen bekommen.',
+                          accent: Colors.orange,
+                          emoji: '🎰',
                         );
                       }
                     },
@@ -261,11 +262,40 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                 if (!devMode) collection.spendPoints(2000);
                 await lootbox.addExtraLootboxes(1);
                 if (context.mounted) {
+                  await _showLootboxReceivedPopup(
+                    title: 'Lootbox erhalten',
+                    message: 'Du hast 1 Extra-Lootbox bekommen.',
+                    accent: Colors.orange,
+                    emoji: '🎰',
+                  );
+                }
+              },
+            ),
+          ),
+          const SizedBox(height: 10),
+          Consumer2<CollectionService, LootboxService>(
+            builder: (context, collection, lootbox, _) => _ShopItem(
+              icon: '🏛️',
+              title: 'Monumente-Lootbox',
+              subtitle: 'Exklusiv: enthält nur Monumente-Token',
+              price: 6000,
+              canAfford: collection.totalPoints >= 6000 || Provider.of<DevModeService>(context, listen: false).enabled,
+              onBuy: () async {
+                final devMode = Provider.of<DevModeService>(context, listen: false).enabled;
+                if (!devMode && collection.totalPoints < 6000) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('🎰 Lootbox gekauft! Öffne sie im Profil.'),
-                      backgroundColor: Colors.orange,
-                    ),
+                    const SnackBar(content: Text('Zu wenig Coins!')),
+                  );
+                  return;
+                }
+                if (!devMode) collection.spendPoints(6000);
+                await lootbox.addMonumentLootboxes(1);
+                if (context.mounted) {
+                  await _showLootboxReceivedPopup(
+                    title: 'Monumente-Lootbox erhalten',
+                    message: 'Du hast 1 Monumente-Lootbox bekommen.',
+                    accent: Colors.deepPurpleAccent,
+                    emoji: '🏛️',
                   );
                 }
               },
@@ -770,6 +800,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           itemBuilder: (context, index) {
             final token = myTokens[index];
             final landmark = landmarkService.landmarks.firstWhere((l) => l.id == token.landmarkId);
+            final tokenImageUrl = landmarkService.getImageUrlForTier(landmark.id, token.tier);
             
             return Card(
               color: Colors.grey[850],
@@ -781,7 +812,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.asset(
-                        landmark.imageUrl,
+                        tokenImageUrl,
                         width: 80,
                         height: 80,
                         fit: BoxFit.cover,
@@ -802,14 +833,14 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Wert: ~100 Coins',
+                            '${token.tier.displayName} · Wert: ~${token.points} Coins',
                             style: TextStyle(color: Colors.grey[400]),
                           ),
                         ],
                       ),
                     ),
                     ElevatedButton.icon(
-                      onPressed: () => _showCreateAuctionDialog(token, landmark),
+                      onPressed: () => _showCreateAuctionDialog(token, landmark, tokenImageUrl),
                       icon: const Icon(Icons.sell, size: 18),
                       label: const Text('Versteigern'),
                       style: ElevatedButton.styleFrom(
@@ -827,8 +858,9 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
     );
   }
 
-  void _showCreateAuctionDialog(token, landmark) {
+  void _showCreateAuctionDialog(Token token, Landmark landmark, String tokenImageUrl) {
     int minimumCoins = 50;
+    final minimumCoinsController = TextEditingController(text: minimumCoins.toString());
     
     showDialog(
       context: context,
@@ -848,7 +880,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.asset(
-                      landmark.imageUrl,
+                        tokenImageUrl,
                       width: 60,
                       height: 60,
                       fit: BoxFit.cover,
@@ -857,7 +889,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      landmark.name,
+                      '${landmark.name} · ${token.tier.displayName}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -872,15 +904,27 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                 'Mindestgebot: $minimumCoins Coins',
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
-              Slider(
-                value: minimumCoins.toDouble(),
-                min: 0,
-                max: 200,
-                divisions: 20,
-                activeColor: Colors.amber[700],
+              const SizedBox(height: 12),
+              TextField(
+                controller: minimumCoinsController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Startpreis in Coins',
+                  labelStyle: TextStyle(color: Colors.grey[400]),
+                  hintText: 'Beliebigen Betrag eingeben',
+                  hintStyle: TextStyle(color: Colors.grey[600]),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey[700]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.amber[700]!),
+                  ),
+                ),
                 onChanged: (value) {
                   setDialogState(() {
-                    minimumCoins = value.toInt();
+                    minimumCoins = int.tryParse(value) ?? 0;
                   });
                 },
               ),
@@ -901,15 +945,26 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             ),
             ElevatedButton(
               onPressed: () {
+                final parsedMinimumCoins = int.tryParse(minimumCoinsController.text);
+                if (parsedMinimumCoins == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Bitte einen gültigen Startpreis eingeben.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
                 final auctionService = Provider.of<AuctionService>(context, listen: false);
                 final auth = Provider.of<AuthService>(context, listen: false);
                 auctionService.createAuction(
                   auth.firebaseUser!.uid,
                   auth.appUser?.username ?? 'Unbekannt',
                   token.id,
-                  landmark.name,
-                  landmark.imageUrl,
-                  minimumCoins,
+                  '${landmark.name} · ${token.tier.displayName}',
+                  tokenImageUrl,
+                  parsedMinimumCoins,
                   tokenData: token.toJson(),
                 );
                 
@@ -929,6 +984,43 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             ),
           ],
         ),
+      ),
+    ).then((_) => minimumCoinsController.dispose());
+  }
+
+  Future<void> _showLootboxReceivedPopup({
+    required String title,
+    required String message,
+    required Color accent,
+    required String emoji,
+  }) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(color: accent, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK', style: TextStyle(color: accent)),
+          ),
+        ],
       ),
     );
   }

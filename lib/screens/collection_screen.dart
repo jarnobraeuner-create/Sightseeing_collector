@@ -111,6 +111,7 @@ class _CollectionScreenState extends State<CollectionScreen>
       case TokenTier.silver: tierColor = Colors.grey[400]!; break;
       case TokenTier.gold:   tierColor = Colors.amber[500]!; break;
       case TokenTier.platinum: tierColor = Colors.cyan[300]!; break;
+      case TokenTier.monumente: tierColor = Colors.deepPurpleAccent; break;
     }
 
     String tierEmoji;
@@ -119,6 +120,7 @@ class _CollectionScreenState extends State<CollectionScreen>
       case TokenTier.silver: tierEmoji = '🥈'; break;
       case TokenTier.gold:   tierEmoji = '🥇'; break;
       case TokenTier.platinum: tierEmoji = '💎'; break;
+      case TokenTier.monumente: tierEmoji = '🏛️'; break;
     }
 
     showDialog(
@@ -260,10 +262,9 @@ class _CollectionScreenState extends State<CollectionScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.collections,
-                          size: 80,
-                          color: Colors.grey[400],
+                        const AppLottie(
+                          type: AppLottieType.empty,
+                          size: 130,
                         ),
                         const SizedBox(height: 16),
                         Text(

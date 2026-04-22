@@ -34,12 +34,22 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _onCollectionChanged() {
+  void _onCollectionChanged() async {
     final service = context.read<CollectionService>();
     final completed = service.lastCompletedSet;
     if (completed == null) return;
     service.clearLastCompletedSet();
+
+    await context.read<LootboxService>().addMonumentLootboxes(1);
+    if (!mounted) return;
+
     _showSetCompletedBanner(completed);
+    await _showLootboxRewardPopup(
+      title: 'Monumente-Lootbox erhalten',
+      message: 'Du hast durch den Set-Abschluss 1 Monumente-Lootbox bekommen.',
+      accent: Colors.deepPurpleAccent,
+      emoji: '🏛️',
+    );
   }
 
   void _showSetCompletedBanner(CollectionSet set) {
@@ -64,6 +74,43 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (_) => const DailyRewardDialog(),
       );
     }
+  }
+
+  Future<void> _showLootboxRewardPopup({
+    required String title,
+    required String message,
+    required Color accent,
+    required String emoji,
+  }) {
+    return showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(color: accent, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK', style: TextStyle(color: accent)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -648,6 +695,12 @@ class _SetCompletedBannerState extends State<_SetCompletedBanner>
               ),
               child: Row(
                 children: [
+                  const AppLottie(
+                    type: AppLottieType.success,
+                    size: 46,
+                    repeat: false,
+                  ),
+                  const SizedBox(width: 8),
                   // Wappen-Bild oder Trophäen-Icon
                   if (widget.set.rewardImageUrl != null)
                     ClipRRect(

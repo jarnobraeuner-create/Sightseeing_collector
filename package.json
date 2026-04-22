@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "lottie-react-native": "^7.3.6"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^20.1.3"
+  }
+}

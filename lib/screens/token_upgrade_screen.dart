@@ -424,7 +424,10 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
 
     final List<Token> eligible;
     if (_selectedTokenToUpgrade == null) {
-      eligible = tokens.where((t) => t.tier != TokenTier.platinum).toList();
+      eligible = tokens
+        .where((t) =>
+          t.tier != TokenTier.platinum && t.tier != TokenTier.monumente)
+        .toList();
     } else {
       // Opfertokens: gleiche Stufe, beliebiges Landmark
       eligible = tokens
@@ -847,6 +850,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         return Colors.amber[600]!;
       case TokenTier.platinum:
         return Colors.cyan[400]!;
+      case TokenTier.monumente:
+        return Colors.deepPurpleAccent;
     }
   }
 
@@ -860,6 +865,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         return TokenTier.platinum;
       case TokenTier.platinum:
         return TokenTier.platinum;
+      case TokenTier.monumente:
+        return TokenTier.monumente;
     }
   }
 
@@ -872,6 +879,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
       case TokenTier.gold:
         return '??';
       case TokenTier.platinum:
+        return '??';
+      case TokenTier.monumente:
         return '??';
     }
   }
@@ -949,6 +958,7 @@ class _UpgradeResultDialogState extends State<_UpgradeResultDialog>
       case TokenTier.silver: return '🥈 Silber';
       case TokenTier.gold: return '🥇 Gold';
       case TokenTier.platinum: return '💎 Platin';
+      case TokenTier.monumente: return '🏛️ Monumente';
     }
   }
 

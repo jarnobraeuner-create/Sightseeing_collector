@@ -1239,6 +1239,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_Elbphilhamonie_silber.png';
         case TokenTier.platinum:
           return 'assets/images/Token_Elbphilhamonie_silber.png';
+        case TokenTier.monumente:
+          return 'assets/images/monument_token.png';
       }
     }
 
@@ -1252,6 +1254,8 @@ class LandmarkService extends ChangeNotifier {
         case TokenTier.gold:
           return 'assets/images/Token_gold_laeiszhalle.png';
         case TokenTier.platinum:
+          return 'assets/images/Token_Leiszhalle_platin.png';
+        case TokenTier.monumente:
           return 'assets/images/Token_Leiszhalle_platin.png';
       }
     }
@@ -1267,6 +1271,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_gold_Michel.png';
         case TokenTier.platinum:
           return landmark.imageUrl; // Fallback zum Standard
+        case TokenTier.monumente:
+          return landmark.imageUrl;
       }
     }
 
@@ -1281,6 +1287,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_gold_volksparkstadion.png';
         case TokenTier.platinum:
           return 'assets/images/Token_gold_volksparkstadion.png'; // Fallback
+        case TokenTier.monumente:
+          return 'assets/images/Token_gold_volksparkstadion.png';
       }
     }
 
@@ -1298,6 +1306,8 @@ class LandmarkService extends ChangeNotifier {
         return 'assets/images/map_pin_gold.png';
       case TokenTier.platinum:
         return 'assets/images/default_token.jpeg'; // Fallback
+      case TokenTier.monumente:
+        return 'assets/images/default_token.jpeg';
     }
   }
 }

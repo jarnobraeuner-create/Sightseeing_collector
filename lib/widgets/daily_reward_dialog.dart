@@ -26,6 +26,7 @@ class _DailyRewardDialogState extends State<DailyRewardDialog> {
       case TokenTier.silver:   return const Color(0xFFC0C0C0);
       case TokenTier.gold:     return const Color(0xFFFFD700);
       case TokenTier.platinum: return const Color(0xFFE5E4E2);
+      case TokenTier.monumente: return const Color(0xFF6F2CFF);
     }
   }
 
@@ -35,6 +36,7 @@ class _DailyRewardDialogState extends State<DailyRewardDialog> {
       case TokenTier.silver:   return 'Silber';
       case TokenTier.gold:     return 'Gold';
       case TokenTier.platinum: return 'Platin';
+      case TokenTier.monumente: return 'Monumente';
     }
   }
 

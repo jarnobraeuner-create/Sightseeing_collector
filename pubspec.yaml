@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   
+
   # UI und State Management
   provider: ^6.0.0
   
@@ -46,6 +47,7 @@ dependencies:
   url_launcher: ^6.3.2
   image_picker: ^1.0.0
   video_player: ^2.10.1
+  lottie: ^3.3.3
 
 dev_dependencies:
   flutter_test:
@@ -60,7 +62,15 @@ flutter:
   
   assets:
     - assets/images/
-    - assets/config.json
+    - assets/lottie/
+    - assets/images/monument_token.png
+    - assets/lottie/loading_pulse.json
+    - assets/lottie/success_pop.json
+    - assets/lottie/empty_idle.json
+    - assets/lottie/error_alert.json
+    - assets/lottie/onboarding_intro.json
+    - assets/lottie/monument_drop.json
+    - assets/lottie/monument_collect.json
 
 flutter_native_splash:
   color: "#1a1a2e"

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../widgets/app_lottie.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 
@@ -35,7 +36,10 @@ class _AuthGateState extends State<AuthGate> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(color: Colors.amber),
+                  const AppLottie(
+                    type: AppLottieType.loading,
+                    size: 88,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Verbinde mit Firebase...',

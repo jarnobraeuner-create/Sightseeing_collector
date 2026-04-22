@@ -132,6 +132,8 @@ class TokenCard extends StatelessWidget {
         return Colors.amber[600]!;
       case TokenTier.platinum:
         return Colors.cyan[400]!;
+      case TokenTier.monumente:
+        return Colors.deepPurpleAccent;
     }
   }
 }

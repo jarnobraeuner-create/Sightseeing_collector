@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
+import '../widgets/app_lottie.dart';
 
 // SharedPreferences keys
 const _kRememberEmail = 'remember_email';
@@ -41,6 +42,11 @@ class _AuthScreenState extends State<AuthScreen>
             // Logo
             Column(
               children: [
+                const AppLottie(
+                  type: AppLottieType.onboarding,
+                  size: 88,
+                ),
+                const SizedBox(height: 8),
                 Container(
                   width: 90,
                   height: 90,
@@ -176,7 +182,15 @@ class _LoginFormState extends State<_LoginForm> {
     );
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(auth.error ?? 'Anmeldung fehlgeschlagen'),
+        content: Row(
+          children: [
+            const AppLottie(type: AppLottieType.error, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(auth.error ?? 'Anmeldung fehlgeschlagen'),
+            ),
+          ],
+        ),
         backgroundColor: Colors.red[700],
       ));
     }
@@ -195,9 +209,20 @@ class _LoginFormState extends State<_LoginForm> {
     if (mounted) {
       setState(() => _resetSent = ok);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok
-            ? 'Reset-E-Mail gesendet!'
-            : 'E-Mail konnte nicht gesendet werden.'),
+        content: Row(
+          children: [
+            AppLottie(
+              type: ok ? AppLottieType.success : AppLottieType.error,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(ok
+                  ? 'Reset-E-Mail gesendet!'
+                  : 'E-Mail konnte nicht gesendet werden.'),
+            ),
+          ],
+        ),
         backgroundColor: ok ? Colors.green : Colors.red,
       ));
     }
@@ -283,12 +308,10 @@ class _LoginFormState extends State<_LoginForm> {
                     ),
                     onPressed: auth.isLoading ? null : _submit,
                     child: auth.isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
+                      ? const AppLottie(
+                        type: AppLottieType.loading,
+                        size: 28,
+                        )
                         : const Text('Anmelden',
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
@@ -340,7 +363,15 @@ class _RegisterFormState extends State<_RegisterForm> {
     );
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(auth.error ?? 'Registrierung fehlgeschlagen'),
+        content: Row(
+          children: [
+            const AppLottie(type: AppLottieType.error, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(auth.error ?? 'Registrierung fehlgeschlagen'),
+            ),
+          ],
+        ),
         backgroundColor: Colors.red[700],
       ));
     }
@@ -432,12 +463,10 @@ class _RegisterFormState extends State<_RegisterForm> {
                     ),
                     onPressed: auth.isLoading ? null : _submit,
                     child: auth.isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
+                      ? const AppLottie(
+                        type: AppLottieType.loading,
+                        size: 28,
+                        )
                         : const Text('Konto erstellen',
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),

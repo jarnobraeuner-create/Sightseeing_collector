@@ -7,12 +7,16 @@ import 'notification_service.dart';
 class LootboxService extends ChangeNotifier {
   static const _prefKey       = 'last_lootbox_date';
   static const _prefExtraKey  = 'extra_lootboxes';
+  static const _prefMonumentKey = 'monument_lootboxes';
 
   bool _canOpen = false;
   bool get canOpen => _canOpen;
 
   int _extraLootboxes = 0;
   int get extraLootboxes => _extraLootboxes;
+
+  int _monumentLootboxes = 0;
+  int get monumentLootboxes => _monumentLootboxes;
 
   /// Total openable: daily free + bought extras
   bool get canOpenAny => _canOpen || _extraLootboxes > 0;
@@ -28,6 +32,7 @@ class LootboxService extends ChangeNotifier {
     final todayStr = '${today.year}-${today.month}-${today.day}';
     _canOpen = lastDate != todayStr;
     _extraLootboxes = prefs.getInt(_prefExtraKey) ?? 0;
+    _monumentLootboxes = prefs.getInt(_prefMonumentKey) ?? 0;
     notifyListeners();
   }
 
@@ -36,6 +41,14 @@ class LootboxService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _extraLootboxes += count;
     await prefs.setInt(_prefExtraKey, _extraLootboxes);
+    notifyListeners();
+  }
+
+  /// Adds [count] monument lootboxes to the inventory.
+  Future<void> addMonumentLootboxes(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    _monumentLootboxes += count;
+    await prefs.setInt(_prefMonumentKey, _monumentLootboxes);
     notifyListeners();
   }
 
@@ -60,6 +73,18 @@ class LootboxService extends ChangeNotifier {
     notifyListeners();
 
     return _rollTier();
+  }
+
+  /// Opens a monument lootbox. Always returns Monumente tier.
+  Future<TokenTier> openMonumentLootbox() async {
+    if (_monumentLootboxes <= 0) {
+      throw StateError('No monument lootboxes available');
+    }
+    final prefs = await SharedPreferences.getInstance();
+    _monumentLootboxes -= 1;
+    await prefs.setInt(_prefMonumentKey, _monumentLootboxes);
+    notifyListeners();
+    return TokenTier.monumente;
   }
 
   TokenTier _rollTier() {

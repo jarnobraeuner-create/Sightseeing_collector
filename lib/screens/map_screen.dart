@@ -111,6 +111,7 @@ class _MapScreenState extends State<MapScreen> {
       case TokenTier.silver: return 'silver';
       case TokenTier.gold: return 'gold';
       case TokenTier.platinum: return 'platinum';
+      case TokenTier.monumente: return 'monumente';
       default: return 'bronze';
     }
   }
@@ -120,6 +121,7 @@ class _MapScreenState extends State<MapScreen> {
       case 'silver': return TokenTier.silver;
       case 'gold': return TokenTier.gold;
       case 'platinum': return TokenTier.platinum;
+      case 'monumente': return TokenTier.monumente;
       default: return TokenTier.bronze;
     }
   }
@@ -364,6 +366,7 @@ class _MapScreenState extends State<MapScreen> {
       case TokenTier.silver:   pinType = 'silver'; break;
       case TokenTier.gold:     pinType = 'gold';   break;
       case TokenTier.platinum: pinType = 'platin'; break;
+      case TokenTier.monumente: pinType = 'platin'; break;
       default:                 pinType = 'bronze';
     }
     final markerIcon = isCollected
@@ -458,7 +461,7 @@ class _MapScreenState extends State<MapScreen> {
     int gold = 0, silver = 0;
     for (final lm in landmarks) {
       final t = _pinTiers[lm.id];
-      if (t == TokenTier.gold || t == TokenTier.platinum) gold++;
+      if (t == TokenTier.gold || t == TokenTier.platinum || t == TokenTier.monumente) gold++;
       else if (t == TokenTier.silver) silver++;
     }
     if (gold > 0) return 'gold';
@@ -572,7 +575,9 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
-      body: Consumer<LocationService>(
+      body: Stack(
+        children: [
+          Consumer<LocationService>(
               builder: (context, locationService, child) {
                 final position = locationService.currentPosition;
                 final hasLocation = position != null;
@@ -614,12 +619,6 @@ class _MapScreenState extends State<MapScreen> {
                       zoomControlsEnabled: true,
                       compassEnabled: true,
                     ),
-                    // ── Event-Icon oben links (immer sichtbar) ───
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: _EventMapButton(),
-                    ),
                     // Overlay-Spinner solange kein Standort bekannt
                     if (!hasLocation)
                       Positioned(
@@ -659,6 +658,14 @@ class _MapScreenState extends State<MapScreen> {
                 );
               },
             ),
+          // ── Event-Icon oben links (außerhalb des GoogleMap-Stacks) ───
+          Positioned(
+            top: 12 + MediaQuery.of(context).padding.top + kToolbarHeight,
+            left: 12,
+            child: const _EventMapButton(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -782,12 +789,14 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       case TokenTier.silver: return Colors.grey[400]!;
       case TokenTier.gold: return Colors.amber[500]!;
       case TokenTier.platinum: return Colors.cyan[300]!;
+      case TokenTier.monumente: return Colors.deepPurpleAccent;
     }
   }
 
   String get _cooldownLabel {
     final tier = widget.pinTier;
     if (tier == TokenTier.platinum) return 'Einmalig – nicht mehr sammelbar';
+    if (tier == TokenTier.monumente) return 'Monumente-Tokens gibt es nur aus Monumente-Lootboxen';
     if (_remaining == null) return '';
     return 'Cooldown: ${CooldownService.formatDuration(_remaining!)}';
   }
@@ -926,6 +935,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     final isFirstCollection = !isEverCollected;
     final tier = widget.pinTier;
     final isPlatinum = tier == TokenTier.platinum;
+    final isMonumente = tier == TokenTier.monumente;
 
     return Container(
       decoration: BoxDecoration(
@@ -1087,7 +1097,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
               ),
               child: Row(
                 children: [
-                  Icon(isPlatinum ? Icons.lock : Icons.timer,
+                  Icon((isPlatinum || isMonumente) ? Icons.lock : Icons.timer,
                       color: Colors.red[300], size: 18),
                   const SizedBox(width: 8),
                   Text(
@@ -1243,7 +1253,11 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: null,
-                child: Text(isPlatinum ? 'Einmalig gesammelt ✓' : 'Cooldown aktiv…'),
+                child: Text(
+                  isMonumente
+                      ? 'Nur per Monumente-Lootbox erhältlich'
+                      : (isPlatinum ? 'Einmalig gesammelt ✓' : 'Cooldown aktiv…'),
+                ),
               ),
             ),
           ],
@@ -1272,102 +1286,167 @@ class _Cluster {
 
 // ── Event-Map-Button ──────────────────────────────────────────────────────────
 
-class _EventMapButton extends StatelessWidget {
+class _EventMapButton extends StatefulWidget {
   const _EventMapButton();
+
+  @override
+  State<_EventMapButton> createState() => _EventMapButtonState();
+}
+
+class _EventMapButtonState extends State<_EventMapButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<EventService>(
       builder: (context, eventService, _) {
-        // Badge-Zahl: Anzahl der Events mit anstehendem Reward
         final hasPending = eventService.pendingReward() != null;
-        // Fortschritt des ersten aktiven Events für Mini-Badge
         final firstEvent = EventService.allEvents.isNotEmpty
             ? EventService.allEvents.first
             : null;
-        final count = firstEvent != null
-            ? eventService.collectedCount(firstEvent.id)
-            : 0;
+        final count =
+            firstEvent != null ? eventService.collectedCount(firstEvent.id) : 0;
         final required = firstEvent?.requiredCount ?? 1;
+        final progress = (count / required).clamp(0.0, 1.0);
 
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => showDialog<void>(
-              context: context,
-              useRootNavigator: true,
-              builder: (_) => const EventDialog(),
-            ),
-            child: Ink(
-              decoration: BoxDecoration(
-                color: const Color(0xCC1A1A2E),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: hasPending ? Colors.amber : Colors.purple[400]!,
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: (hasPending ? Colors.amber : Colors.purple)
-                        .withValues(alpha: 0.35),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
+        final glowColor = hasPending ? Colors.amber : const Color(0xFF9B59B6);
+
+        return AnimatedBuilder(
+          animation: _pulse,
+          builder: (_, child) {
+            final glow = hasPending
+                ? 0.5 + _pulse.value * 0.5
+                : 0.25 + _pulse.value * 0.2;
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => showDialog<void>(
+                context: context,
+                useRootNavigator: true,
+                builder: (_) => const EventDialog(),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Text(
-                        hasPending ? '🎁' : '🎉',
-                        style: const TextStyle(fontSize: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: glowColor.withValues(alpha: glow * 0.6),
+                      blurRadius: 16,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: hasPending
+                            ? [const Color(0xFF3D2000), const Color(0xFF1A1A2E)]
+                            : [const Color(0xFF2D0A4E), const Color(0xFF1A1A2E)],
                       ),
-                      if (hasPending)
-                        Positioned(
-                          top: -4,
-                          right: -4,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: Colors.amber,
-                              shape: BoxShape.circle,
-                            ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: glowColor.withValues(alpha: 0.7),
+                        width: 1.5,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 9),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Circular progress ring around icon
+                        SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CircularProgressIndicator(
+                                value: progress,
+                                strokeWidth: 2.5,
+                                backgroundColor: Colors.white12,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  hasPending ? Colors.amber : const Color(0xFF9B59B6),
+                                ),
+                              ),
+                              Text(
+                                hasPending ? '🎁' : '🏆',
+                                style: const TextStyle(fontSize: 17),
+                              ),
+                            ],
                           ),
                         ),
-                    ],
-                  ),
-                  const SizedBox(width: 6),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Events',
-                        style: TextStyle(
-                          color: hasPending ? Colors.amber : Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                        const SizedBox(width: 8),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              hasPending ? 'Belohnung!' : 'Events',
+                              style: TextStyle(
+                                color: hasPending
+                                    ? Colors.amber
+                                    : Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            Text(
+                              '$count / $required ⛪',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      Text(
-                        '$count/$required ⛪',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
+                        if (hasPending) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Colors.amber
+                                  .withValues(alpha: 0.5 + _pulse.value * 0.5),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.amber
+                                      .withValues(alpha: _pulse.value * 0.8),
+                                  blurRadius: 6,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

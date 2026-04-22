@@ -2,7 +2,8 @@ enum TokenTier {
   bronze,
   silver,
   gold,
-  platinum;
+  platinum,
+  monumente;
 
   String get displayName {
     switch (this) {
@@ -14,6 +15,8 @@ enum TokenTier {
         return 'Gold';
       case TokenTier.platinum:
         return 'Platin';
+      case TokenTier.monumente:
+        return 'Monumente';
     }
   }
 
@@ -27,6 +30,8 @@ enum TokenTier {
         return 200;
       case TokenTier.platinum:
         return 1000;
+      case TokenTier.monumente:
+        return 5000;
     }
   }
 }

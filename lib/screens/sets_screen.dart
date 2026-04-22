@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/collection_service.dart';
 import '../services/landmark_service.dart';
+import '../widgets/app_lottie.dart';
 
 class SetsScreen extends StatelessWidget {
   const SetsScreen({Key? key}) : super(key: key);
@@ -53,9 +54,18 @@ class SetsScreen extends StatelessWidget {
           final sets = collectionService.sets;
 
           if (sets.isEmpty) {
-            return const Center(
-              child: Text('Keine Sets verfügbar',
-                  style: TextStyle(color: Colors.grey, fontSize: 16)),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  AppLottie(type: AppLottieType.empty, size: 120),
+                  SizedBox(height: 12),
+                  Text(
+                    'Keine Sets verfügbar',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                ],
+              ),
             );
           }
 

@@ -1,4 +1,8 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../services/index.dart';
 import '../widgets/lootbox_dialog.dart';
@@ -196,6 +200,40 @@ class _LoggedInProfile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
+                Consumer<LootboxService>(
+                  builder: (context, lootboxService, _) {
+                    final monumentCount = lootboxService.monumentLootboxes;
+                    final canOpenMonument = monumentCount > 0;
+                    return _ActionButton(
+                      icon: Icons.account_balance,
+                      label: canOpenMonument
+                          ? 'Monumente-Lootbox 🏛️ ×$monumentCount'
+                          : 'Monumente-Lootboxen im Shop kaufen',
+                      color: canOpenMonument
+                          ? Colors.deepPurple[700]!
+                          : Colors.grey[700]!,
+                      badge: canOpenMonument,
+                      onTap: canOpenMonument
+                          ? () => showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (_) => const LootboxDialog(
+                                  mode: LootboxDialogMode.monument,
+                                ),
+                              )
+                          : () => ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Keine Monumente-Lootbox verfügbar. Kaufe sie im Shop! 🏛️',
+                                  ),
+                                  backgroundColor: Colors.grey,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -356,6 +394,8 @@ class _LoggedInProfile extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                const _FeedbackCard(),
                 const SizedBox(height: 16),
                 Consumer<DevModeService>(
                   builder: (context, devMode, _) => _DarkCard(
@@ -526,6 +566,207 @@ class _ActionButton extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _FeedbackCard extends StatefulWidget {
+  const _FeedbackCard();
+
+  @override
+  State<_FeedbackCard> createState() => _FeedbackCardState();
+}
+
+class _FeedbackCardState extends State<_FeedbackCard> {
+  final TextEditingController _messageController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
+  final FeedbackService _feedbackService = FeedbackService();
+
+  XFile? _selectedImage;
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final pickedImage = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (!mounted || pickedImage == null) return;
+
+    setState(() {
+      _selectedImage = pickedImage;
+    });
+  }
+
+  Future<void> _submitFeedback() async {
+    final message = _messageController.text;
+    if (message.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bitte beschreibe dein Feedback im Textfeld.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final success = await _feedbackService.sendFeedbackEmail(
+      message: message,
+      username: auth.appUser?.username,
+      userEmail: auth.appUser?.email,
+      imagePath: _selectedImage?.path,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSubmitting = false;
+    });
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kein Mail-Client verfügbar. Bitte später erneut versuchen.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    _messageController.clear();
+    setState(() {
+      _selectedImage = null;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Feedback wurde an den Mail-Client übergeben.'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _DarkCard(
+      title: '✉️ Feedback',
+      children: [
+        Text(
+          'Schicke Fehlerberichte oder Verbesserungsvorschläge direkt per E-Mail. Die Empfängeradresse ist aktuell noch ein Platzhalter.',
+          style: TextStyle(color: Colors.grey[400], fontSize: 13),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _messageController,
+          minLines: 5,
+          maxLines: null,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Beschreibe hier dein Problem oder Feedback...',
+            hintStyle: TextStyle(color: Colors.grey[600]),
+            filled: true,
+            fillColor: Colors.grey[850],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[700]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[700]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.amber[700]!),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: _isSubmitting ? null : _pickImage,
+          icon: const Icon(Icons.image_outlined),
+          label: Text(_selectedImage == null ? 'Optional Bild hochladen' : 'Bild ändern'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.amber[300],
+            side: BorderSide(color: Colors.amber[700]!),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+        if (_selectedImage != null) ...[
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: kIsWeb
+                ? Image.network(
+                    _selectedImage!.path,
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  )
+                : Image.file(
+                    File(_selectedImage!.path),
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _selectedImage!.name,
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _isSubmitting
+                    ? null
+                    : () {
+                        setState(() {
+                          _selectedImage = null;
+                        });
+                      },
+                icon: const Icon(Icons.close, size: 16),
+                label: const Text('Entfernen'),
+                style: TextButton.styleFrom(foregroundColor: Colors.red[300]),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _isSubmitting ? null : _submitFeedback,
+            icon: Icon(_isSubmitting ? Icons.hourglass_top : Icons.send),
+            label: Text(_isSubmitting ? 'Wird vorbereitet...' : 'Per E-Mail senden'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber[700],
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

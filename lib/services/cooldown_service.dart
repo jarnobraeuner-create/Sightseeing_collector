@@ -24,7 +24,7 @@ class CooldownService extends ChangeNotifier {
   }
 
   /// Returns the required cooldown for a given tier.
-  /// null means one-time only (platinum).
+  /// null means not collectible via map flow.
   Duration? cooldownDuration(TokenTier tier) {
     switch (tier) {
       case TokenTier.bronze:
@@ -35,11 +35,14 @@ class CooldownService extends ChangeNotifier {
         return const Duration(hours: 24);
       case TokenTier.platinum:
         return null; // one-time only
+      case TokenTier.monumente:
+        return null; // not collectible on map
     }
   }
 
   /// Returns true if the landmark can be collected right now.
   bool canCollect(String landmarkId, TokenTier tier) {
+    if (tier == TokenTier.monumente) return false;
     final last = _lastCollected[landmarkId];
     if (last == null) return true; // never collected
     final cooldown = cooldownDuration(tier);

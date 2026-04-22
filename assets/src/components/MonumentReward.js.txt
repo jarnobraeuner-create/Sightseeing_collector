@@ -1,0 +1,41 @@
+import React from 'react';
+import { View, Image, StyleSheet } from 'react-native';
+import LottieView from 'lottie-react-native';
+
+export default function MonumentReward() {
+  return (
+    <View style={styles.container}>
+      <LottieView
+        source={require('../../assets/monument_unlock.json')}
+        autoPlay
+        loop={false}
+        style={styles.lottie}
+      />
+
+      <Image
+        source={require('../../assets/images/monument_token.png')}
+        style={styles.token}
+        resizeMode="contain"
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    width: 320,
+    height: 320,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  lottie: {
+    position: 'absolute',
+    width: 320,
+    height: 320,
+  },
+  token: {
+    width: 180,
+    height: 180,
+  },
+});
