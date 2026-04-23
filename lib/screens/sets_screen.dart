@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/collection_service.dart';
 import '../services/landmark_service.dart';
+import '../services/monument_unlock_service.dart';
 import '../widgets/app_lottie.dart';
 
 class SetsScreen extends StatelessWidget {
@@ -15,8 +16,6 @@ class SetsScreen extends StatelessWidget {
         return 'assets/images/Hamburg_Wappen_small.png';
       case 'set_monuments':
         return 'assets/images/Token_Elbphilhamonie_silber.png';
-      case 'set_dissen':
-        return 'assets/images/Dissen_Wappen_small.png';
       case 'set_leipzig':
         return 'assets/images/Leipzig_Wappen_Set_token.png';
       default:
@@ -30,8 +29,6 @@ class SetsScreen extends StatelessWidget {
         return '🏙️';
       case 'set_monuments':
         return '🏛️';
-      case 'set_dissen':
-        return '🌿';
       case 'set_leipzig':
         return '🏙️';
       default:
@@ -52,6 +49,10 @@ class SetsScreen extends StatelessWidget {
         builder: (context, collectionService, landmarkService, _) {
           // Ensure sets are loaded
           final sets = collectionService.sets;
+          final monumentStatus = MonumentUnlockService.getHamburgMonumentStatus(
+            collectionService,
+            landmarkService,
+          );
 
           if (sets.isEmpty) {
             return Center(
@@ -71,9 +72,14 @@ class SetsScreen extends StatelessWidget {
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: sets.length,
+            itemCount: sets.length + 1,
             itemBuilder: (context, index) {
-              final set = sets[index];
+              if (index == 0) {
+                return _MonumentUnlockCard(status: monumentStatus);
+              }
+
+              final setIndex = index - 1;
+              final set = sets[setIndex];
               return _SetCard(
                 set: set,
                 landmarkService: landmarkService,
@@ -83,6 +89,177 @@ class SetsScreen extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _MonumentUnlockCard extends StatelessWidget {
+  final MonumentUnlockStatus status;
+
+  const _MonumentUnlockCard({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final unlocked = status.unlocked;
+    final accent = unlocked ? Colors.tealAccent : Colors.deepPurpleAccent;
+    final Widget statusBadge;
+
+    if (unlocked) {
+      statusBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.tealAccent.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Text(
+          'Freigeschaltet',
+          style: TextStyle(
+            color: Colors.tealAccent,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    } else if (!status.challengeUnlocked) {
+      statusBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.deepPurpleAccent.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Text(
+          'Set nicht fertig',
+          style: TextStyle(
+            color: Colors.deepPurpleAccent,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    } else {
+      statusBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.deepPurpleAccent.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          '${status.remainingTaskCount} Aufgaben offen',
+          style: const TextStyle(
+            color: Colors.deepPurpleAccent,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      color: const Color(0xFF1E1730),
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: accent.withValues(alpha: 0.7),
+          width: 1.5,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('🏛️', style: TextStyle(fontSize: 24)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Monumente-Challenge: Hamburg',
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                statusBadge,
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              unlocked
+                  ? 'Monumente sind jetzt freigeschaltet.'
+                  : !status.challengeUnlocked
+                      ? 'Schritt 1: Hamburg-Set vollständig abschließen.'
+                      : 'Schritt 2: 3 Monument-Aufgaben lösen.',
+              style: TextStyle(color: Colors.grey[300], fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: status.challengeUnlocked
+                    ? status.taskProgress
+                    : status.setProgress,
+                minHeight: 8,
+                backgroundColor: Colors.grey[800],
+                valueColor: AlwaysStoppedAnimation<Color>(accent),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              status.challengeUnlocked
+                  ? '${status.completedTaskCount} / ${status.taskCount} Monument-Aufgaben gelöst'
+                  : '${status.setCollectedCount} / ${status.setRequiredCount} Hamburg-Tokens gesammelt',
+              style: TextStyle(color: Colors.grey[400], fontSize: 11),
+            ),
+            if (status.challengeUnlocked) ...[
+              const SizedBox(height: 10),
+              ...status.tasks.map((task) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        Icon(
+                          task.completed
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          size: 15,
+                          color: task.completed
+                              ? Colors.tealAccent
+                              : Colors.grey[500],
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${task.title}: ${task.progressLabel}',
+                            style: TextStyle(
+                              color: task.completed
+                                  ? Colors.tealAccent
+                                  : Colors.grey[400],
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+              ...status.tasks
+                  .where((task) => task.detail.isNotEmpty)
+                  .map((task) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text(
+                          task.detail,
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 10,
+                          ),
+                        ),
+                      )),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -259,22 +436,10 @@ class _SetCard extends StatelessWidget {
           // Token grid
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: set.requiredTokenIds.map((landmarkId) {
-                final collected =
-                    set.collectedTokenIds.contains(landmarkId);
-                final landmark =
-                    landmarkService.getLandmarkById(landmarkId);
-                final name = landmark?.name ?? landmarkId;
-
-                return _TokenChip(
-                  collected: collected,
-                  landmark: landmark,
-                  name: name,
-                );
-              }).toList(),
+            child: _PagedTokenGrid(
+              requiredTokenIds: set.requiredTokenIds,
+              collectedTokenIds: set.collectedTokenIds,
+              landmarkService: landmarkService,
             ),
           ),
 
@@ -313,6 +478,95 @@ class _SetCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _PagedTokenGrid extends StatefulWidget {
+  final List<String> requiredTokenIds;
+  final List<String> collectedTokenIds;
+  final LandmarkService landmarkService;
+
+  const _PagedTokenGrid({
+    required this.requiredTokenIds,
+    required this.collectedTokenIds,
+    required this.landmarkService,
+  });
+
+  @override
+  State<_PagedTokenGrid> createState() => _PagedTokenGridState();
+}
+
+class _PagedTokenGridState extends State<_PagedTokenGrid> {
+  static const int _tokensPerPage = 18;
+  int _currentPage = 0;
+
+  List<List<String>> _buildPages() {
+    final pages = <List<String>>[];
+    for (var i = 0; i < widget.requiredTokenIds.length; i += _tokensPerPage) {
+      final end = (i + _tokensPerPage) > widget.requiredTokenIds.length
+          ? widget.requiredTokenIds.length
+          : i + _tokensPerPage;
+      pages.add(widget.requiredTokenIds.sublist(i, end));
+    }
+    if (pages.isEmpty) return const [[]];
+    return pages;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = _buildPages();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 170,
+          child: PageView.builder(
+            itemCount: pages.length,
+            onPageChanged: (index) {
+              if (!mounted) return;
+              setState(() => _currentPage = index);
+            },
+            itemBuilder: (context, index) {
+              final pageIds = pages[index];
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: pageIds.map((landmarkId) {
+                  final collected =
+                      widget.collectedTokenIds.contains(landmarkId);
+                  final landmark =
+                      widget.landmarkService.getLandmarkById(landmarkId);
+                  final name = landmark?.name ?? landmarkId;
+
+                  return _TokenChip(
+                    collected: collected,
+                    landmark: landmark,
+                    name: name,
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ),
+        if (pages.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Seite ${_currentPage + 1}/${pages.length}',
+                style: TextStyle(color: Colors.grey[400], fontSize: 11),
+              ),
+              Text(
+                'Nach links/rechts wischen',
+                style: TextStyle(color: Colors.grey[500], fontSize: 11),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

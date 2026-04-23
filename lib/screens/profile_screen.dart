@@ -200,40 +200,6 @@ class _LoggedInProfile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Consumer<LootboxService>(
-                  builder: (context, lootboxService, _) {
-                    final monumentCount = lootboxService.monumentLootboxes;
-                    final canOpenMonument = monumentCount > 0;
-                    return _ActionButton(
-                      icon: Icons.account_balance,
-                      label: canOpenMonument
-                          ? 'Monumente-Lootbox 🏛️ ×$monumentCount'
-                          : 'Monumente-Lootboxen im Shop kaufen',
-                      color: canOpenMonument
-                          ? Colors.deepPurple[700]!
-                          : Colors.grey[700]!,
-                      badge: canOpenMonument,
-                      onTap: canOpenMonument
-                          ? () => showDialog(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (_) => const LootboxDialog(
-                                  mode: LootboxDialogMode.monument,
-                                ),
-                              )
-                          : () => ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Keine Monumente-Lootbox verfügbar. Kaufe sie im Shop! 🏛️',
-                                  ),
-                                  backgroundColor: Colors.grey,
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -397,8 +363,19 @@ class _LoggedInProfile extends StatelessWidget {
                 const SizedBox(height: 16),
                 const _FeedbackCard(),
                 const SizedBox(height: 16),
-                Consumer<DevModeService>(
-                  builder: (context, devMode, _) => _DarkCard(
+                Consumer2<DevModeService, AuthService>(
+                  builder: (context, devMode, auth, _) {
+                    final username = auth.appUser?.username;
+                    final uid = auth.firebaseUser?.uid;
+                    final email = auth.appUser?.email;
+                    if (!devMode.isAllowed(
+                      username: username,
+                      uid: uid,
+                      email: email,
+                    )) {
+                      return const SizedBox.shrink();
+                    }
+                    return _DarkCard(
                     title: '🛠 Developer Mode',
                     children: [
                       // ── Dev-Mode Toggle ──────────────────────────
@@ -484,7 +461,8 @@ class _LoggedInProfile extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ),
+                  );
+                  },
                 ),
                 const SizedBox(height: 16),
                 const SizedBox(height: 32),

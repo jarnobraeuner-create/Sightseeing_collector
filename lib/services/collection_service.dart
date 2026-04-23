@@ -3,9 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/index.dart';
 import 'notification_service.dart';
+import 'landmark_service.dart';
 
 class CollectionService extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static const Set<String> _removedLandmarkIds = {
+    '7', '8', '9', '10', '11', '12',
+    '22', '23',
+  };
 
   String? _userId;
   final List<Token> _tokens = [];
@@ -65,7 +70,13 @@ class CollectionService extends ChangeNotifier {
       _tokens.clear();
       for (final doc in tokensSnap.docs) {
         try {
-          _tokens.add(Token.fromJson(doc.data()));
+          final token = Token.fromJson(doc.data());
+          if (_removedLandmarkIds.contains(token.landmarkId)) {
+            // Legacy cleanup: removed landmarks must not remain in collection.
+            await doc.reference.delete();
+            continue;
+          }
+          _tokens.add(token);
         } catch (e) {
           debugPrint('Error parsing token ${doc.id}: $e');
         }
@@ -142,17 +153,60 @@ class CollectionService extends ChangeNotifier {
         id: 'set_hamburg',
         name: 'Hamburg',
         description: 'Sammle alle klassischen Sehensw\u00fcrdigkeiten in Hamburg',
-        requiredTokenIds: ['1', '2', '3', '4', '5', '6', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23'],
+        requiredTokenIds: [
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+          '6',
+          '13',
+          '14',
+          '15',
+          '16',
+          '17',
+          '18',
+          '19',
+          '20',
+          '21',
+          '24',
+          '25',
+          '26',
+          '27',
+          '28',
+          '29',
+          '30',
+          '31',
+          '32',
+          '33',
+          '34',
+          '35',
+          '36',
+          '37',
+          '38',
+          '39',
+          '40',
+          '41',
+          '42',
+          '43',
+          '44',
+          '45',
+          '46',
+          '47',
+          '48',
+          '49',
+          '50',
+          '51',
+          '69',
+          '70',
+          '71',
+          '72',
+          '73',
+          '74',
+          '75',
+        ],
         bonusPoints: 800,
         rewardImageUrl: 'assets/images/Hamburg_Wappen_small.png',
-      ),
-      CollectionSet(
-        id: 'set_dissen',
-        name: 'Dissen',
-        description: 'Entdecke alle Sehenswürdigkeiten in Dissen',
-        requiredTokenIds: ['7', '8', '9', '10', '11', '12'],
-        bonusPoints: 500,
-        rewardImageUrl: 'assets/images/Dissen_Wappen_small.png',
       ),
       CollectionSet(
         id: 'set_leipzig',
@@ -193,13 +247,13 @@ class CollectionService extends ChangeNotifier {
       landmarkName: landmarkName,
       category: category,
       collectedAt: DateTime.now(),
-      points: points,
+      points: tier.pointValue,
       setIds: setIds,
       tier: tier,
     );
 
     _tokens.add(token);
-    _totalPoints += points;
+    _totalPoints += token.points;
     _updateSets(landmarkId, setIds);
     notifyListeners();
     _persistToken(token);
@@ -221,12 +275,12 @@ class CollectionService extends ChangeNotifier {
       landmarkName: landmarkName,
       category: category,
       collectedAt: DateTime.now(),
-      points: points,
+      points: tier.pointValue,
       setIds: setIds,
       tier: tier,
     );
     _tokens.add(token);
-    _totalPoints += points;
+    _totalPoints += token.points;
     _updateSets(landmarkId, setIds);
     notifyListeners();
     _persistToken(token);
@@ -235,6 +289,10 @@ class CollectionService extends ChangeNotifier {
 
   /// Adds an externally created token (e.g. received from a trade)
   void addToken(Token token) {
+    if (_removedLandmarkIds.contains(token.landmarkId)) {
+      debugPrint('Skipped token for removed landmark: ${token.landmarkId}');
+      return;
+    }
     _tokens.add(token);
     _totalPoints += token.points;
     _updateSets(token.landmarkId, token.setIds);
@@ -433,21 +491,28 @@ class CollectionService extends ChangeNotifier {
         .length;
   }
 
-  // Alle Tokens fÃ¼r Testzwecke sammeln (6x Bronze pro Landmark)
+  // Alle Tokens für Testzwecke sammeln (alle Tiers pro Landmark)
   void collectAllTokensForTesting(List<Landmark> landmarks) {
     for (final landmark in landmarks) {
-      final token = Token(
-        id: const Uuid().v4(),
-        landmarkId: landmark.id,
-        landmarkName: landmark.name,
-        category: landmark.category,
-        collectedAt: DateTime.now(),
-        points: landmark.pointsReward,
-        setIds: landmark.relatedSetIds,
-        tier: landmark.defaultTier,
-      );
-      _tokens.add(token);
-      _totalPoints += landmark.pointsReward;
+      for (final tier in TokenTier.values) {
+        // Monument-Tokens nur für Monument-fähige Landmarks
+        if (tier == TokenTier.monumente &&
+            !LandmarkService.monumentLandmarkIds.contains(landmark.id)) {
+          continue;
+        }
+        final token = Token(
+          id: const Uuid().v4(),
+          landmarkId: landmark.id,
+          landmarkName: landmark.name,
+          category: landmark.category,
+          collectedAt: DateTime.now(),
+          points: tier.pointValue,
+          setIds: landmark.relatedSetIds,
+          tier: tier,
+        );
+        _tokens.add(token);
+        _totalPoints += token.points;
+      }
     }
     for (int i = 0; i < _sets.length; i++) {
       final set = _sets[i];

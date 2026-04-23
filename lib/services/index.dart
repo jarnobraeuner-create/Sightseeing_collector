@@ -10,3 +10,4 @@ export 'daily_reward_service.dart';
 export 'dev_mode_service.dart';
 export 'event_service.dart';
 export 'feedback_service.dart';
+export 'monument_unlock_service.dart';

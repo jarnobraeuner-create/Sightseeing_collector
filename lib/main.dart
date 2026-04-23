@@ -46,7 +46,17 @@ class SightseeingCollectorApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LootboxService()),
         ChangeNotifierProvider(create: (_) => CooldownService()),
         ChangeNotifierProvider(create: (_) => DailyRewardService()),
-        ChangeNotifierProvider(create: (_) => DevModeService()),
+        ChangeNotifierProxyProvider<AuthService, DevModeService>(
+          create: (_) => DevModeService(),
+          update: (_, auth, service) {
+            service!.syncAuthorization(
+              username: auth.appUser?.username,
+              email: auth.appUser?.email,
+              uid: auth.firebaseUser?.uid,
+            );
+            return service;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => EventService()),
       ],
       child: MaterialApp(

@@ -413,7 +413,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   // Group landmarks by their first relatedSetId — only city sets get clustered
-  static const _citySets = {'set_hamburg', 'set_dissen', 'set_leipzig'};
+  static const _citySets = {'set_hamburg', 'set_leipzig'};
 
   List<_Cluster> _computeSetClusters(List<Landmark> landmarks) {
     final Map<String, _Cluster> bySet = {};
@@ -449,7 +449,6 @@ class _MapScreenState extends State<MapScreen> {
   String _setLabel(String setId) {
     switch (setId) {
       case 'set_hamburg':  return 'Hamburg';
-      case 'set_dissen':   return 'Dissen';
       case 'set_leipzig':  return 'Leipzig';
       case 'set_monuments': return 'Denkmäler';
       default: return setId;
@@ -796,7 +795,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
   String get _cooldownLabel {
     final tier = widget.pinTier;
     if (tier == TokenTier.platinum) return 'Einmalig – nicht mehr sammelbar';
-    if (tier == TokenTier.monumente) return 'Monumente-Tokens gibt es nur aus Monumente-Lootboxen';
+      if (tier == TokenTier.monumente) return 'Monumente-Tokens sind derzeit nicht verfügbar';
     if (_remaining == null) return '';
     return 'Cooldown: ${CooldownService.formatDuration(_remaining!)}';
   }
@@ -817,6 +816,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       return;
     }
     final landmark = widget.landmark;
+    final awardedCoins = widget.pinTier.pointValue;
     widget.collectionService.collectTokenAllowDuplicate(
       landmark.id,
       landmark.name,
@@ -841,7 +841,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(
           content: Text(
-            'Token gesammelt! +${landmark.pointsReward} Coins (${widget.pinTier.displayName})',
+            'Token gesammelt! +$awardedCoins Coins (${widget.pinTier.displayName})',
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
@@ -852,7 +852,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(
           content: Text(
-            'Token gesammelt! +${landmark.pointsReward} Coins (${widget.pinTier.displayName})',
+            'Token gesammelt! +$awardedCoins Coins (${widget.pinTier.displayName})',
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
@@ -865,7 +865,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     final landmark = widget.landmark;
     final churchId = '${landmark.id}_church';
 
-    // Church bonus: 50 Coins, darf bei späteren Besuchen erneut gesammelt werden
+    // Church bonus: Bronze-Wert, darf bei späteren Besuchen erneut gesammelt werden
     widget.collectionService.collectTokenAllowDuplicate(
       churchId,
       '${landmark.name} – Kirchensegen',
@@ -890,7 +890,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     });
     ScaffoldMessenger.of(ctx).showSnackBar(
       const SnackBar(
-        content: Text('Kirchensegen erhalten! +50 Coins ⛪'),
+        content: Text('Kirchensegen erhalten! +10 Coins ⛪'),
         backgroundColor: Colors.teal,
         behavior: SnackBarBehavior.floating,
       ),
@@ -1240,7 +1240,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                 onPressed: null,
                 child: Text(
                   isMonumente
-                      ? 'Nur per Monumente-Lootbox erhältlich'
+                      ? 'Derzeit nicht verfügbar'
                       : (isPlatinum ? 'Einmalig gesammelt ✓' : 'Cooldown aktiv…'),
                 ),
               ),

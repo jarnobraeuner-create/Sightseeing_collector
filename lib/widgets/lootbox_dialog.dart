@@ -8,13 +8,19 @@ import '../services/landmark_service.dart';
 import '../services/lootbox_service.dart';
 import 'app_lottie.dart';
 
-enum LootboxDialogMode { standard, monument }
-
 class LootboxDialog extends StatefulWidget {
-  final LootboxDialogMode mode;
+  final TokenTier? forcedTier;
+  final String? forcedLandmarkId;
+  final bool displayOnlyReward;
+  final String? customTitle;
 
-  const LootboxDialog({Key? key, this.mode = LootboxDialogMode.standard})
-      : super(key: key);
+  const LootboxDialog({
+    Key? key,
+    this.forcedTier,
+    this.forcedLandmarkId,
+    this.displayOnlyReward = false,
+    this.customTitle,
+  }) : super(key: key);
 
   @override
   State<LootboxDialog> createState() => _LootboxDialogState();
@@ -43,6 +49,9 @@ class _LootboxDialogState extends State<LootboxDialog>
   double _shakeStrength = 0.3;
   TokenTier? _wonTier;
   Landmark? _wonLandmark;
+
+  bool get _isForcedRewardMode =>
+      widget.forcedTier != null && widget.forcedLandmarkId != null;
   Landmark? _pendingMonumentLandmark;
 
   Landmark _pickMonumentLandmark(List<Landmark> all) {
@@ -119,65 +128,27 @@ class _LootboxDialogState extends State<LootboxDialog>
   Future<void> _openBox() async {
     if (_opened || _isOpening) return;
     final lootboxService = context.read<LootboxService>();
-    final canOpen = widget.mode == LootboxDialogMode.monument
-      ? lootboxService.monumentLootboxes > 0
-      : lootboxService.canOpenAny;
+    final canOpen = _isForcedRewardMode || lootboxService.canOpenAny;
     if (!canOpen) return;
 
-    if (widget.mode == LootboxDialogMode.monument) {
-      _tapPulseController.forward(from: 0).then((_) {
-        if (mounted) _tapPulseController.reverse();
-      });
-      final nextTapCount = (_monumentTapCount + 1).clamp(0, _requiredMonumentTaps);
-      setState(() {
-        _monumentTapCount = nextTapCount;
-        _shakeStrength = 0.24 + (_monumentTapCount * 0.18);
-      });
+    await _runShakeSequence(const [
+      Duration(milliseconds: 600),
+      Duration(milliseconds: 600),
+    ]);
 
-      if (_monumentTapCount < _requiredMonumentTaps) {
-        await _runShakeSequence([
-          Duration(milliseconds: 140 + (_monumentTapCount * 40)),
-        ]);
-        return;
-      }
-
-      setState(() {
-        _isOpening = true;
-        _shakeStrength += 0.2;
-      });
-      await _runShakeSequence(const [
-        Duration(milliseconds: 280),
-      ]);
-
-      // Preselect the monument token so opening animation matches the actual reward.
-      final previewAll = context.read<LandmarkService>().landmarks;
-      if (previewAll.isNotEmpty) {
-        setState(() {
-          _pendingMonumentLandmark = _pickMonumentLandmark(previewAll);
-        });
-      }
-
-      await _openingTokenController.forward(from: 0);
-      await Future.delayed(const Duration(milliseconds: 220));
-    } else {
-      await _runShakeSequence(const [
-        Duration(milliseconds: 600),
-        Duration(milliseconds: 600),
-      ]);
-    }
-
-    // Open lootbox
-    final tier = widget.mode == LootboxDialogMode.monument
-      ? await lootboxService.openMonumentLootbox()
-      : await lootboxService.openLootbox();
-
-    // Pick random landmark
+    // Open lootbox / resolve forced reward
     final landmarkService = context.read<LandmarkService>();
     final all = landmarkService.landmarks;
-    final Landmark landmark;
-    if (widget.mode == LootboxDialogMode.monument) {
-      landmark = _pendingMonumentLandmark ?? _pickMonumentLandmark(all);
+    late final TokenTier tier;
+    late final Landmark landmark;
+    if (_isForcedRewardMode) {
+      tier = widget.forcedTier!;
+      final forcedId = widget.forcedLandmarkId!;
+      final fallback = all.isNotEmpty ? all.first : null;
+      final found = all.where((l) => l.id == forcedId);
+      landmark = found.isNotEmpty ? found.first : (fallback ?? all.first);
     } else {
+      tier = await lootboxService.openLootbox();
       final random = Random();
       landmark = all[random.nextInt(all.length)];
     }
@@ -189,7 +160,6 @@ class _LootboxDialogState extends State<LootboxDialog>
       _isOpening = false;
       _wonTier = tier;
       _wonLandmark = landmark;
-      _pendingMonumentLandmark = null;
     });
 
     await _revealController.forward();
@@ -204,6 +174,11 @@ class _LootboxDialogState extends State<LootboxDialog>
   }
 
   Future<void> _keepToken() async {
+    if (widget.displayOnlyReward) {
+      Navigator.pop(context);
+      return;
+    }
+
     final authService = context.read<AuthService>();
     if (!authService.isLoggedIn) {
       Navigator.pop(context);
@@ -282,6 +257,11 @@ class _LootboxDialogState extends State<LootboxDialog>
   }
 
   void _quickSell() {
+    if (widget.displayOnlyReward) {
+      Navigator.pop(context);
+      return;
+    }
+
     final collectionService = context.read<CollectionService>();
     final coins = _wonTier!.pointValue * 2;
     collectionService.addPoints(coins);
@@ -360,7 +340,7 @@ class _LootboxDialogState extends State<LootboxDialog>
   }
 
   Widget _buildChest() {
-    final isMonument = widget.mode == LootboxDialogMode.monument;
+    const isMonument = false;
     final tapsRemaining = (_requiredMonumentTaps - _monumentTapCount).clamp(0, _requiredMonumentTaps);
     final chestGlowColor = isMonument ? Colors.deepPurpleAccent : Colors.amber;
     final chestScale = isMonument ? 1 + (_monumentTapCount * 0.04) : 1.0;
@@ -369,9 +349,7 @@ class _LootboxDialogState extends State<LootboxDialog>
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          widget.mode == LootboxDialogMode.monument
-              ? '🏛️ Monumente-Lootbox'
-              : '🎁 Tägliche Lootbox',
+          widget.customTitle ?? '🎁 Tägliche Lootbox',
           style: const TextStyle(
               color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
         ),
@@ -672,8 +650,10 @@ class _LootboxDialogState extends State<LootboxDialog>
               Expanded(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('Behalten',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(
+                    widget.displayOnlyReward ? 'Weiter' : 'Behalten',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   onPressed: _keepToken,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: color,
@@ -684,22 +664,24 @@ class _LootboxDialogState extends State<LootboxDialog>
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.sell_outlined),
-                  label: Text('+${tier.pointValue * 2} 🪙',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: _quickSell,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange[700],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+              if (!widget.displayOnlyReward) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.sell_outlined),
+                    label: Text('+${tier.pointValue * 2} 🪙',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: _quickSell,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange[700],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ],

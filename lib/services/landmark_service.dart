@@ -8,6 +8,12 @@ class LandmarkService extends ChangeNotifier {
   String _selectedCategory = 'all'; // 'all', 'sightseeing', 'travel'
   bool _isLoaded = false;
 
+  // Landmarks die einen Monument-Token haben können (nur diese 3)
+  static const Set<String> monumentLandmarkIds = {'1', '2', '4'};
+
+  bool hasMonumentTier(String landmarkId) =>
+      monumentLandmarkIds.contains(landmarkId);
+
   List<Landmark> get landmarks {
     _ensureLoaded();
     return _landmarks;
@@ -164,135 +170,6 @@ class LandmarkService extends ChangeNotifier {
           Quest(
             id: 'q6',
             title: 'Spaziergang im Park',
-            taskType: 'checkin',
-            completed: false,
-          ),
-        ],
-      ),
-      // Dissen Landmarks
-      Landmark(
-        id: '7',
-        name: 'Dissen Aussichtsturm',
-        description:
-            'Der markante Aussichtsturm von Dissen mit herrlichem Panoramablick über die Region.',
-        latitude: 52.1167,
-        longitude: 8.1833,
-        category: 'sightseeing',
-        difficulty: 'easy',
-        pointsReward: 80,
-        imageUrl: 'assets/images/dissen aussichtsturm.png',
-        relatedSetIds: ['set_dissen'],
-        quests: [
-          Quest(
-            id: 'q7',
-            title: 'Turmbesteigung',
-            taskType: 'checkin',
-            completed: false,
-          ),
-        ],
-      ),
-      Landmark(
-        id: '8',
-        name: 'Dissen Bahnhof',
-        description:
-            'Der historische Bahnhof von Dissen, ein wichtiger Verkehrsknotenpunkt der Region.',
-        latitude: 52.1200,
-        longitude: 8.1900,
-        category: 'travel',
-        difficulty: 'easy',
-        pointsReward: 70,
-        imageUrl: 'assets/images/Dissen Bahnhof.png',
-        relatedSetIds: ['set_dissen'],
-        quests: [
-          Quest(
-            id: 'q8',
-            title: 'Bahnhofs-Check-in',
-            taskType: 'checkin',
-            completed: false,
-          ),
-        ],
-      ),
-      Landmark(
-        id: '9',
-        name: 'Dissen Rathaus',
-        description:
-            'Das historische Rathaus im Zentrum von Dissen, Sitz der Stadtverwaltung.',
-        latitude: 52.1180,
-        longitude: 8.1850,
-        category: 'sightseeing',
-        difficulty: 'easy',
-        pointsReward: 85,
-        imageUrl: 'assets/images/Dissen Rathaus.png',
-        relatedSetIds: ['set_dissen'],
-        quests: [
-          Quest(
-            id: 'q9',
-            title: 'Rathaus-Foto',
-            taskType: 'photo',
-            completed: false,
-          ),
-        ],
-      ),
-      Landmark(
-        id: '10',
-        name: 'Dissen St. Mauritius Kirche',
-        description:
-            'Die ehrwürdige St. Mauritius Kirche, das spirituelle Zentrum von Dissen.',
-        latitude: 52.1190,
-        longitude: 8.1840,
-        category: 'sightseeing',
-        difficulty: 'medium',
-        pointsReward: 95,
-        imageUrl: 'assets/images/dissen St. Mauritius Kirche.png',
-        relatedSetIds: ['set_dissen'],
-        isChurch: true,
-        quests: [
-          Quest(
-            id: 'q10',
-            title: 'Kirchenbesuch',
-            taskType: 'checkin',
-            completed: false,
-          ),
-        ],
-      ),
-      Landmark(
-        id: '11',
-        name: 'Dissen Wasserturm',
-        description:
-            'Der charakteristische Wasserturm von Dissen, ein technisches Denkmal.',
-        latitude: 52.1150,
-        longitude: 8.1820,
-        category: 'sightseeing',
-        difficulty: 'easy',
-        pointsReward: 75,
-        imageUrl: 'assets/images/Dissen Wasserturm.png',
-        relatedSetIds: ['set_dissen'],
-        quests: [
-          Quest(
-            id: 'q11',
-            title: 'Wasserturm-Foto',
-            taskType: 'photo',
-            completed: false,
-          ),
-        ],
-      ),
-      // Weitere Landmarks
-      Landmark(
-        id: '12',
-        name: 'Rövekamp',
-        description:
-            'Historisches Gebäude und beliebter Treffpunkt in der Region.',
-        latitude: 52.1220,
-        longitude: 8.1950,
-        category: 'sightseeing',
-        difficulty: 'medium',
-        pointsReward: 100,
-        imageUrl: 'assets/images/Rövekamp.png',
-        relatedSetIds: ['set_dissen'],
-        quests: [
-          Quest(
-            id: 'q12',
-            title: 'Rövekamp-Besuch',
             taskType: 'checkin',
             completed: false,
           ),
@@ -492,51 +369,6 @@ class LandmarkService extends ChangeNotifier {
           ),
         ],
       ),
-      Landmark(
-        id: '23',
-        name: 'Auedeich 70',
-        description:
-            'Historischer Standort am Auedeich 70 in Hamburg-Finkenwerder, direkt an der Elbe.',
-        latitude: 53.528667,
-        longitude: 9.885917,
-        category: 'travel',
-        difficulty: 'medium',
-        pointsReward: 100,
-        imageUrl: 'assets/images/Audeich_token_gold.png',
-        relatedSetIds: ['set_hamburg'],
-        defaultTier: TokenTier.gold,
-        quests: [
-          Quest(
-            id: 'q23',
-            title: 'Auedeich erkunden',
-            taskType: 'checkin',
-            completed: false,
-          ),
-        ],
-      ),
-      Landmark(
-        id: '22',
-        name: 'MS Altenwerder',
-        description:
-            'Das legendäre Containerschiff MS Altenwerder im Hafen Hamburg-Finkenwerder – Symbol der maritimen Industrie an der Elbe.',
-        latitude: 53.530778,
-        longitude: 9.830722,
-        category: 'travel',
-        difficulty: 'medium',
-        pointsReward: 100,
-        imageUrl: 'assets/images/MS-Altenwerder_token.png',
-        relatedSetIds: ['set_hamburg'],
-        defaultTier: TokenTier.gold,
-        quests: [
-          Quest(
-            id: 'q22',
-            title: 'MS Altenwerder entdecken',
-            taskType: 'checkin',
-            completed: false,
-          ),
-        ],
-      ),
-
       // ─── Neue Hamburg Sights ───────────────────────────────────
       Landmark(
         id: '24',
@@ -634,8 +466,8 @@ class LandmarkService extends ChangeNotifier {
         id: '31',
         name: 'Museum für Kunst und Gewerbe',
         description: 'Das Museum für Kunst und Gewerbe Hamburg vereint Kunsthandwerk und Design aus Jahrtausenden und Kulturen.',
-        latitude: 53.543944,
-        longitude: 9.989056,
+        latitude: 53.554417,
+        longitude: 10.007417,
         category: 'sightseeing',
         difficulty: 'easy',
         pointsReward: 100,
@@ -1182,6 +1014,69 @@ class LandmarkService extends ChangeNotifier {
         relatedSetIds: ['set_hamburg'],
         quests: [Quest(id: 'q72', title: 'Fischauktionshalle besuchen', taskType: 'checkin', completed: false)],
       ),
+      Landmark(
+        id: '73',
+        name: 'Museum der Arbeit',
+        description:
+            'Das Museum der Arbeit in Barmbek zeigt die Arbeits- und Alltagsgeschichte Hamburgs von der Industrialisierung bis heute.',
+        latitude: 53.5797,
+        longitude: 10.0417,
+        category: 'sightseeing',
+        difficulty: 'easy',
+        pointsReward: 100,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: ['set_hamburg'],
+        quests: [
+          Quest(
+            id: 'q73',
+            title: 'Museum der Arbeit besuchen',
+            taskType: 'checkin',
+            completed: false,
+          ),
+        ],
+      ),
+      Landmark(
+        id: '74',
+        name: 'Museum für Hamburgische Geschichte',
+        description:
+            'Das Museum für Hamburgische Geschichte erzählt die Entwicklung der Stadt von den Anfängen bis in die Gegenwart.',
+        latitude: 53.5516,
+        longitude: 9.9746,
+        category: 'sightseeing',
+        difficulty: 'easy',
+        pointsReward: 100,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: ['set_hamburg'],
+        quests: [
+          Quest(
+            id: 'q74',
+            title: 'Hamburg-Museum erkunden',
+            taskType: 'checkin',
+            completed: false,
+          ),
+        ],
+      ),
+      Landmark(
+        id: '75',
+        name: 'Völkerkundemuseum Hamburg',
+        description:
+            'Das Völkerkundemuseum (MARKK) zeigt Kulturen der Welt mit umfangreichen Sammlungen aus allen Kontinenten.',
+        latitude: 53.5675,
+        longitude: 9.9870,
+        category: 'sightseeing',
+        difficulty: 'easy',
+        pointsReward: 100,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: ['set_hamburg'],
+        quests: [
+          Quest(
+            id: 'q75',
+            title: 'Völkerkundemuseum besuchen',
+            taskType: 'checkin',
+            completed: false,
+          ),
+        ],
+      ),
     ]);
   }
 
@@ -1228,9 +1123,20 @@ class LandmarkService extends ChangeNotifier {
     final landmark = getLandmarkById(landmarkId);
     if (landmark == null) return 'assets/images/default_token.jpeg';
 
-    // Spezielles Monumente-Bild für Speicherstadt
-    if (landmarkId == '1' && tier == TokenTier.monumente) {
-      return 'assets/images/Speicherstandt-monumente_token.png';
+    // Spezielle Tier-Bilder für Speicherstadt
+    if (landmarkId == '1') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Speicherstadt_bronze.jpeg';
+        case TokenTier.silver:
+          return 'assets/images/Speicherstadt_silber.jpeg';
+        case TokenTier.gold:
+          return 'assets/images/Speicherstadt_gold_neu.jpeg';
+        case TokenTier.platinum:
+          return 'assets/images/Speicherstadt_platin.png';
+        case TokenTier.monumente:
+          return 'assets/images/Speicherstandt-monumente_token.png';
+      }
     }
 
     // Spezielle Tier-Bilder für Elbphilharmonie
@@ -1253,9 +1159,9 @@ class LandmarkService extends ChangeNotifier {
     if (landmarkId == '3') {
       switch (tier) {
         case TokenTier.bronze:
-          return 'assets/images/Token_gold_laeiszhalle.png';
+          return 'assets/images/Leiszhalle_bronze.png';
         case TokenTier.silver:
-          return 'assets/images/Token_gold_laeiszhalle.png';
+          return 'assets/images/Leiszhalle_silber.png';
         case TokenTier.gold:
           return 'assets/images/Token_gold_laeiszhalle.png';
         case TokenTier.platinum:
@@ -1269,13 +1175,13 @@ class LandmarkService extends ChangeNotifier {
     if (landmarkId == '4') {
       switch (tier) {
         case TokenTier.bronze:
-          return landmark.imageUrl; // Kein Bronze-Bild vorhanden
+          return 'assets/images/Michel_Bronze.jpeg';
         case TokenTier.silver:
           return 'assets/images/Token_Michel_silber.png';
         case TokenTier.gold:
           return 'assets/images/Token_gold_Michel.png';
         case TokenTier.platinum:
-          return landmark.imageUrl; // Fallback zum Standard
+          return 'assets/images/Michel_platin.png';
         case TokenTier.monumente:
           return 'assets/images/Michel_monumente_token.png';
       }
@@ -1294,6 +1200,54 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_gold_volksparkstadion.png'; // Fallback
         case TokenTier.monumente:
           return 'assets/images/Token_gold_volksparkstadion.png';
+      }
+    }
+
+    // Spezielle Tier-Bilder für Atlantic Hotel
+    if (landmarkId == '13') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Atlantichotel_bronze.jpeg';
+        case TokenTier.silver:
+          return 'assets/images/Atlantichotel_silber.jpeg';
+        case TokenTier.gold:
+          return 'assets/images/Token_Atlantic_Gold.png';
+        case TokenTier.platinum:
+          return 'assets/images/Atlantichotel_platin.png';
+        case TokenTier.monumente:
+          return 'assets/images/Token_Atlantic_Gold.png';
+      }
+    }
+
+    // Spezielle Tier-Bilder für Landungsbrücken
+    if (landmarkId == '18') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Landungsbrücken_bronze.jpeg';
+        case TokenTier.silver:
+          return 'assets/images/Landungsbrücken_silber.jpeg';
+        case TokenTier.gold:
+          return 'assets/images/Token_Landungsbrücken_Gold.png';
+        case TokenTier.platinum:
+          return 'assets/images/Landungsbrücken_platin.png';
+        case TokenTier.monumente:
+          return 'assets/images/Token_Landungsbrücken_Gold.png';
+      }
+    }
+
+    // Spezielle Tier-Bilder für Hamburger Rathaus
+    if (landmarkId == '20') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Rathhaus_bronze.jpeg';
+        case TokenTier.silver:
+          return 'assets/images/Rathhaus_silber.jpeg';
+        case TokenTier.gold:
+          return 'assets/images/Token_Rathaus_Gold.png';
+        case TokenTier.platinum:
+          return 'assets/images/Rathaus_platin.png';
+        case TokenTier.monumente:
+          return 'assets/images/Token_Rathaus_Gold.png';
       }
     }
 

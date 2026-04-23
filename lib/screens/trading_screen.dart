@@ -273,35 +273,6 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             ),
           ),
           const SizedBox(height: 10),
-          Consumer2<CollectionService, LootboxService>(
-            builder: (context, collection, lootbox, _) => _ShopItem(
-              icon: '🏛️',
-              title: 'Monumente-Lootbox',
-              subtitle: 'Exklusiv: enthält nur Monumente-Token',
-              price: 6000,
-              canAfford: collection.totalPoints >= 6000 || Provider.of<DevModeService>(context, listen: false).enabled,
-              onBuy: () async {
-                final devMode = Provider.of<DevModeService>(context, listen: false).enabled;
-                if (!devMode && collection.totalPoints < 6000) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Zu wenig Coins!')),
-                  );
-                  return;
-                }
-                if (!devMode) collection.spendPoints(6000);
-                await lootbox.addMonumentLootboxes(1);
-                if (context.mounted) {
-                  await _showLootboxReceivedPopup(
-                    title: 'Monumente-Lootbox erhalten',
-                    message: 'Du hast 1 Monumente-Lootbox bekommen.',
-                    accent: Colors.deepPurpleAccent,
-                    emoji: '🏛️',
-                  );
-                }
-              },
-            ),
-          ),
-          const SizedBox(height: 10),
           Consumer2<CollectionService, CooldownService>(
             builder: (context, collection, cooldown, _) => _ShopItem(
               icon: '⚡',
@@ -773,7 +744,12 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
   Widget _buildCreateAuction() {
     return Consumer3<CollectionService, AuctionService, LandmarkService>(
       builder: (context, collectionService, auctionService, landmarkService, child) {
-        final myTokens = collectionService.tokens;
+        final landmarksById = {
+          for (final landmark in landmarkService.landmarks) landmark.id: landmark,
+        };
+        final myTokens = collectionService.tokens
+            .where((token) => landmarksById.containsKey(token.landmarkId))
+            .toList();
         
         if (myTokens.isEmpty) {
           return Center(
@@ -799,7 +775,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           itemCount: myTokens.length,
           itemBuilder: (context, index) {
             final token = myTokens[index];
-            final landmark = landmarkService.landmarks.firstWhere((l) => l.id == token.landmarkId);
+            final landmark = landmarksById[token.landmarkId]!;
             final tokenImageUrl = landmarkService.getImageUrlForTier(landmark.id, token.tier);
             
             return Card(

@@ -26,6 +26,7 @@ class TokenCard extends StatelessWidget {
           onLongPress: onLongPress,
           child: Card(
           elevation: 2,
+          color: Colors.black,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -64,7 +65,9 @@ class TokenCard extends StatelessWidget {
                         ),
                 ),
               ),
-              Padding(
+              Container(
+                width: double.infinity,
+                color: Colors.black,
                 padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,6 +77,7 @@ class TokenCard extends StatelessWidget {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
+                        color: Colors.white,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -97,7 +101,7 @@ class TokenCard extends StatelessWidget {
                               '${token.points} pts',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey[600],
+                                color: Colors.grey[400],
                               ),
                             ),
                           ],
@@ -107,7 +111,7 @@ class TokenCard extends StatelessWidget {
                               ? Icons.camera_alt
                               : Icons.flight,
                           size: 14,
-                          color: Colors.grey[600],
+                          color: Colors.grey[400],
                         ),
                       ],
                     ),

@@ -27,11 +27,11 @@ enum TokenTier {
       case TokenTier.silver:
         return 50;
       case TokenTier.gold:
-        return 200;
+        return 100;
       case TokenTier.platinum:
-        return 1000;
+        return 250;
       case TokenTier.monumente:
-        return 5000;
+        return 1000;
     }
   }
 }

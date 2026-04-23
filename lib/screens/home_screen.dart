@@ -20,35 +20,150 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   // Page order: Trading(0) | Karte(1) | Sets(2) | Profil(3)
   static const int _initialPage = 1;
+  static const Map<String, String> _taskRewardLandmarkIds = {
+    'task_michel': '4', // Hamburger Michel
+    'task_elbphi': '2', // Elbphilharmonie
+    'task_speicherstadt': '1', // Speicherstadt
+  };
+  static const Map<String, String> _taskRewardTitles = {
+    'task_michel': '🏛️ Michel-Belohnung',
+    'task_elbphi': '🏛️ Elbphi-Belohnung',
+    'task_speicherstadt': '🏛️ Speicherstadt-Belohnung',
+  };
   late final PageController _pageController;
   int _currentPage = _initialPage;
+  bool _isProcessingMonumentRewards = false;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _initialPage);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _maybeShowTutorial();
       _maybeShowDailyReward();
       // Listener für Set-Abschluss Banner
       context.read<CollectionService>().addListener(_onCollectionChanged);
+      _maybeGrantMonumentTaskRewards();
     });
+  }
+
+  Future<void> _maybeShowTutorial() async {
+    final show = await shouldShowTutorial();
+    if (!mounted || !show) return;
+    final completed = await showTutorial(
+      context,
+      onStepChanged: (stepIndex) {
+        if (!mounted) return;
+        // Seite 4 => Sets, Seite 5 => Marktplatz, Seite 6 => Profil
+        if (stepIndex == 3) {
+          _pageController.jumpToPage(2);
+          setState(() => _currentPage = 2);
+        } else if (stepIndex == 4) {
+          _pageController.jumpToPage(0);
+          setState(() => _currentPage = 0);
+        } else if (stepIndex == 5) {
+          _pageController.jumpToPage(3);
+          setState(() => _currentPage = 3);
+        }
+      },
+    );
+    if (!mounted || !completed) return;
+
+    final lootboxService = context.read<LootboxService>();
+    await lootboxService.addExtraLootboxes(1);
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const LootboxDialog(),
+    );
   }
 
   void _onCollectionChanged() async {
     final service = context.read<CollectionService>();
     final completed = service.lastCompletedSet;
-    if (completed == null) return;
-    service.clearLastCompletedSet();
+    if (completed != null) {
+      service.clearLastCompletedSet();
+      if (!mounted) return;
+      _showSetCompletedBanner(completed);
+    }
+    await _maybeGrantMonumentTaskRewards();
+  }
 
-    await context.read<LootboxService>().addMonumentLootboxes(1);
-    if (!mounted) return;
+  bool _hasMonumentTokenForLandmark(
+    CollectionService collectionService,
+    String landmarkId,
+  ) {
+    return collectionService.tokens.any(
+      (t) => t.landmarkId == landmarkId && t.tier == TokenTier.monumente,
+    );
+  }
 
-    _showSetCompletedBanner(completed);
-    await _showLootboxRewardPopup(
-      title: 'Monumente-Lootbox erhalten',
-      message: 'Du hast durch den Set-Abschluss 1 Monumente-Lootbox bekommen.',
-      accent: Colors.deepPurpleAccent,
-      emoji: '🏛️',
+  Future<void> _maybeGrantMonumentTaskRewards() async {
+    if (!mounted || _isProcessingMonumentRewards) return;
+
+    final collectionService = context.read<CollectionService>();
+    final landmarkService = context.read<LandmarkService>();
+
+    final status = MonumentUnlockService.getHamburgMonumentStatus(
+      collectionService,
+      landmarkService,
+    );
+
+    if (!status.challengeUnlocked) return;
+
+    _isProcessingMonumentRewards = true;
+    try {
+      for (final task in status.tasks) {
+        if (!task.completed) continue;
+
+        final rewardLandmarkId = _taskRewardLandmarkIds[task.id];
+        if (rewardLandmarkId == null) continue;
+        if (_hasMonumentTokenForLandmark(collectionService, rewardLandmarkId)) {
+          continue;
+        }
+
+        Landmark? rewardLandmark;
+        try {
+          rewardLandmark =
+              landmarkService.landmarks.firstWhere((l) => l.id == rewardLandmarkId);
+        } catch (_) {
+          continue;
+        }
+
+        collectionService.collectTokenAllowDuplicate(
+          rewardLandmark.id,
+          rewardLandmark.name,
+          rewardLandmark.category,
+          TokenTier.monumente.pointValue,
+          rewardLandmark.relatedSetIds,
+          tier: TokenTier.monumente,
+        );
+
+        if (!mounted) return;
+        await _showMonumentRewardSequence(
+          rewardLandmark,
+          _taskRewardTitles[task.id] ?? '🏛️ Monument-Belohnung',
+        );
+      }
+    } finally {
+      _isProcessingMonumentRewards = false;
+    }
+  }
+
+  Future<void> _showMonumentRewardSequence(
+    Landmark rewardLandmark,
+    String title,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => LootboxDialog(
+        forcedTier: TokenTier.monumente,
+        forcedLandmarkId: rewardLandmark.id,
+        displayOnlyReward: true,
+        customTitle: title,
+      ),
     );
   }
 
