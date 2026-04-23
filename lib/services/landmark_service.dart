@@ -1147,7 +1147,7 @@ class LandmarkService extends ChangeNotifier {
         case TokenTier.silver:
           return 'assets/images/Token_Elbphilhamonie_silber.png';
         case TokenTier.gold:
-          return 'assets/images/Token_Elbphilhamonie_silber.png';
+          return 'assets/images/Token_gold_elbphilharmonie.png';
         case TokenTier.platinum:
           return 'assets/images/Token_Elbphilhamonie_silber.png';
         case TokenTier.monumente:
@@ -1184,6 +1184,54 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Michel_platin.png';
         case TokenTier.monumente:
           return 'assets/images/Michel_monumente_token.png';
+      }
+    }
+
+    // Spezielle Tier-Bilder für Chilehaus
+    if (landmarkId == '5') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Chilehaus_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Chilehaus_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Token_gold_chilehaus.png';
+        case TokenTier.platinum:
+          return 'assets/images/Token_gold_chilehaus.png';
+        case TokenTier.monumente:
+          return 'assets/images/Token_gold_chilehaus.png';
+      }
+    }
+
+    // Spezielle Tier-Bilder für Die Tanzenden Türme
+    if (landmarkId == '16') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Tanzendetürme_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Tanzendetürme_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Token_gold_tueme.png';
+        case TokenTier.platinum:
+          return 'assets/images/Token_gold_tueme.png';
+        case TokenTier.monumente:
+          return 'assets/images/Token_gold_tueme.png';
+      }
+    }
+
+    // Spezielle Tier-Bilder für HCU Hamburg
+    if (landmarkId == '17') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/HCU_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/HCU_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Token_HCU.png';
+        case TokenTier.platinum:
+          return 'assets/images/Token_HCU.png';
+        case TokenTier.monumente:
+          return 'assets/images/Token_HCU.png';
       }
     }
 
