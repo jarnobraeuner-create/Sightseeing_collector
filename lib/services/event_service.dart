@@ -34,7 +34,7 @@ class EventService extends ChangeNotifier {
       id: 'kirchensegen_april_2026',
       title: 'Kirchensegen-Sammler',
       description:
-          'Sammle 5 verschiedene Kirchensegen-Tokens bis Ende April 2026 '
+          'Sammle 5 Kirchensegen-Tokens bis Ende April 2026 '
           'und erhalte eine besondere Belohnung!',
       endDate: DateTime(2026, 4, 30, 23, 59, 59),
       requiredCount: 5,
@@ -43,9 +43,8 @@ class EventService extends ChangeNotifier {
     ),
   ];
 
-  // landmarkId-Set der gesammelten Kirchensegen-IDs (z.B. '4', '10', …)
-  // Wir speichern die Landmark-ID ohne '_church'-Suffix.
-  final Map<String, Set<String>> _collectedIds = {};
+  // Gesammelte Kirchensegen-Tokens pro Event (global, kirchenunabhängig).
+  final Map<String, int> _collectedCounts = {};
   final Map<String, bool> _rewardClaimed = {};
 
   EventService() {
@@ -55,44 +54,50 @@ class EventService extends ChangeNotifier {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     for (final event in allEvents) {
-      final raw = prefs.getStringList('${_prefPrefix}${event.id}_collected') ?? [];
-      _collectedIds[event.id] = raw.toSet();
+      final countKey = '${_prefPrefix}${event.id}_count';
+      final legacyCollectedKey = '${_prefPrefix}${event.id}_collected';
+
+      final storedCount = prefs.getInt(countKey);
+      if (storedCount != null) {
+        _collectedCounts[event.id] = storedCount;
+      } else {
+        // Migration: Alte Speicherung war eine Liste einzigartiger Landmark-IDs.
+        final legacyRaw = prefs.getStringList(legacyCollectedKey) ?? [];
+        _collectedCounts[event.id] = legacyRaw.toSet().length;
+      }
       _rewardClaimed[event.id] =
           prefs.getBool('${_prefPrefix}${event.id}_claimed') ?? false;
     }
     notifyListeners();
   }
 
-  /// Anzahl gesammelter eindeutiger Church-Tokens für ein Event.
-  int collectedCount(String eventId) =>
-      (_collectedIds[eventId] ?? {}).length;
+  /// Anzahl gesammelter Church-Tokens für ein Event.
+  int collectedCount(String eventId) => _collectedCounts[eventId] ?? 0;
 
   /// Ob das Event bereits abgeschlossen und der Reward abgeholt wurde.
   bool rewardClaimed(String eventId) => _rewardClaimed[eventId] ?? false;
 
-  /// Ob ein bestimmter Kirchensegen für dieses Event bereits gezählt wurde.
+  /// Kompatibilitätsmethode: gibt zurück, ob bereits mindestens ein
+  /// Kirchensegen für dieses Event gesammelt wurde.
   bool hasCollectedChurch(String eventId, String landmarkId) =>
-      (_collectedIds[eventId] ?? {}).contains(landmarkId);
+      collectedCount(eventId) > 0;
 
   /// Wird aufgerufen wenn ein Kirchensegen-Token gesammelt wurde.
-  /// Gibt `true` zurück wenn das Token neu ist (also zum ersten Mal gesammelt).
+  /// Jeder Kirchensegen zählt, unabhängig davon bei welcher Kirche er gesammelt wurde.
   Future<bool> recordChurchCollected(String landmarkId) async {
-    bool anyNew = false;
+    var changed = false;
+    final prefs = await SharedPreferences.getInstance();
+
     for (final event in allEvents) {
       if (event.isExpired) continue;
-      final set = _collectedIds.putIfAbsent(event.id, () => {});
-      if (!set.contains(landmarkId)) {
-        set.add(landmarkId);
-        anyNew = true;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setStringList(
-          '${_prefPrefix}${event.id}_collected',
-          set.toList(),
-        );
-      }
+      final nextCount = (_collectedCounts[event.id] ?? 0) + 1;
+      _collectedCounts[event.id] = nextCount;
+      await prefs.setInt('${_prefPrefix}${event.id}_count', nextCount);
+      changed = true;
     }
-    if (anyNew) notifyListeners();
-    return anyNew;
+
+    if (changed) notifyListeners();
+    return changed;
   }
 
   /// Prüft ob ein Event abgeschlossen ist (Fortschritt erreicht) aber der
