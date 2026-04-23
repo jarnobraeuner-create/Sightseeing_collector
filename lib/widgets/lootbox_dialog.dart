@@ -43,6 +43,16 @@ class _LootboxDialogState extends State<LootboxDialog>
   double _shakeStrength = 0.3;
   TokenTier? _wonTier;
   Landmark? _wonLandmark;
+  Landmark? _pendingMonumentLandmark;
+
+  Landmark _pickMonumentLandmark(List<Landmark> all) {
+    final monumentCandidates = all
+        .where((l) => const {'1', '2', '4'}.contains(l.id))
+        .toList();
+    final random = Random();
+    final source = monumentCandidates.isNotEmpty ? monumentCandidates : all;
+    return source[random.nextInt(source.length)];
+  }
 
   @override
   void initState() {
@@ -138,6 +148,15 @@ class _LootboxDialogState extends State<LootboxDialog>
       await _runShakeSequence(const [
         Duration(milliseconds: 280),
       ]);
+
+      // Preselect the monument token so opening animation matches the actual reward.
+      final previewAll = context.read<LandmarkService>().landmarks;
+      if (previewAll.isNotEmpty) {
+        setState(() {
+          _pendingMonumentLandmark = _pickMonumentLandmark(previewAll);
+        });
+      }
+
       await _openingTokenController.forward(from: 0);
       await Future.delayed(const Duration(milliseconds: 220));
     } else {
@@ -157,7 +176,7 @@ class _LootboxDialogState extends State<LootboxDialog>
     final all = landmarkService.landmarks;
     final Landmark landmark;
     if (widget.mode == LootboxDialogMode.monument) {
-      landmark = landmarkService.getLandmarkById('2') ?? all.first;
+      landmark = _pendingMonumentLandmark ?? _pickMonumentLandmark(all);
     } else {
       final random = Random();
       landmark = all[random.nextInt(all.length)];
@@ -170,6 +189,7 @@ class _LootboxDialogState extends State<LootboxDialog>
       _isOpening = false;
       _wonTier = tier;
       _wonLandmark = landmark;
+      _pendingMonumentLandmark = null;
     });
 
     await _revealController.forward();
@@ -689,8 +709,11 @@ class _LootboxDialogState extends State<LootboxDialog>
 
   Widget _buildOpeningTokenSequence() {
     final landmarkService = context.read<LandmarkService>();
-    final tokenImagePath =
-        landmarkService.getImageUrlForTier('2', TokenTier.monumente);
+    final previewLandmarkId = _pendingMonumentLandmark?.id ?? '2';
+    final tokenImagePath = landmarkService.getImageUrlForTier(
+      previewLandmarkId,
+      TokenTier.monumente,
+    );
 
     return IgnorePointer(
       child: AnimatedBuilder(

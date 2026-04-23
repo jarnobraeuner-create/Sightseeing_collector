@@ -1228,6 +1228,11 @@ class LandmarkService extends ChangeNotifier {
     final landmark = getLandmarkById(landmarkId);
     if (landmark == null) return 'assets/images/default_token.jpeg';
 
+    // Spezielles Monumente-Bild für Speicherstadt
+    if (landmarkId == '1' && tier == TokenTier.monumente) {
+      return 'assets/images/Speicherstandt-monumente_token.png';
+    }
+
     // Spezielle Tier-Bilder für Elbphilharmonie
     if (landmarkId == '2') {
       switch (tier) {
@@ -1272,7 +1277,7 @@ class LandmarkService extends ChangeNotifier {
         case TokenTier.platinum:
           return landmark.imageUrl; // Fallback zum Standard
         case TokenTier.monumente:
-          return landmark.imageUrl;
+          return 'assets/images/Michel_monumente_token.png';
       }
     }
 
