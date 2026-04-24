@@ -47,6 +47,16 @@ class MonumentUnlockStatus {
 
 class MonumentUnlockService {
   static const String hamburgSetId = 'set_hamburg';
+  // Diese Hamburg-Tokens sollen nicht in Schritt 1 der Monumente-Challenge zählen.
+  static const Set<String> _excludedHamburgChallengeIds = {
+    '69',
+    '70',
+    '71',
+    '72',
+    '73',
+    '74',
+    '75',
+  };
 
   static const List<String> _museumsForElbphiTask = [
     '31', // Museum für Kunst und Gewerbe
@@ -108,9 +118,17 @@ class MonumentUnlockService {
     LandmarkService landmarkService,
   ) {
     final hamburgSet = collectionService.getSetById(hamburgSetId);
-    final setRequiredCount = hamburgSet?.requiredTokenIds.length ?? 0;
-    final setCollectedCount = hamburgSet?.collectedTokenIds.length ?? 0;
-    final setCompleted = hamburgSet?.completed ?? false;
+    final challengeRequiredIds = (hamburgSet?.requiredTokenIds ?? const <String>[])
+        .where((id) => !_excludedHamburgChallengeIds.contains(id))
+        .toSet();
+    final collectedChallengeIds = (hamburgSet?.collectedTokenIds ?? const <String>[])
+        .where(challengeRequiredIds.contains)
+        .toSet();
+
+    final setRequiredCount = challengeRequiredIds.length;
+    final setCollectedCount = collectedChallengeIds.length;
+    final setCompleted =
+        setRequiredCount > 0 && setCollectedCount >= setRequiredCount;
 
     final churchIds = landmarkService.landmarks
         .where((l) => l.isChurch)
@@ -130,15 +148,12 @@ class MonumentUnlockService {
       _museumsForElbphiTask,
       TokenTier.silver,
     );
-    final elbphiDone = museumsSilverCount >= _museumsForElbphiTask.length;
 
     final hafencitySilverCount = _countTierOrHigherInIds(
       collectionService,
       _hafencityForSpeicherstadtTask,
       TokenTier.silver,
     );
-    final speicherstadtDone =
-        hafencitySilverCount >= _hafencityForSpeicherstadtTask.length;
 
     final taskStatuses = [
       MonumentTaskStatus(

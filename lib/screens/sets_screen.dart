@@ -192,7 +192,7 @@ class _MonumentUnlockCard extends StatelessWidget {
               unlocked
                   ? 'Monumente sind jetzt freigeschaltet.'
                   : !status.challengeUnlocked
-                      ? 'Schritt 1: Hamburg-Set vollständig abschließen.'
+                      ? 'Schritt 1: Hamburg-Challenge-Tokens vollständig abschließen.'
                       : 'Schritt 2: 3 Monument-Aufgaben lösen.',
               style: TextStyle(color: Colors.grey[300], fontSize: 12),
             ),
@@ -212,7 +212,7 @@ class _MonumentUnlockCard extends StatelessWidget {
             Text(
               status.challengeUnlocked
                   ? '${status.completedTaskCount} / ${status.taskCount} Monument-Aufgaben gelöst'
-                  : '${status.setCollectedCount} / ${status.setRequiredCount} Hamburg-Tokens gesammelt',
+                  : '${status.setCollectedCount} / ${status.setRequiredCount} Hamburg-Challenge-Tokens gesammelt',
               style: TextStyle(color: Colors.grey[400], fontSize: 11),
             ),
             if (status.challengeUnlocked) ...[

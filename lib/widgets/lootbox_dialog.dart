@@ -49,19 +49,10 @@ class _LootboxDialogState extends State<LootboxDialog>
   double _shakeStrength = 0.3;
   TokenTier? _wonTier;
   Landmark? _wonLandmark;
+  Landmark? _pendingMonumentLandmark;
 
   bool get _isForcedRewardMode =>
       widget.forcedTier != null && widget.forcedLandmarkId != null;
-  Landmark? _pendingMonumentLandmark;
-
-  Landmark _pickMonumentLandmark(List<Landmark> all) {
-    final monumentCandidates = all
-        .where((l) => const {'1', '2', '4'}.contains(l.id))
-        .toList();
-    final random = Random();
-    final source = monumentCandidates.isNotEmpty ? monumentCandidates : all;
-    return source[random.nextInt(source.length)];
-  }
 
   @override
   void initState() {
@@ -151,6 +142,9 @@ class _LootboxDialogState extends State<LootboxDialog>
       tier = await lootboxService.openLootbox();
       final random = Random();
       landmark = all[random.nextInt(all.length)];
+    }
+    if (tier == TokenTier.monumente) {
+      _pendingMonumentLandmark = landmark;
     }
 
     // Do NOT add token yet — wait for user choice (keep vs. quick-sell)
@@ -340,7 +334,7 @@ class _LootboxDialogState extends State<LootboxDialog>
   }
 
   Widget _buildChest() {
-    const isMonument = false;
+    final isMonument = widget.forcedTier == TokenTier.monumente;
     final tapsRemaining = (_requiredMonumentTaps - _monumentTapCount).clamp(0, _requiredMonumentTaps);
     final chestGlowColor = isMonument ? Colors.deepPurpleAccent : Colors.amber;
     final chestScale = isMonument ? 1 + (_monumentTapCount * 0.04) : 1.0;

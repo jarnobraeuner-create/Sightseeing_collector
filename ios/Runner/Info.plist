@@ -51,6 +51,8 @@
 	<string>Die App benötigt deinen Standort, um Tokens in der Nähe zu finden und zu sammeln.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Die App benötigt deinen Standort, um Tokens in der Nähe zu finden und zu sammeln.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Die App benötigt Zugriff auf deine Fotos, damit du ein Profilbild auswählen kannst.</string>
 	<key>GMSApiKey</key>
 	<string>AIzaSyArgyfTHd9Uv3he0OCO5Sw78Ilcj2lzORg</string>
 </dict>

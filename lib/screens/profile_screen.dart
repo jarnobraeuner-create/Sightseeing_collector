@@ -23,6 +23,23 @@ class ProfileScreen extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _LoggedInProfile extends StatelessWidget {
+    Future<void> _claimMonumentReward(BuildContext context) async {
+      // Animation wie bei Monument-Lootboxen anzeigen
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const LootboxDialog(
+          forcedTier: TokenTier.monumente,
+          forcedLandmarkId: null,
+          displayOnlyReward: true,
+          customTitle: 'Monumente-Belohnung',
+        ),
+      );
+      // Belohnung als abgeholt markieren
+      final collectionService = context.read<CollectionService>();
+      collectionService.setMonumentRewardAvailable(false);
+      // Hier ggf. weitere Belohnungslogik ergänzen
+    }
   const _LoggedInProfile();
 
   @override
@@ -77,6 +94,57 @@ class _LoggedInProfile extends StatelessWidget {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
+                            // Monumente-Belohnung abholen
+                            if (collectionService.monumentRewardAvailable) ...[
+                              Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurple[700],
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.deepPurple.withOpacity(0.3),
+                                      blurRadius: 12,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    const Text(
+                                      '🎉 Monumente-Challenge abgeschlossen! 🎉',
+                                      style: TextStyle(
+                                        color: Colors.amber,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    const Text(
+                                      'Du kannst jetzt deine Monumente-Belohnung abholen.',
+                                      style: TextStyle(color: Colors.white70),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.amber[800],
+                                        foregroundColor: Colors.black,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.card_giftcard),
+                                      label: const Text('Belohnung abholen'),
+                                      onPressed: () => _claimMonumentReward(context),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
               children: [
                 const SizedBox(height: 12),
                 Container(

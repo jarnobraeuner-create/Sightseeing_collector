@@ -6,6 +6,14 @@ import 'notification_service.dart';
 import 'landmark_service.dart';
 
 class CollectionService extends ChangeNotifier {
+    bool _monumentRewardAvailable = false;
+
+    bool get monumentRewardAvailable => _monumentRewardAvailable;
+
+    void setMonumentRewardAvailable(bool value) {
+      _monumentRewardAvailable = value;
+      notifyListeners();
+    }
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const Set<String> _removedLandmarkIds = {
     '7', '8', '9', '10', '11', '12',

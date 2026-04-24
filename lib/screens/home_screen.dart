@@ -7,7 +7,6 @@ import '../widgets/daily_reward_dialog.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
 import 'trading_screen.dart';
-import 'token_upgrade_screen.dart';
 import 'sets_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -112,43 +111,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!status.challengeUnlocked) return;
 
-    _isProcessingMonumentRewards = true;
-    try {
-      for (final task in status.tasks) {
-        if (!task.completed) continue;
-
-        final rewardLandmarkId = _taskRewardLandmarkIds[task.id];
-        if (rewardLandmarkId == null) continue;
-        if (_hasMonumentTokenForLandmark(collectionService, rewardLandmarkId)) {
-          continue;
-        }
-
-        Landmark? rewardLandmark;
-        try {
-          rewardLandmark =
-              landmarkService.landmarks.firstWhere((l) => l.id == rewardLandmarkId);
-        } catch (_) {
-          continue;
-        }
-
-        collectionService.collectTokenAllowDuplicate(
-          rewardLandmark.id,
-          rewardLandmark.name,
-          rewardLandmark.category,
-          TokenTier.monumente.pointValue,
-          rewardLandmark.relatedSetIds,
-          tier: TokenTier.monumente,
-        );
-
-        if (!mounted) return;
-        await _showMonumentRewardSequence(
-          rewardLandmark,
-          _taskRewardTitles[task.id] ?? '🏛️ Monument-Belohnung',
-        );
-      }
-    } finally {
-      _isProcessingMonumentRewards = false;
+    // Prüfe, ob alle Monumente-Challenges abgeschlossen sind und zeige Dialog
+    if (mounted) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text(
+            'Herzlichen Glückwunsch!',
+            style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Du hast alle Monumente-Challenges abgeschlossen.\n\nGehe zur Profilseite, um deine Belohnung abzuholen!',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _pageController.jumpToPage(3); // Profilseite
+                setState(() => _currentPage = 3);
+                // Setze ein Flag im CollectionService, dass die Belohnung abgeholt werden kann
+                collectionService.setMonumentRewardAvailable(true);
+              },
+              child: const Text('Zur Profilseite', style: TextStyle(color: Colors.amber)),
+            ),
+          ],
+        ),
+      );
     }
+    _isProcessingMonumentRewards = false;
   }
 
   Future<void> _showMonumentRewardSequence(
@@ -189,43 +183,6 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (_) => const DailyRewardDialog(),
       );
     }
-  }
-
-  Future<void> _showLootboxRewardPopup({
-    required String title,
-    required String message,
-    required Color accent,
-    required String emoji,
-  }) {
-    return showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(color: accent, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK', style: TextStyle(color: accent)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -876,29 +833,4 @@ class _SetCompletedBannerState extends State<_SetCompletedBanner>
     );
   }
 
-  Color _getDifficultyColor(String difficulty) {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return Colors.green[100]!;
-      case 'medium':
-        return Colors.orange[100]!;
-      case 'hard':
-        return Colors.red[100]!;
-      default:
-        return Colors.grey[100]!;
-    }
-  }
-
-  IconData _getQuestIcon(String taskType) {
-    switch (taskType.toLowerCase()) {
-      case 'photo':
-        return Icons.camera_alt;
-      case 'checkin':
-        return Icons.check_circle_outline;
-      case 'puzzle':
-        return Icons.extension;
-      default:
-        return Icons.task;
-    }
-  }
 }
