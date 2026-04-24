@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _maybeShowDailyReward();
       // Listener für Set-Abschluss Banner
       context.read<CollectionService>().addListener(_onCollectionChanged);
-      _maybeGrantMonumentTaskRewards();
+      // _maybeGrantMonumentTaskRewards entfernt
     });
   }
 
@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       _showSetCompletedBanner(completed);
     }
-    await _maybeGrantMonumentTaskRewards();
+    // _maybeGrantMonumentTaskRewards entfernt
   }
 
   bool _hasMonumentTokenForLandmark(
@@ -98,52 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _maybeGrantMonumentTaskRewards() async {
-    if (!mounted || _isProcessingMonumentRewards) return;
-
-    final collectionService = context.read<CollectionService>();
-    final landmarkService = context.read<LandmarkService>();
-
-    final status = MonumentUnlockService.getHamburgMonumentStatus(
-      collectionService,
-      landmarkService,
-    );
-
-    if (!status.challengeUnlocked) return;
-
-    // Prüfe, ob alle Monumente-Challenges abgeschlossen sind und zeige Dialog
-    if (mounted) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text(
-            'Herzlichen Glückwunsch!',
-            style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            'Du hast alle Monumente-Challenges abgeschlossen.\n\nGehe zur Profilseite, um deine Belohnung abzuholen!',
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _pageController.jumpToPage(3); // Profilseite
-                setState(() => _currentPage = 3);
-                // Setze ein Flag im CollectionService, dass die Belohnung abgeholt werden kann
-                collectionService.setMonumentRewardAvailable(true);
-              },
-              child: const Text('Zur Profilseite', style: TextStyle(color: Colors.amber)),
-            ),
-          ],
-        ),
-      );
-    }
-    _isProcessingMonumentRewards = false;
-  }
+  // Monumente-Belohnungs-Dialog und zugehörige Logik entfernt
 
   Future<void> _showMonumentRewardSequence(
     Landmark rewardLandmark,

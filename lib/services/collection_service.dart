@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/index.dart';
@@ -6,14 +7,26 @@ import 'notification_service.dart';
 import 'landmark_service.dart';
 
 class CollectionService extends ChangeNotifier {
-    bool _monumentRewardAvailable = false;
+    // Anzahl der Lootboxen (Dummy-Implementierung, bitte ggf. anpassen)
+    int get lootboxCount => 0; // TODO: Hier die echte Anzahl der Lootboxen aus dem User-Objekt oder Firestore zurückgeben
+  static const String _monumentRewardClaimedKey = 'monument_reward_claimed';
+  bool _monumentRewardAvailable = false;
 
-    bool get monumentRewardAvailable => _monumentRewardAvailable;
+  bool get monumentRewardAvailable => _monumentRewardAvailable;
 
-    void setMonumentRewardAvailable(bool value) {
-      _monumentRewardAvailable = value;
-      notifyListeners();
+  Future<void> setMonumentRewardAvailable(bool value) async {
+    _monumentRewardAvailable = value;
+    notifyListeners();
+    if (!value) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_monumentRewardClaimedKey, true);
     }
+  }
+
+  Future<bool> isMonumentRewardClaimed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_monumentRewardClaimedKey) ?? false;
+  }
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const Set<String> _removedLandmarkIds = {
     '7', '8', '9', '10', '11', '12',
@@ -41,6 +54,15 @@ class CollectionService extends ChangeNotifier {
 
   CollectionService() {
     _initializeSets();
+    _initMonumentRewardFlag();
+  }
+
+  Future<void> _initMonumentRewardFlag() async {
+    final claimed = await isMonumentRewardClaimed();
+    if (claimed) {
+      _monumentRewardAvailable = false;
+      notifyListeners();
+    }
   }
 
   // â”€â”€â”€ User Management (called by ProxyProvider) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

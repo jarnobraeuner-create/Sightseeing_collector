@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 /// Usernames (Kleinbuchstaben), die den Dev-Mode sehen und nutzen dürfen.
 const Set<String> _kDevModeAllowedUsernames = {
   'jarno',
-  'jerryb',
   'jerry',
 };
 

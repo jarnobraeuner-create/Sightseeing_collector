@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../services/index.dart';
 import '../widgets/lootbox_dialog.dart';
+import '../models/token.dart';
 import 'collection_screen.dart';
 import 'token_upgrade_screen.dart';
 
@@ -14,7 +15,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _LoggedInProfile();
+    return _LoggedInProfile();
   }
 }
 
@@ -23,24 +24,10 @@ class ProfileScreen extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _LoggedInProfile extends StatelessWidget {
-    Future<void> _claimMonumentReward(BuildContext context) async {
-      // Animation wie bei Monument-Lootboxen anzeigen
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const LootboxDialog(
-          forcedTier: TokenTier.monumente,
-          forcedLandmarkId: null,
-          displayOnlyReward: true,
-          customTitle: 'Monumente-Belohnung',
-        ),
-      );
-      // Belohnung als abgeholt markieren
-      final collectionService = context.read<CollectionService>();
-      collectionService.setMonumentRewardAvailable(false);
-      // Hier ggf. weitere Belohnungslogik ergänzen
-    }
-  const _LoggedInProfile();
+
+  const _LoggedInProfile({Key? key}) : super(key: key);
+
+  // Monumente-Belohnungs-Logik entfernt
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +48,8 @@ class _LoggedInProfile extends StatelessWidget {
                   context: context,
                   builder: (ctx) => AlertDialog(
                     backgroundColor: Colors.grey[850],
-                    title: const Text('Abmelden?',
-                        style: TextStyle(color: Colors.white)),
-                    content: const Text('Möchtest du dich wirklich abmelden?',
-                        style: TextStyle(color: Colors.white70)),
+                    title: const Text('Abmelden?', style: TextStyle(color: Colors.white)),
+                    content: const Text('Möchtest du dich wirklich abmelden?', style: TextStyle(color: Colors.white70)),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
@@ -72,8 +57,7 @@ class _LoggedInProfile extends StatelessWidget {
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Abmelden',
-                            style: TextStyle(color: Colors.red)),
+                        child: const Text('Abmelden', style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),
@@ -94,57 +78,7 @@ class _LoggedInProfile extends StatelessWidget {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
-                            // Monumente-Belohnung abholen
-                            if (collectionService.monumentRewardAvailable) ...[
-                              Container(
-                                width: double.infinity,
-                                margin: const EdgeInsets.only(bottom: 16),
-                                padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurple[700],
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.deepPurple.withOpacity(0.3),
-                                      blurRadius: 12,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Text(
-                                      '🎉 Monumente-Challenge abgeschlossen! 🎉',
-                                      style: TextStyle(
-                                        color: Colors.amber,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    const Text(
-                                      'Du kannst jetzt deine Monumente-Belohnung abholen.',
-                                      style: TextStyle(color: Colors.white70),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 14),
-                                    ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.amber[800],
-                                        foregroundColor: Colors.black,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                      icon: const Icon(Icons.card_giftcard),
-                                      label: const Text('Belohnung abholen'),
-                                      onPressed: () => _claimMonumentReward(context),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 12),
                 Container(
@@ -157,59 +91,67 @@ class _LoggedInProfile extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.amber.withValues(alpha: 0.4),
-                        blurRadius: 20,
+                        color: Colors.amber.withOpacity(0.4),
+                        blurRadius: 16,
                         spreadRadius: 2,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.person, size: 50, color: Colors.white),
+                  child: const Icon(Icons.person, size: 48, color: Colors.white),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   username,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
                     fontWeight: FontWeight.bold,
+                    fontSize: 20,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  authService.appUser?.email ?? '',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.amber[800]!, Colors.amber[500]!],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Level $level',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+                Text('Level $level', style: const TextStyle(color: Colors.amber), textAlign: TextAlign.center),
+                const SizedBox(height: 18),
+
+
+                // Lootbox-Button wie die anderen Aktionen
+                Consumer<LootboxService>(
+                  builder: (context, lootboxService, _) => Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ActionButton(
+                              icon: Icons.card_giftcard,
+                              label: 'Lootboxen\n${lootboxService.extraLootboxes + (lootboxService.canOpen ? 1 : 0)}',
+                              color: Colors.amber[700]!,
+                                onTap: lootboxService.canOpenAny
+                                  ? () => showDialog(
+                                    context: context,
+                                    builder: (_) => const LootboxDialog(),
+                                    )
+                                  : () {},
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
+
+                // Aktionen
                 Row(
                   children: [
                     Expanded(
                       child: _ActionButton(
                         icon: Icons.collections,
-                        label: 'Meine Sammlung',
-                        color: Colors.blue[700]!,
+                        label: 'Sammlung',
+                        color: Colors.deepPurple,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const CollectionScreen(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const CollectionScreen()),
                         ),
                       ),
                     ),
@@ -217,323 +159,90 @@ class _LoggedInProfile extends StatelessWidget {
                     Expanded(
                       child: _ActionButton(
                         icon: Icons.upgrade,
-                        label: 'Token Fusion',
-                        color: Colors.purple[700]!,
+                        label: 'Token-Upgrade',
+                        color: Colors.orange,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const TokenUpgradeScreen(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const TokenUpgradeScreen()),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Consumer<LootboxService>(
-                        builder: (context, lootboxService, _) {
-                          final canOpen = lootboxService.canOpenAny;
-                          final extra = lootboxService.extraLootboxes;
-                          String label;
-                          if (lootboxService.canOpen && extra > 0) {
-                            label = 'Lootbox 🎁 (+$extra)';
-                          } else if (lootboxService.canOpen) {
-                            label = 'Lootbox! 🎁';
-                          } else if (extra > 0) {
-                            label = 'Lootbox 🎁 ×$extra';
-                          } else {
-                            label = 'Morgen wieder';
-                          }
-                          return _ActionButton(
-                            icon: Icons.card_giftcard,
-                            label: label,
-                            color: canOpen ? Colors.orange[700]! : Colors.grey[700]!,
-                            badge: canOpen,
-                            onTap: canOpen
-                                ? () => showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (_) => const LootboxDialog(),
-                                  )
-                                : () => ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Du hast heute schon eine Lootbox geöffnet. Kaufe mehr im Shop! 🎁'),
-                                      backgroundColor: Colors.grey,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  ),
-                          );
-                        },
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.amber[900]!, Colors.orange[800]!],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.amber.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Text('🪙', style: TextStyle(fontSize: 36)),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Deine Coins',
-                            style: TextStyle(color: Colors.white70, fontSize: 13),
-                          ),
-                          Text(
-                            '${stats['totalPoints']}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
+
+                // Statistiken
                 _DarkCard(
                   title: 'Statistiken',
                   children: [
                     _StatRow(
+                      icon: Icons.star,
+                      label: 'Gesamtpunkte',
+                      value: (stats['totalPoints'] ?? 0).toString(),
+                      color: Colors.amber,
+                    ),
+                    _StatRow(
+                      icon: Icons.location_on,
+                      label: 'Besuchte Orte',
+                      value: (stats['visitedLandmarks'] ?? 0).toString(),
+                      color: Colors.lightBlueAccent,
+                    ),
+                    _StatRow(
                       icon: Icons.collections,
-                      label: 'Tokens gesammelt',
-                      value: '${stats['totalTokens']}',
-                      color: Colors.blue[400]!,
-                    ),
-                    _StatRow(
-                      icon: Icons.camera_alt,
-                      label: 'Sightseeing Tokens',
-                      value: '${stats['sightseeingTokens']}',
-                      color: Colors.purple[400]!,
-                    ),
-                    _StatRow(
-                      icon: Icons.flight,
-                      label: 'Travel Tokens',
-                      value: '${stats['travelTokens']}',
-                      color: Colors.green[400]!,
-                    ),
-                    _StatRow(
-                      icon: Icons.folder_special,
-                      label: 'Sets abgeschlossen',
-                      value: '${stats['completedSets']}/${stats['totalSets']}',
-                      color: Colors.orange[400]!,
+                      label: 'Gesammelte Tokens',
+                      value: (stats['collectedTokens'] ?? 0).toString(),
+                      color: Colors.deepPurpleAccent,
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                _DarkCard(
-                  title: 'Standort',
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.location_on, color: Colors.red[400], size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: position != null
-                              ? Text(
-                                  '${position.latitude.toStringAsFixed(4)}° N, '
-                                  '${position.longitude.toStringAsFixed(4)}° E',
-                                  style: const TextStyle(color: Colors.white70),
-                                )
-                              : const Text(
-                                  'Kein Standort verfügbar',
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          locationService.isServiceEnabled
-                              ? Icons.check_circle
-                              : Icons.cancel,
-                          color: locationService.isServiceEnabled
-                              ? Colors.green[400]
-                              : Colors.red[400],
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'GPS ${locationService.isServiceEnabled ? "aktiv" : "deaktiviert"}',
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                // ── Abmelden Button ──────────────────────────────────────
-                Consumer<AuthService>(
-                  builder: (_, auth, __) => SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red[400],
-                        side: BorderSide(color: Colors.red[700]!),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.logout),
-                      label: const Text(
-                        'Abmelden',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                      ),
-                      onPressed: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: Colors.grey[850],
-                            title: const Text('Abmelden?',
-                                style: TextStyle(color: Colors.white)),
-                            content: const Text(
-                                'Möchtest du dich wirklich abmelden?',
-                                style: TextStyle(color: Colors.white70)),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Abbrechen'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: Text('Abmelden',
-                                    style: TextStyle(color: Colors.red[400])),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirm == true) await auth.logout();
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const _FeedbackCard(),
-                const SizedBox(height: 16),
-                Consumer2<DevModeService, AuthService>(
-                  builder: (context, devMode, auth, _) {
-                    final username = auth.appUser?.username;
-                    final uid = auth.firebaseUser?.uid;
-                    final email = auth.appUser?.email;
-                    if (!devMode.isAllowed(
-                      username: username,
-                      uid: uid,
-                      email: email,
-                    )) {
-                      return const SizedBox.shrink();
-                    }
-                    return _DarkCard(
-                    title: '🛠 Developer Mode',
+                const SizedBox(height: 18),
+
+                // Standort
+                if (position != null)
+                  _DarkCard(
+                    title: 'Standort',
                     children: [
-                      // ── Dev-Mode Toggle ──────────────────────────
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: devMode.enabled
-                              ? Colors.green.withValues(alpha: 0.15)
-                              : Colors.grey.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: devMode.enabled ? Colors.green : Colors.grey[700]!,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              devMode.enabled ? Icons.developer_mode : Icons.developer_mode_outlined,
-                              color: devMode.enabled ? Colors.greenAccent : Colors.grey,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    devMode.enabled ? 'Dev-Mode aktiv' : 'Dev-Mode inaktiv',
-                                    style: TextStyle(
-                                      color: devMode.enabled ? Colors.greenAccent : Colors.grey,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    devMode.enabled
-                                        ? 'Standort- & Coin-Beschränkungen aufgehoben'
-                                        : 'Normale Spielbeschränkungen aktiv',
-                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Switch(
-                              value: devMode.enabled,
-                              onChanged: (_) => devMode.toggle(),
-                              activeColor: Colors.greenAccent,
-                              inactiveTrackColor: Colors.grey[800],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      // ── Cooldowns zurücksetzen ───────────────────
-                      Consumer2<CooldownService, LootboxService>(
-                        builder: (context, cooldownService, lootboxService, _) =>
-                            SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.greenAccent,
-                              side: const BorderSide(color: Colors.green),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Alle Cooldowns zurücksetzen'),
-                            onPressed: () async {
-                              await cooldownService.resetAllCooldowns();
-                              await lootboxService.resetForTesting();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('✅ Alle Cooldowns zurückgesetzt'),
-                                    backgroundColor: Colors.green,
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        ),
+                      Text(
+                        'Lat: ${position.latitude.toStringAsFixed(5)}, Lng: ${position.longitude.toStringAsFixed(5)}',
+                        style: const TextStyle(color: Colors.white70),
                       ),
                     ],
-                  );
+                  ),
+                if (position != null) const SizedBox(height: 18),
+
+                // Feedback
+                const _FeedbackCard(),
+
+                const SizedBox(height: 18),
+
+                // DevMode (Button sichtbar, wenn erlaubt)
+                Consumer<DevModeService>(
+                  builder: (context, devMode, _) {
+                    if (!devMode.isAllowed(
+                      username: authService.appUser?.username,
+                      email: authService.appUser?.email,
+                      uid: authService.appUser?.uid,
+                    )) return const SizedBox.shrink();
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 12, bottom: 24),
+                        child: ElevatedButton.icon(
+                          icon: Icon(devMode.enabled ? Icons.developer_mode : Icons.developer_board),
+                          label: Text(devMode.enabled ? 'Entwicklermodus deaktivieren' : 'Entwicklermodus aktivieren'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: devMode.enabled ? Colors.red[400] : Colors.amber[700],
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => devMode.toggle(),
+                        ),
+                      ),
+                    );
                   },
                 ),
-                const SizedBox(height: 16),
-                const SizedBox(height: 32),
               ],
             ),
           );
