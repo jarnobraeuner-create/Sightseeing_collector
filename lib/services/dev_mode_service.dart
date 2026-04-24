@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 const Set<String> _kDevModeAllowedUsernames = {
   'jarno',
   'jerryb',
+  'jerry',
 };
 
 /// E-Mail-Adressen (Kleinbuchstaben), die den Dev-Mode aktivieren dürfen.

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const String _kTutorialShownKey = 'tutorial_v1_shown';
-const bool _kAlwaysShowTutorialForTesting = true;
+const bool _kAlwaysShowTutorialForTesting = false;
 
 /// Returns true if the tutorial has NOT been shown yet.
 Future<bool> shouldShowTutorial() async {
