@@ -81,8 +81,18 @@ class SetCard extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Text(
+              'Gesammelte Tokens:',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+            ),
+            const SizedBox(height: 8),
+            _buildCollectedTokens(context),
             if (!set.completed) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 8),
               Text(
@@ -95,6 +105,93 @@ class SetCard extends StatelessWidget {
               const SizedBox(height: 8),
               _buildMissingTokens(context),
             ],
+            Widget _buildCollectedTokens(BuildContext context) {
+              final collectionService = Provider.of<CollectionService>(context, listen: false);
+              final landmarkService = Provider.of<LandmarkService>(context, listen: false);
+              final collectedTokens = collectionService.tokens
+                  .where((t) => set.collectedTokenIds.contains(t.landmarkId))
+                  .toList();
+              if (collectedTokens.isEmpty) {
+                return const Text('Noch keine Tokens gesammelt.');
+              }
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: collectedTokens.map((token) {
+                  return GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => Dialog(
+                          backgroundColor: Colors.transparent,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: SizedBox(
+                                width: MediaQuery.of(context).size.width * 0.7,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Großes Token-Bild
+                                    AspectRatio(
+                                      aspectRatio: 1,
+                                      child: Image.asset(
+                                        landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      token.landmarkName,
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      token.tier.displayName,
+                                      style: TextStyle(color: Colors.amber[300], fontSize: 14),
+                                    ),
+                                    Text(
+                                      '${token.points} Punkte',
+                                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Kategorie: ${token.category}',
+                                      style: const TextStyle(color: Colors.white38, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 48,
+                          height: 48,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.emoji_events, color: Colors.amber),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              );
+            }
           ],
         ),
       ),
