@@ -44,15 +44,6 @@ class _LoggedInProfile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final appUser = authService.appUser as dynamic;
-
-    final String username = appUser?.username ?? 'Gast';
-    final int totalPoints = 0;
-    final int visitedLandmarks = 0;
-    final int collectedTokens = 0;
-    final int level = _calculateLevel(totalPoints);
-
     return Scaffold(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
@@ -64,60 +55,77 @@ class _LoggedInProfile extends StatelessWidget {
           style: TextStyle(color: Colors.white),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.grey),
-            tooltip: 'Abmelden',
-            onPressed: () => _logout(context, authService),
+          Consumer<AuthService>(
+            builder: (_, auth, __) => IconButton(
+              icon: const Icon(Icons.logout, color: Colors.grey),
+              tooltip: 'Abmelden',
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: Colors.grey[850],
+                    title: const Text('Abmelden?', style: TextStyle(color: Colors.white)),
+                    content: const Text('Möchtest du dich wirklich abmelden?', style: TextStyle(color: Colors.white70)),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Abbrechen'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Abmelden', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) await auth.logout();
+              },
+            ),
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.amber[700],
-                child: const Icon(
-                  Icons.person,
-                  size: 48,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                username,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Level $level',
-                style: const TextStyle(color: Colors.amber),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 18),
+      body: Consumer3<CollectionService, LocationService, AuthService>(
+        builder: (context, collectionService, locationService, authService, child) {
+          final stats = collectionService.getStatistics();
+          final position = locationService.currentPosition;
+          final level = _calculateLevel(stats['totalPoints'] ?? 0);
+          final username = authService.appUser?.username ?? 'Explorer';
 
-              Consumer<LootboxService>(
-                builder: (context, lootboxService, _) {
-                  final int lootboxCount =
-                      lootboxService.extraLootboxes +
-                      (lootboxService.canOpen ? 1 : 0);
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Avatar & Name
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.amber[700],
+                  child: const Icon(Icons.person, size: 48, color: Colors.white),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  username,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                Text('Level $level', style: const TextStyle(color: Colors.amber), textAlign: TextAlign.center),
+                const SizedBox(height: 18),
 
-                  return Column(
+                // Lootbox-Button wie die anderen Aktionen
+                Consumer<LootboxService>(
+                  builder: (context, lootboxService, _) => Column(
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: _ActionButton(
                               icon: Icons.card_giftcard,
-                              label: 'Lootboxen\n$lootboxCount',
+                              label: 'Lootboxen\n${lootboxService.extraLootboxes + (lootboxService.canOpen ? 1 : 0)}',
                               color: Colors.amber[700]!,
                               onTap: lootboxService.canOpenAny
                                   ? () => showDialog(
@@ -131,116 +139,115 @@ class _LoggedInProfile extends StatelessWidget {
                       ),
                       const SizedBox(height: 18),
                     ],
-                  );
-                },
-              ),
+                  ),
+                ),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: _ActionButton(
+                // Aktionen
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ActionButton(
+                        icon: Icons.collections,
+                        label: 'Sammlung',
+                        color: Colors.deepPurple,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CollectionScreen()),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _ActionButton(
+                        icon: Icons.upgrade,
+                        label: 'Token-Upgrade',
+                        color: Colors.orange,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TokenUpgradeScreen()),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // Statistiken
+                _DarkCard(
+                  title: 'Statistiken',
+                  children: [
+                    _StatRow(
+                      icon: Icons.star,
+                      label: 'Gesamtpunkte',
+                      value: (stats['totalPoints'] ?? 0).toString(),
+                      color: Colors.amber,
+                    ),
+                    _StatRow(
+                      icon: Icons.location_on,
+                      label: 'Besuchte Orte',
+                      value: (stats['visitedLandmarks'] ?? 0).toString(),
+                      color: Colors.lightBlueAccent,
+                    ),
+                    _StatRow(
                       icon: Icons.collections,
-                      label: 'Sammlung',
-                      color: Colors.deepPurple,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CollectionScreen(),
-                        ),
-                      ),
+                      label: 'Gesammelte Tokens',
+                      value: (stats['totalTokens'] ?? 0).toString(),
+                      color: Colors.deepPurpleAccent,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _ActionButton(
-                      icon: Icons.upgrade,
-                      label: 'Token-Upgrade',
-                      color: Colors.orange,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const TokenUpgradeScreen(),
-                        ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // Standort
+                if (position != null)
+                  _DarkCard(
+                    title: 'Standort',
+                    children: [
+                      Text(
+                        'Lat: ${position.latitude.toStringAsFixed(5)}, Lng: ${position.longitude.toStringAsFixed(5)}',
+                        style: const TextStyle(color: Colors.white70),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 18),
+                if (position != null) const SizedBox(height: 18),
 
-              _DarkCard(
-                title: 'Statistiken',
-                children: [
-                  _StatRow(
-                    icon: Icons.star,
-                    label: 'Gesamtpunkte',
-                    value: totalPoints.toString(),
-                    color: Colors.amber,
-                  ),
-                  _StatRow(
-                    icon: Icons.location_on,
-                    label: 'Besuchte Orte',
-                    value: visitedLandmarks.toString(),
-                    color: Colors.lightBlueAccent,
-                  ),
-                  _StatRow(
-                    icon: Icons.collections,
-                    label: 'Gesammelte Tokens',
-                    value: collectedTokens.toString(),
-                    color: Colors.deepPurpleAccent,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
+                // Feedback
+                const _FeedbackCard(),
 
-              const _FeedbackCard(),
-              const SizedBox(height: 18),
+                const SizedBox(height: 18),
 
-              Consumer<DevModeService>(
-                builder: (context, devMode, _) {
-                  if (!devMode.isAllowed(
-                    username: authService.appUser?.username,
-                    email: authService.appUser?.email,
-                    uid: authService.appUser?.uid,
-                  )) {
-                    return const SizedBox.shrink();
-                  }
-
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 24),
-                      child: ElevatedButton.icon(
-                        icon: Icon(
-                          devMode.enabled
-                              ? Icons.developer_mode
-                              : Icons.developer_board,
-                        ),
-                        label: Text(
-                          devMode.enabled
-                              ? 'Entwicklermodus deaktivieren'
-                              : 'Entwicklermodus aktivieren',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              devMode.enabled ? Colors.red[400] : Colors.amber[700],
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 14,
+                // DevMode (Button sichtbar, wenn erlaubt)
+                Consumer<DevModeService>(
+                  builder: (context, devMode, _) {
+                    if (!devMode.isAllowed(
+                      username: authService.appUser?.username,
+                      email: authService.appUser?.email,
+                      uid: authService.appUser?.uid,
+                    )) return const SizedBox.shrink();
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 12, bottom: 24),
+                        child: ElevatedButton.icon(
+                          icon: Icon(devMode.enabled ? Icons.developer_mode : Icons.developer_board),
+                          label: Text(devMode.enabled ? 'Entwicklermodus deaktivieren' : 'Entwicklermodus aktivieren'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: devMode.enabled ? Colors.red[400] : Colors.amber[700],
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          onPressed: () => devMode.toggle(),
                         ),
-                        onPressed: () => devMode.toggle(),
                       ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
