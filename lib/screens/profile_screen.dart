@@ -1,12 +1,12 @@
 ﻿import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+
 import '../services/index.dart';
 import '../widgets/lootbox_dialog.dart';
-import '../models/token.dart';
 import 'collection_screen.dart';
 import 'token_upgrade_screen.dart';
 
@@ -15,106 +15,115 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _LoggedInProfile();
+    return const _LoggedInProfile();
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Eingeloggtes Profil
-// ══════════════════════════════════════════════════════════════════════════════
-
 class _LoggedInProfile extends StatelessWidget {
-
   const _LoggedInProfile({Key? key}) : super(key: key);
 
-  // Monumente-Belohnungs-Logik entfernt
+  int _calculateLevel(int points) => (points / 100).floor() + 1;
+
+  Future<void> _logout(BuildContext context, AuthService auth) async {
+    try {
+      await (auth as dynamic).signOut();
+    } catch (_) {
+      try {
+        await (auth as dynamic).logout();
+      } catch (_) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Abmelden ist aktuell nicht verfügbar.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+    final appUser = authService.appUser as dynamic;
+
+    final String username = appUser?.username ?? 'Gast';
+    final int totalPoints = 0;
+    final int visitedLandmarks = 0;
+    final int collectedTokens = 0;
+    final int level = _calculateLevel(totalPoints);
+
     return Scaffold(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.grey[850],
         elevation: 0,
-        title: const Text('Profil', style: TextStyle(color: Colors.white)),
         automaticallyImplyLeading: false,
+        title: const Text(
+          'Profil',
+          style: TextStyle(color: Colors.white),
+        ),
         actions: [
-          Consumer<AuthService>(
-            builder: (_, auth, __) => IconButton(
-              icon: const Icon(Icons.logout, color: Colors.grey),
-              tooltip: 'Abmelden',
-            child: Column(
-                              // Avatar & Name
-                              CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Colors.amber[700],
-                                child: const Icon(Icons.person, size: 48, color: Colors.white),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                username,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 6),
-                              Text('Level $level', style: const TextStyle(color: Colors.amber), textAlign: TextAlign.center),
-                              const SizedBox(height: 18),
-                  child: Icon(
-                    Icons.person,
-                    size: 60,
-                    color: Colors.blue[700],
-                  ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.grey),
+            tooltip: 'Abmelden',
+            onPressed: () => _logout(context, authService),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.amber[700],
+                child: const Icon(
+                  Icons.person,
+                  size: 48,
+                  color: Colors.white,
                 ),
-                const SizedBox(height: 8),
-                Chip(
-                  label: Text(
-                    'Level ${_calculateLevel(stats['totalPoints'] ?? 0)}',
-                  ),
-                  backgroundColor: Colors.amber[100],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                username,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
                 ),
-                const SizedBox(height: 8),
-                Chip(
-                  label: Text(
-                    'Level ${_calculateLevel(stats['totalPoints'] ?? 0)}',
->>>>>>> feature/erste-aenderung
-                  ),
-                  child: const Icon(Icons.person, size: 48, color: Colors.white),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  username,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 6),
-                Text('Level $level', style: const TextStyle(color: Colors.amber), textAlign: TextAlign.center),
-                const SizedBox(height: 18),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Level $level',
+                style: const TextStyle(color: Colors.amber),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
 
+              Consumer<LootboxService>(
+                builder: (context, lootboxService, _) {
+                  final int lootboxCount =
+                      lootboxService.extraLootboxes +
+                      (lootboxService.canOpen ? 1 : 0);
 
-                // Lootbox-Button wie die anderen Aktionen
-                Consumer<LootboxService>(
-                  builder: (context, lootboxService, _) => Column(
+                  return Column(
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: _ActionButton(
                               icon: Icons.card_giftcard,
-                              label: 'Lootboxen\n${lootboxService.extraLootboxes + (lootboxService.canOpen ? 1 : 0)}',
+                              label: 'Lootboxen\n$lootboxCount',
                               color: Colors.amber[700]!,
-                                onTap: lootboxService.canOpenAny
+                              onTap: lootboxService.canOpenAny
                                   ? () => showDialog(
-                                    context: context,
-                                    builder: (_) => const LootboxDialog(),
-                                    )
+                                        context: context,
+                                        builder: (_) => const LootboxDialog(),
+                                      )
                                   : () {},
                             ),
                           ),
@@ -122,120 +131,119 @@ class _LoggedInProfile extends StatelessWidget {
                       ),
                       const SizedBox(height: 18),
                     ],
-                  ),
-                ),
+                  );
+                },
+              ),
 
-                // Aktionen
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionButton(
-                        icon: Icons.collections,
-                        label: 'Sammlung',
-                        color: Colors.deepPurple,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CollectionScreen()),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ActionButton(
-                        icon: Icons.upgrade,
-                        label: 'Token-Upgrade',
-                        color: Colors.orange,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const TokenUpgradeScreen()),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                // Statistiken
-                _DarkCard(
-                  title: 'Statistiken',
-                  children: [
-                    _StatRow(
-                      icon: Icons.star,
-                      label: 'Gesamtpunkte',
-                      value: (stats['totalPoints'] ?? 0).toString(),
-                      color: Colors.amber,
-                    ),
-                    _StatRow(
-                      icon: Icons.location_on,
-                      label: 'Besuchte Orte',
-                      value: (stats['visitedLandmarks'] ?? 0).toString(),
-                      color: Colors.lightBlueAccent,
-                    ),
-                    _StatRow(
+              Row(
+                children: [
+                  Expanded(
+                    child: _ActionButton(
                       icon: Icons.collections,
-                      label: 'Gesammelte Tokens',
-                      value: (stats['collectedTokens'] ?? 0).toString(),
-                      color: Colors.deepPurpleAccent,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                // Standort
-                if (position != null)
-                  _DarkCard(
-                    title: 'Standort',
-                    children: [
-                      Text(
-                        'Lat: ${position.latitude.toStringAsFixed(5)}, Lng: ${position.longitude.toStringAsFixed(5)}',
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                if (position != null) const SizedBox(height: 18),
-
-                // Feedback
-                const _FeedbackCard(),
-
-                const SizedBox(height: 18),
-
-                // DevMode (Button sichtbar, wenn erlaubt)
-                Consumer<DevModeService>(
-                  builder: (context, devMode, _) {
-                    if (!devMode.isAllowed(
-                      username: authService.appUser?.username,
-                      email: authService.appUser?.email,
-                      uid: authService.appUser?.uid,
-                    )) return const SizedBox.shrink();
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 12, bottom: 24),
-                        child: ElevatedButton.icon(
-                          icon: Icon(devMode.enabled ? Icons.developer_mode : Icons.developer_board),
-                          label: Text(devMode.enabled ? 'Entwicklermodus deaktivieren' : 'Entwicklermodus aktivieren'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: devMode.enabled ? Colors.red[400] : Colors.amber[700],
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () => devMode.toggle(),
+                      label: 'Sammlung',
+                      color: Colors.deepPurple,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CollectionScreen(),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          );
-        },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _ActionButton(
+                      icon: Icons.upgrade,
+                      label: 'Token-Upgrade',
+                      color: Colors.orange,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TokenUpgradeScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              _DarkCard(
+                title: 'Statistiken',
+                children: [
+                  _StatRow(
+                    icon: Icons.star,
+                    label: 'Gesamtpunkte',
+                    value: totalPoints.toString(),
+                    color: Colors.amber,
+                  ),
+                  _StatRow(
+                    icon: Icons.location_on,
+                    label: 'Besuchte Orte',
+                    value: visitedLandmarks.toString(),
+                    color: Colors.lightBlueAccent,
+                  ),
+                  _StatRow(
+                    icon: Icons.collections,
+                    label: 'Gesammelte Tokens',
+                    value: collectedTokens.toString(),
+                    color: Colors.deepPurpleAccent,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              const _FeedbackCard(),
+              const SizedBox(height: 18),
+
+              Consumer<DevModeService>(
+                builder: (context, devMode, _) {
+                  if (!devMode.isAllowed(
+                    username: authService.appUser?.username,
+                    email: authService.appUser?.email,
+                    uid: authService.appUser?.uid,
+                  )) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 24),
+                      child: ElevatedButton.icon(
+                        icon: Icon(
+                          devMode.enabled
+                              ? Icons.developer_mode
+                              : Icons.developer_board,
+                        ),
+                        label: Text(
+                          devMode.enabled
+                              ? 'Entwicklermodus deaktivieren'
+                              : 'Entwicklermodus aktivieren',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              devMode.enabled ? Colors.red[400] : Colors.amber[700],
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => devMode.toggle(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
-
-  int _calculateLevel(int points) => (points / 100).floor() + 1;
 }
 
 class _ActionButton extends StatelessWidget {
@@ -268,7 +276,7 @@ class _ActionButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: color.withValues(alpha: 0.4),
+                  color: color.withOpacity(0.4),
                   blurRadius: 10,
                   spreadRadius: 1,
                 ),
@@ -345,6 +353,7 @@ class _FeedbackCardState extends State<_FeedbackCard> {
 
   Future<void> _submitFeedback() async {
     final message = _messageController.text;
+
     if (message.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -360,6 +369,7 @@ class _FeedbackCardState extends State<_FeedbackCard> {
     });
 
     final auth = Provider.of<AuthService>(context, listen: false);
+
     final success = await _feedbackService.sendFeedbackEmail(
       message: message,
       username: auth.appUser?.username,
@@ -384,6 +394,7 @@ class _FeedbackCardState extends State<_FeedbackCard> {
     }
 
     _messageController.clear();
+
     setState(() {
       _selectedImage = null;
     });
@@ -402,7 +413,7 @@ class _FeedbackCardState extends State<_FeedbackCard> {
       title: '✉️ Feedback',
       children: [
         Text(
-          'Schicke Fehlerberichte oder Verbesserungsvorschläge direkt per E-Mail. Die Empfängeradresse ist aktuell noch ein Platzhalter.',
+          'Schicke Fehlerberichte oder Verbesserungsvorschläge direkt per E-Mail.',
           style: TextStyle(color: Colors.grey[400], fontSize: 13),
         ),
         const SizedBox(height: 12),
@@ -436,7 +447,9 @@ class _FeedbackCardState extends State<_FeedbackCard> {
         OutlinedButton.icon(
           onPressed: _isSubmitting ? null : _pickImage,
           icon: const Icon(Icons.image_outlined),
-          label: Text(_selectedImage == null ? 'Optional Bild hochladen' : 'Bild ändern'),
+          label: Text(
+            _selectedImage == null ? 'Optional Bild hochladen' : 'Bild ändern',
+          ),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.amber[300],
             side: BorderSide(color: Colors.amber[700]!),
@@ -483,7 +496,9 @@ class _FeedbackCardState extends State<_FeedbackCard> {
                       },
                 icon: const Icon(Icons.close, size: 16),
                 label: const Text('Entfernen'),
-                style: TextButton.styleFrom(foregroundColor: Colors.red[300]),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red[300],
+                ),
               ),
             ],
           ),
@@ -514,7 +529,10 @@ class _DarkCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _DarkCard({required this.title, required this.children});
+  const _DarkCard({
+    required this.title,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -567,7 +585,10 @@ class _StatRow extends StatelessWidget {
           Icon(icon, color: color, size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(label, style: const TextStyle(color: Colors.white70)),
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white70),
+            ),
           ),
           Text(
             value,
