@@ -43,66 +43,26 @@ class _LoggedInProfile extends StatelessWidget {
             builder: (_, auth, __) => IconButton(
               icon: const Icon(Icons.logout, color: Colors.grey),
               tooltip: 'Abmelden',
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    backgroundColor: Colors.grey[850],
-                    title: const Text('Abmelden?', style: TextStyle(color: Colors.white)),
-                    content: const Text('Möchtest du dich wirklich abmelden?', style: TextStyle(color: Colors.white70)),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Abbrechen'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Abmelden', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirm == true) await auth.logout();
-              },
-            ),
-          ),
-        ],
-      ),
-      body: Consumer3<CollectionService, LocationService, AuthService>(
-        builder: (context, collectionService, locationService, authService, child) {
-          final stats = collectionService.getStatistics();
-          final position = locationService.currentPosition;
-          final level = _calculateLevel(stats['totalPoints'] ?? 0);
-          final username = authService.appUser?.username ?? 'Explorer';
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-<<<<<<< HEAD
-                const SizedBox(height: 12),
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [Colors.amber[700]!, Colors.orange[800]!],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.amber.withOpacity(0.4),
-                        blurRadius: 16,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-=======
-                // Avatar & Name
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.blue[100],
+                              // Avatar & Name
+                              CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Colors.amber[700],
+                                child: const Icon(Icons.person, size: 48, color: Colors.white),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                username,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 6),
+                              Text('Level $level', style: const TextStyle(color: Colors.amber), textAlign: TextAlign.center),
+                              const SizedBox(height: 18),
                   child: Icon(
                     Icons.person,
                     size: 60,
