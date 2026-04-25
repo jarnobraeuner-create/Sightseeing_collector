@@ -80,6 +80,7 @@ class _LoggedInProfile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+<<<<<<< HEAD
                 const SizedBox(height: 12),
                 Container(
                   width: 90,
@@ -97,6 +98,29 @@ class _LoggedInProfile extends StatelessWidget {
                         offset: const Offset(0, 4),
                       ),
                     ],
+=======
+                // Avatar & Name
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.blue[100],
+                  child: Icon(
+                    Icons.person,
+                    size: 60,
+                    color: Colors.blue[700],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Chip(
+                  label: Text(
+                    'Level ${_calculateLevel(stats['totalPoints'] ?? 0)}',
+                  ),
+                  backgroundColor: Colors.amber[100],
+                ),
+                const SizedBox(height: 8),
+                Chip(
+                  label: Text(
+                    'Level ${_calculateLevel(stats['totalPoints'] ?? 0)}',
+>>>>>>> feature/erste-aenderung
                   ),
                   child: const Icon(Icons.person, size: 48, color: Colors.white),
                 ),
