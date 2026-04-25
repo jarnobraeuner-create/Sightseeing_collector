@@ -30,12 +30,12 @@ class ProfileScreen extends StatelessWidget {
                     color: Colors.blue[700],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Sightseeing Explorer',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                const SizedBox(height: 8),
+                Chip(
+                  label: Text(
+                    'Level ${_calculateLevel(stats['totalPoints'] ?? 0)}',
+                  ),
+                  backgroundColor: Colors.amber[100],
                 ),
                 const SizedBox(height: 8),
                 Chip(
