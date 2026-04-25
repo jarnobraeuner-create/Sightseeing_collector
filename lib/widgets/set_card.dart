@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/landmark_service.dart';
+import '../services/collection_service.dart';
 
 class SetCard extends StatelessWidget {
   final CollectionSet set;
@@ -160,7 +161,7 @@ class SetCard extends StatelessWidget {
                           const SizedBox(height: 8),
                           Text(
                             token.tier.displayName,
-                            style: TextStyle(color: Colors.amber[300], fontSize: 14),
+                            style: TextStyle(color: Colors.amber, fontSize: 14),
                           ),
                           Text(
                             '${token.points} Punkte',
@@ -196,11 +197,6 @@ class SetCard extends StatelessWidget {
           ),
         );
       }).toList(),
-    );
-  }
-          ],
-        ),
-      ),
     );
   }
 
