@@ -115,16 +115,26 @@ class SetCard extends StatelessWidget {
   Widget _buildCollectedTokens(BuildContext context) {
     final collectionService = Provider.of<CollectionService>(context, listen: false);
     final landmarkService = Provider.of<LandmarkService>(context, listen: false);
-    final collectedTokens = collectionService.tokens
-        .where((t) => set.collectedTokenIds.contains(t.landmarkId))
-        .toList();
-    if (collectedTokens.isEmpty) {
+    // Für jede gesammelte landmarkId das höchste Tier finden
+    final List<Token> highestTokens = set.collectedTokenIds.map((landmarkId) {
+      final tokens = collectionService.tokens.where((t) => t.landmarkId == landmarkId).toList();
+      if (tokens.isEmpty) return null;
+      tokens.sort((a, b) {
+        if (a.tier == null && b.tier != null) return 1;
+        if (a.tier != null && b.tier == null) return -1;
+        if (a.tier == null && b.tier == null) return 0;
+        return b.tier!.index.compareTo(a.tier!.index);
+      });
+      return tokens.first;
+    }).where((t) => t != null).cast<Token>().toList();
+    if (highestTokens.isEmpty) {
       return const Text('Noch keine Tokens gesammelt.');
     }
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: collectedTokens.map((token) {
+      children: highestTokens.map((token) {
+        if (token == null) return const SizedBox.shrink();
         return GestureDetector(
           onTap: () {
             showDialog(
@@ -143,26 +153,37 @@ class SetCard extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Großes Token-Bild
                           AspectRatio(
                             aspectRatio: 1,
-                            child: Image.asset(
-                              landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
-                            ),
+                            child: token.weltwunder != null
+                                ? Image.network(
+                                    token.weltwunder!.imageUrl,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
+                                  )
+                                : Image.asset(
+                                    landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
+                                  ),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            token.landmarkName,
+                            token.weltwunder?.name ?? token.landmarkName,
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            token.tier.displayName,
-                            style: TextStyle(color: Colors.amber, fontSize: 14),
-                          ),
+                          if (token.tier != null)
+                            Text(
+                              token.tier!.displayName,
+                              style: const TextStyle(color: Colors.amber, fontSize: 14),
+                            )
+                          else
+                            const Text(
+                              'Weltwunder',
+                              style: TextStyle(color: Colors.amber, fontSize: 14),
+                            ),
                           Text(
                             '${token.points} Punkte',
                             style: const TextStyle(color: Colors.white70, fontSize: 13),
@@ -172,6 +193,15 @@ class SetCard extends StatelessWidget {
                             'Kategorie: ${token.category}',
                             style: const TextStyle(color: Colors.white38, fontSize: 12),
                           ),
+                          if (token.weltwunder != null && token.weltwunder!.description.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                token.weltwunder!.description,
+                                style: const TextStyle(color: Colors.white60, fontSize: 12),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -182,18 +212,31 @@ class SetCard extends StatelessWidget {
           },
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
-              width: 48,
-              height: 48,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 48,
-                height: 48,
-                color: Colors.grey[300],
-                child: const Icon(Icons.emoji_events, color: Colors.amber),
-              ),
-            ),
+            child: token.weltwunder != null
+                ? Image.network(
+                    token.weltwunder!.imageUrl,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 48,
+                      height: 48,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.emoji_events, color: Colors.amber),
+                    ),
+                  )
+                : Image.asset(
+                    landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 48,
+                      height: 48,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.emoji_events, color: Colors.amber),
+                    ),
+                  ),
           ),
         );
       }).toList(),

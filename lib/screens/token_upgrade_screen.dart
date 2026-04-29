@@ -467,7 +467,7 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
     final List<Token> eligible;
     if (_selectedTokenToUpgrade == null) {
       eligible = tokens
-        .where((t) => t.tier != TokenTier.monumente)
+        .where((t) => t.tier != TokenTier.monumente && t.tier != TokenTier.weltwunder)
         .toList();
     } else {
       // Opfertokens: gleiche Stufe, beliebiges Landmark

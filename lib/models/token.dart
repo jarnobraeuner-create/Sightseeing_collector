@@ -36,6 +36,23 @@ enum TokenTier {
   }
 }
 
+class Weltwunder {
+  final String id;
+  final String name;
+  final String description;
+  final String imageUrl;
+  final double latitude;
+  final double longitude;
+  Weltwunder({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.imageUrl,
+    required this.latitude,
+    required this.longitude,
+  });
+}
+
 class Token {
   final String id;
   final String landmarkId;
@@ -44,7 +61,8 @@ class Token {
   final DateTime collectedAt;
   final int points;
   final List<String> setIds;
-  final TokenTier tier;
+  final TokenTier? tier; // null für Weltwunder
+  final Weltwunder? weltwunder; // falls Weltwunder
 
   Token({
     required this.id,
@@ -54,7 +72,8 @@ class Token {
     required this.collectedAt,
     required this.points,
     this.setIds = const [],
-    this.tier = TokenTier.bronze,
+    this.tier,
+    this.weltwunder,
   });
 
   Map<String, dynamic> toJson() => {
@@ -62,10 +81,10 @@ class Token {
         'landmarkId': landmarkId,
         'landmarkName': landmarkName,
         'category': category,
-        'collectedAt': collectedAt.toIso8601String(),
         'points': points,
         'setIds': setIds,
-        'tier': tier.name,
+        'tier': tier?.name,
+        // weltwunder: serialization nach Bedarf ergänzen
       };
 
   factory Token.fromJson(Map<String, dynamic> json) => Token(
@@ -76,9 +95,12 @@ class Token {
         collectedAt: DateTime.parse(json['collectedAt']),
         points: json['points'],
         setIds: List<String>.from(json['setIds'] ?? []),
-        tier: TokenTier.values.firstWhere(
-          (t) => t.name == (json['tier'] ?? 'bronze'),
-          orElse: () => TokenTier.bronze,
-        ),
+        tier: json['tier'] != null
+            ? TokenTier.values.firstWhere(
+                (t) => t.name == json['tier'],
+                orElse: () => TokenTier.bronze,
+              )
+            : null,
+        // weltwunder: deserialization nach Bedarf ergänzen
       );
 }

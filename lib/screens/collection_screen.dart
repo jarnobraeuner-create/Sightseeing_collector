@@ -168,6 +168,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
       case TokenTier.gold:   tierColor = Colors.amber[500]!; break;
       case TokenTier.platinum: tierColor = Colors.cyan[300]!; break;
       case TokenTier.monumente: tierColor = Colors.deepPurpleAccent; break;
+      case null: tierColor = Colors.tealAccent; break; // Weltwunder
     }
 
     String tierEmoji;
@@ -177,6 +178,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
       case TokenTier.gold:   tierEmoji = '🥇'; break;
       case TokenTier.platinum: tierEmoji = '💎'; break;
       case TokenTier.monumente: tierEmoji = '🏛️'; break;
+      case null: tierEmoji = '🌍'; break; // Weltwunder
     }
 
     showDialog(

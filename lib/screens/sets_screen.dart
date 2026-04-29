@@ -592,59 +592,131 @@ class _TokenChipState extends State<_TokenChip> {
   OverlayEntry? _overlay;
   final GlobalKey _key = GlobalKey();
 
-  void _showPopup() {
-    _removePopup();
-    final box = _key.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final pos = box.localToGlobal(Offset.zero);
-    final size = box.size;
 
-    _overlay = OverlayEntry(
-      builder: (_) => GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: _removePopup,
-        child: Stack(
-          children: [
-            Positioned(
-              left: pos.dx + size.width / 2 - 70,
-              top: pos.dy + size.height + 6,
-              child: Material(
-                color: Colors.transparent,
+  void _showPopup() {
+    if (widget.collected && widget.landmark != null) {
+      // Großes Pop-up für gesammelte Tokens: immer höchstes Tier anzeigen
+      final collectionService = Provider.of<CollectionService>(context, listen: false);
+      final tokens = collectionService.tokens.where((t) => t.landmarkId == widget.landmark!.id).toList();
+      if (tokens.isEmpty) return;
+      tokens.sort((a, b) => b.tier.index.compareTo(a.tier.index));
+      final token = tokens.first;
+      final landmarkService = Provider.of<LandmarkService>(context, listen: false);
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pop(),
+            child: Center(
+              child: GestureDetector(
+                onTap: () {}, // Damit das Pop-up selbst nicht schließt
                 child: Container(
-                  width: 140,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 7),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[850],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[600]!, width: 1),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Text(
-                    widget.name,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500),
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.7,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 1,
+                          child: Image.asset(
+                            landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          token.landmarkName,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          token.tier.displayName,
+                          style: TextStyle(color: Colors.amber, fontSize: 14),
+                        ),
+                        Text(
+                          '${token.points} Punkte',
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Kategorie: ${token.category}',
+                          style: const TextStyle(color: Colors.white38, fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Kleines Overlay für fehlende Tokens
+      _removePopup();
+      final box = _key.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null) return;
+      final pos = box.localToGlobal(Offset.zero);
+      final size = box.size;
 
-    Overlay.of(context).insert(_overlay!);
-    // Auto-dismiss after 2 seconds
-    Future.delayed(const Duration(seconds: 2), _removePopup);
+      _overlay = OverlayEntry(
+        builder: (_) => GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _removePopup,
+          child: Stack(
+            children: [
+              Positioned(
+                left: pos.dx + size.width / 2 - 70,
+                top: pos.dy + size.height + 6,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    width: 140,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[850],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[600]!, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      widget.name,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      Overlay.of(context).insert(_overlay!);
+      // Auto-dismiss after 2 seconds
+      Future.delayed(const Duration(seconds: 2), _removePopup);
+    }
   }
 
   void _removePopup() {
@@ -664,7 +736,7 @@ class _TokenChipState extends State<_TokenChip> {
     final landmark = widget.landmark;
 
     return GestureDetector(
-      onTap: !collected ? _showPopup : null,
+      onTap: _showPopup,
       child: Container(
         key: _key,
         width: 44,
@@ -683,18 +755,28 @@ class _TokenChipState extends State<_TokenChip> {
             fit: StackFit.expand,
             children: [
               if (collected && landmark != null)
-                Image.asset(
-                  landmark.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      Container(color: Colors.black),
+                Builder(
+                  builder: (context) {
+                    final collectionService = Provider.of<CollectionService>(context, listen: false);
+                    final tokens = collectionService.tokens.where((t) => t.landmarkId == landmark.id).toList();
+                    if (tokens.isEmpty) {
+                      return Container(color: Colors.black);
+                    }
+                    tokens.sort((a, b) => b.tier.index.compareTo(a.tier.index));
+                    final token = tokens.first;
+                    final landmarkService = Provider.of<LandmarkService>(context, listen: false);
+                    return Image.asset(
+                      landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: Colors.black),
+                    );
+                  },
                 )
               else
                 Container(color: Colors.black),
               if (!collected)
                 const Center(
-                  child:
-                      Icon(Icons.lock, color: Colors.white38, size: 16),
+                  child: Icon(Icons.lock, color: Colors.white38, size: 16),
                 ),
               if (collected)
                 Positioned(
@@ -706,8 +788,7 @@ class _TokenChipState extends State<_TokenChip> {
                       color: Colors.green,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check,
-                        size: 9, color: Colors.white),
+                    child: const Icon(Icons.check, size: 9, color: Colors.white),
                   ),
                 ),
             ],

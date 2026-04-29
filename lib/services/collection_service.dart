@@ -436,29 +436,35 @@ class CollectionService extends ChangeNotifier {
   // â”€â”€â”€ Token Upgrade System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   bool canUpgradeToken(String landmarkId, TokenTier fromTier) {
+    if (fromTier == TokenTier.monumente) {
+      return false;
+    }
+    // Weltwunder können nicht geupgradet werden (werden nicht als TokenTier behandelt)
     final count = _tokens
-        .where((t) => t.landmarkId == landmarkId && t.tier == fromTier)
-        .length;
+      .where((t) => t.landmarkId == landmarkId && t.tier == fromTier)
+      .length;
     return count >= 5;
   }
 
   void upgradeTokens(String landmarkId, TokenTier fromTier, TokenTier toTier) {
+    if (fromTier == TokenTier.monumente || toTier == TokenTier.monumente) {
+      debugPrint('Upgrade auf oder von Monumente nicht erlaubt');
+      return;
+    }
+    // Weltwunder können nicht geupgradet werden (werden nicht als TokenTier behandelt)
     final tokensToUpgrade = _tokens
         .where((t) => t.landmarkId == landmarkId && t.tier == fromTier)
         .take(5)
         .toList();
-
     if (tokensToUpgrade.length < 5) {
       debugPrint('Not enough tokens to upgrade');
       return;
     }
-
     for (var token in tokensToUpgrade) {
       _tokens.remove(token);
       _totalPoints -= token.points;
       _deleteTokenFromFirestore(token.id);
     }
-
     final firstToken = tokensToUpgrade.first;
     final newToken = Token(
       id: const Uuid().v4(),
@@ -470,9 +476,9 @@ class CollectionService extends ChangeNotifier {
       setIds: firstToken.setIds,
       tier: toTier,
     );
-
     _tokens.add(newToken);
     _totalPoints += newToken.points;
+    _rebuildSetsState();
     notifyListeners();
     _persistToken(newToken);
     _persistCoins();
@@ -484,11 +490,14 @@ class CollectionService extends ChangeNotifier {
     TokenTier toTier,
   ) {
     final mainToken = _tokens.firstWhere((t) => t.id == mainTokenId);
-
+    if (toTier == TokenTier.monumente || mainToken.tier == TokenTier.monumente) {
+      debugPrint('Upgrade auf oder von Monumente nicht erlaubt');
+      return;
+    }
+    // Weltwunder können nicht geupgradet werden (werden nicht als TokenTier behandelt)
     _tokens.removeWhere((t) => t.id == mainTokenId);
     _totalPoints -= mainToken.points;
     _deleteTokenFromFirestore(mainTokenId);
-
     for (final id in sacrificeTokenIds) {
       final sacrifice =
           _tokens.firstWhere((t) => t.id == id, orElse: () => mainToken);
@@ -496,7 +505,6 @@ class CollectionService extends ChangeNotifier {
       _totalPoints -= sacrifice.points;
       _deleteTokenFromFirestore(id);
     }
-
     final newToken = Token(
       id: const Uuid().v4(),
       landmarkId: mainToken.landmarkId,
@@ -507,9 +515,9 @@ class CollectionService extends ChangeNotifier {
       setIds: mainToken.setIds,
       tier: toTier,
     );
-
     _tokens.add(newToken);
     _totalPoints += newToken.points;
+    _rebuildSetsState();
     notifyListeners();
     _persistToken(newToken);
     _persistCoins();
@@ -523,6 +531,15 @@ class CollectionService extends ChangeNotifier {
 
   // Alle Tokens für Testzwecke sammeln (alle Tiers pro Landmark)
   void collectAllTokensForTesting(List<Landmark> landmarks) {
+    const weltwunderIds = [
+      'koellner_dom',
+      'taj_mahal',
+      'collosseum',
+      'eiffelturm',
+      'freiheitsstatue',
+      'golden_gate_bridge',
+      'hagia_sofia',
+    ];
     for (final landmark in landmarks) {
       for (final tier in TokenTier.values) {
         // Monument-Tokens nur für Monument-fähige Landmarks
@@ -530,6 +547,7 @@ class CollectionService extends ChangeNotifier {
             !LandmarkService.monumentLandmarkIds.contains(landmark.id)) {
           continue;
         }
+        // Weltwunder werden nicht als TokenTier behandelt
         final token = Token(
           id: const Uuid().v4(),
           landmarkId: landmark.id,
@@ -539,6 +557,30 @@ class CollectionService extends ChangeNotifier {
           points: tier.pointValue,
           setIds: landmark.relatedSetIds,
           tier: tier,
+        );
+        _tokens.add(token);
+        _totalPoints += token.points;
+      }
+      // Weltwunder-Tokens explizit anlegen
+      if (weltwunderIds.contains(landmark.id)) {
+        final weltwunder = Weltwunder(
+          id: landmark.id,
+          name: landmark.name,
+          description: landmark.description ?? '',
+          imageUrl: landmark.imageUrl ?? '',
+          latitude: landmark.latitude,
+          longitude: landmark.longitude,
+        );
+        final token = Token(
+          id: const Uuid().v4(),
+          landmarkId: landmark.id,
+          landmarkName: landmark.name,
+          category: landmark.category,
+          collectedAt: DateTime.now(),
+          points: 2000, // Beispielwert für Weltwunder
+          setIds: landmark.relatedSetIds,
+          tier: null,
+          weltwunder: weltwunder,
         );
         _tokens.add(token);
         _totalPoints += token.points;

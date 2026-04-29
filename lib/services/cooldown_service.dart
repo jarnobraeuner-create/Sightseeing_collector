@@ -43,6 +43,7 @@ class CooldownService extends ChangeNotifier {
   /// Returns true if the landmark can be collected right now.
   bool canCollect(String landmarkId, TokenTier tier) {
     if (tier == TokenTier.monumente) return false;
+    // Weltwunder können nicht gesammelt werden (werden nicht als TokenTier behandelt)
     final last = _lastCollected[landmarkId];
     if (last == null) return true; // never collected
     final cooldown = cooldownDuration(tier);

@@ -44,6 +44,98 @@ class LandmarkService extends ChangeNotifier {
 
   void _loadLandmarks() {
     _landmarks.addAll([
+      // ─── Weltwunder Landmarks ───────────────────────────────
+      Landmark(
+        id: 'koellner_dom',
+        name: 'Kölner Dom',
+        description: 'Die berühmte Kathedrale in Köln, UNESCO-Weltkulturerbe und eines der bekanntesten Bauwerke Deutschlands.',
+        latitude: 50.9413,
+        longitude: 6.9583,
+        category: 'weltwunder',
+        difficulty: 'hard',
+        pointsReward: 5000,
+        imageUrl: 'assets/images/köllner_dom_weltwunder.png',
+        relatedSetIds: [],
+        quests: [Quest(id: 'wq1', title: 'Kölner Dom besuchen', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'taj_mahal',
+        name: 'Taj Mahal',
+        description: 'Das weltberühmte Mausoleum in Indien, Symbol ewiger Liebe und UNESCO-Weltkulturerbe.',
+        latitude: 27.1751,
+        longitude: 78.0421,
+        category: 'weltwunder',
+        difficulty: 'hard',
+        pointsReward: 5000,
+        imageUrl: 'assets/images/taj_mahal_weltwunder_token.png',
+        relatedSetIds: [],
+        quests: [Quest(id: 'wq2', title: 'Taj Mahal besuchen', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'collosseum',
+        name: 'Kolosseum',
+        description: 'Das antike Amphitheater in Rom, eines der größten Bauwerke der römischen Antike.',
+        latitude: 41.8902,
+        longitude: 12.4922,
+        category: 'weltwunder',
+        difficulty: 'hard',
+        pointsReward: 5000,
+        imageUrl: 'assets/images/Collosseum_Weltwunder_token.png',
+        relatedSetIds: [],
+        quests: [Quest(id: 'wq3', title: 'Kolosseum besuchen', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'eiffelturm',
+        name: 'Eiffelturm',
+        description: 'Das Wahrzeichen von Paris und eines der berühmtesten Bauwerke der Welt.',
+        latitude: 48.8584,
+        longitude: 2.2945,
+        category: 'weltwunder',
+        difficulty: 'hard',
+        pointsReward: 5000,
+        imageUrl: 'assets/images/Eifelturm_weltwunder_token.png',
+        relatedSetIds: [],
+        quests: [Quest(id: 'wq4', title: 'Eiffelturm besuchen', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'freiheitsstatue',
+        name: 'Freiheitsstatue',
+        description: 'Die Freiheitsstatue in New York ist ein Symbol für Freiheit und Demokratie.',
+        latitude: 40.6892,
+        longitude: -74.0445,
+        category: 'weltwunder',
+        difficulty: 'hard',
+        pointsReward: 5000,
+        imageUrl: 'assets/images/freiheitsstatue_welteunder_token.png',
+        relatedSetIds: [],
+        quests: [Quest(id: 'wq5', title: 'Freiheitsstatue besuchen', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'golden_gate_bridge',
+        name: 'Golden Gate Bridge',
+        description: 'Die berühmte Hängebrücke in San Francisco, ein technisches Meisterwerk.',
+        latitude: 37.8199,
+        longitude: -122.4783,
+        category: 'weltwunder',
+        difficulty: 'hard',
+        pointsReward: 5000,
+        imageUrl: 'assets/images/Goldengatebridge_weltwunder_token.png',
+        relatedSetIds: [],
+        quests: [Quest(id: 'wq6', title: 'Golden Gate Bridge besuchen', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'hagia_sofia',
+        name: 'Hagia Sophia',
+        description: 'Die Hagia Sophia in Istanbul ist ein architektonisches Meisterwerk und UNESCO-Weltkulturerbe.',
+        latitude: 41.0086,
+        longitude: 28.9802,
+        category: 'weltwunder',
+        difficulty: 'hard',
+        pointsReward: 5000,
+        imageUrl: 'assets/images/Hagia_sofia_weltwunder_token.png',
+        relatedSetIds: [],
+        quests: [Quest(id: 'wq7', title: 'Hagia Sophia besuchen', taskType: 'checkin', completed: false)],
+      ),
       // Hamburg Landmarks
       Landmark(
         id: '1',
@@ -1122,6 +1214,8 @@ class LandmarkService extends ChangeNotifier {
   String getImageUrlForTier(String landmarkId, TokenTier tier) {
     final landmark = getLandmarkById(landmarkId);
     if (landmark == null) return 'assets/images/default_token.jpeg';
+    // Weltwunder werden nicht mehr über TokenTier behandelt, sondern über das Weltwunder-Modell
+    // Die Bildauswahl für Weltwunder erfolgt jetzt außerhalb dieser Funktion (z.B. direkt über das Weltwunder-Objekt)
 
     // Spezielle Tier-Bilder für Speicherstadt
     if (landmarkId == '1') {
