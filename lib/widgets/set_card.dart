@@ -134,7 +134,6 @@ class SetCard extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: highestTokens.map((token) {
-        if (token == null) return const SizedBox.shrink();
         return GestureDetector(
           onTap: () {
             showDialog(
@@ -162,7 +161,9 @@ class SetCard extends StatelessWidget {
                                     errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
                                   )
                                 : Image.asset(
-                                    landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                                    token.tier != null
+                                        ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+                                        : 'assets/images/default_token.jpeg',
                                     fit: BoxFit.contain,
                                     errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
                                   ),
@@ -226,7 +227,9 @@ class SetCard extends StatelessWidget {
                     ),
                   )
                 : Image.asset(
-                    landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                    token.tier != null
+                        ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+                        : 'assets/images/default_token.jpeg',
                     width: 48,
                     height: 48,
                     fit: BoxFit.cover,

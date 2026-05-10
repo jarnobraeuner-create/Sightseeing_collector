@@ -20,6 +20,7 @@ class TokenCard extends StatelessWidget {
     return Consumer<LandmarkService>(
       builder: (context, landmarkService, child) {
         final landmark = landmarkService.getLandmarkById(token.landmarkId);
+        final tier = token.tier;
         
         return GestureDetector(
           onTap: onTap,
@@ -44,7 +45,9 @@ class TokenCard extends StatelessWidget {
                             top: Radius.circular(4),
                           ),
                           child: Image.asset(
-                            landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                            tier != null
+                                ? landmarkService.getImageUrlForTier(token.landmarkId, tier)
+                                : 'assets/images/default_token.jpeg',
                             fit: BoxFit.cover,
                             width: double.infinity,
                             errorBuilder: (context, error, stackTrace) => Center(
@@ -90,10 +93,10 @@ class TokenCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              token.tier.displayName,
+                              tier?.displayName ?? 'Weltwunder',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: _getTierColor(token.tier),
+                                color: _getTierColor(tier),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -126,7 +129,10 @@ class TokenCard extends StatelessWidget {
     );
   }
 
-  Color _getTierColor(TokenTier tier) {
+  Color _getTierColor(TokenTier? tier) {
+    if (tier == null) {
+      return Colors.tealAccent;
+    }
     switch (tier) {
       case TokenTier.bronze:
         return Colors.orange[700]!;
@@ -138,8 +144,6 @@ class TokenCard extends StatelessWidget {
         return Colors.cyan[400]!;
       case TokenTier.monumente:
         return Colors.deepPurpleAccent;
-      case TokenTier.weltwunder:
-        return Colors.tealAccent;
     }
   }
 }
