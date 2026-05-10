@@ -281,6 +281,8 @@ class _LootboxDialogState extends State<LootboxDialog>
         return Colors.cyan[300]!;
       case TokenTier.monumente:
         return Colors.deepPurpleAccent;
+      case TokenTier.weltwunder:
+        return Colors.tealAccent;
     }
   }
 
@@ -296,6 +298,8 @@ class _LootboxDialogState extends State<LootboxDialog>
         return '💎';
       case TokenTier.monumente:
         return '🏛️';
+      case TokenTier.weltwunder:
+        return '🌍';
     }
   }
 

@@ -112,6 +112,7 @@ class _MapScreenState extends State<MapScreen> {
       case TokenTier.gold: return 'gold';
       case TokenTier.platinum: return 'platinum';
       case TokenTier.monumente: return 'monumente';
+      case TokenTier.weltwunder: return 'weltwunder';
       default: return 'bronze';
     }
   }
@@ -122,6 +123,7 @@ class _MapScreenState extends State<MapScreen> {
       case 'gold': return TokenTier.gold;
       case 'platinum': return TokenTier.platinum;
       case 'monumente': return TokenTier.monumente;
+      case 'weltwunder': return TokenTier.weltwunder;
       default: return TokenTier.bronze;
     }
   }
@@ -367,6 +369,7 @@ class _MapScreenState extends State<MapScreen> {
       case TokenTier.gold:     pinType = 'gold';   break;
       case TokenTier.platinum: pinType = 'platin'; break;
       case TokenTier.monumente: pinType = 'platin'; break;
+      case TokenTier.weltwunder: pinType = 'gold'; break;
       default:                 pinType = 'bronze';
     }
     final markerIcon = isCollected
@@ -690,7 +693,9 @@ class _MapScreenState extends State<MapScreen> {
         landmarkService: landmarkService,
         cooldownService: cooldownService,
         onCollected: _updateMarkers,
-        pinTier: pinTier,
+        pinTier: landmark.category == 'weltwunder'
+            ? TokenTier.weltwunder
+            : pinTier,
       ),
     );
   }
@@ -789,6 +794,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       case TokenTier.gold: return Colors.amber[500]!;
       case TokenTier.platinum: return Colors.cyan[300]!;
       case TokenTier.monumente: return Colors.deepPurpleAccent;
+      case TokenTier.weltwunder: return Colors.tealAccent;
     }
   }
 
@@ -796,6 +802,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     final tier = widget.pinTier;
     if (tier == TokenTier.platinum) return 'Einmalig – nicht mehr sammelbar';
       if (tier == TokenTier.monumente) return 'Monumente-Tokens sind derzeit nicht verfügbar';
+      if (tier == TokenTier.weltwunder) return 'Weltwunder sind nur einmal sammelbar';
     if (_remaining == null) return '';
     return 'Cooldown: ${CooldownService.formatDuration(_remaining!)}';
   }

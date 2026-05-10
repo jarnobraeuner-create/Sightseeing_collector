@@ -37,6 +37,8 @@ class CooldownService extends ChangeNotifier {
         return null; // one-time only
       case TokenTier.monumente:
         return null; // not collectible on map
+      case TokenTier.weltwunder:
+        return null; // one-time only
     }
   }
 

@@ -1214,8 +1214,9 @@ class LandmarkService extends ChangeNotifier {
   String getImageUrlForTier(String landmarkId, TokenTier tier) {
     final landmark = getLandmarkById(landmarkId);
     if (landmark == null) return 'assets/images/default_token.jpeg';
-    // Weltwunder werden nicht mehr über TokenTier behandelt, sondern über das Weltwunder-Modell
-    // Die Bildauswahl für Weltwunder erfolgt jetzt außerhalb dieser Funktion (z.B. direkt über das Weltwunder-Objekt)
+    if (tier == TokenTier.weltwunder) {
+      return landmark.imageUrl;
+    }
 
     // Spezielle Tier-Bilder für Speicherstadt
     if (landmarkId == '1') {
@@ -1230,6 +1231,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Speicherstadt_platin.png';
         case TokenTier.monumente:
           return 'assets/images/Speicherstandt-monumente_token.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1246,6 +1249,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_Elbphilhamonie_silber.png';
         case TokenTier.monumente:
           return 'assets/images/monument_token.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1262,6 +1267,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_Leiszhalle_platin.png';
         case TokenTier.monumente:
           return 'assets/images/Token_Leiszhalle_platin.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1278,6 +1285,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Michel_platin.png';
         case TokenTier.monumente:
           return 'assets/images/Michel_monumente_token.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1294,6 +1303,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_gold_chilehaus.png';
         case TokenTier.monumente:
           return 'assets/images/Token_gold_chilehaus.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1310,6 +1321,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_gold_tueme.png';
         case TokenTier.monumente:
           return 'assets/images/Token_gold_tueme.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1326,6 +1339,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_HCU.png';
         case TokenTier.monumente:
           return 'assets/images/Token_HCU.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1342,6 +1357,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Token_gold_volksparkstadion.png'; // Fallback
         case TokenTier.monumente:
           return 'assets/images/Token_gold_volksparkstadion.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1358,6 +1375,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Atlantichotel_platin.png';
         case TokenTier.monumente:
           return 'assets/images/Token_Atlantic_Gold.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1374,6 +1393,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Landungsbrücken_platin.png';
         case TokenTier.monumente:
           return 'assets/images/Token_Landungsbrücken_Gold.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1390,6 +1411,8 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Rathaus_platin.png';
         case TokenTier.monumente:
           return 'assets/images/Token_Rathaus_Gold.png';
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
       }
     }
 
@@ -1408,6 +1431,8 @@ class LandmarkService extends ChangeNotifier {
       case TokenTier.platinum:
         return 'assets/images/default_token.jpeg'; // Fallback
       case TokenTier.monumente:
+        return 'assets/images/default_token.jpeg';
+      case TokenTier.weltwunder:
         return 'assets/images/default_token.jpeg';
     }
   }

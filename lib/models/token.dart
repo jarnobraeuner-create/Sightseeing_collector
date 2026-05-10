@@ -3,7 +3,8 @@ enum TokenTier {
   silver,
   gold,
   platinum,
-  monumente;
+  monumente,
+  weltwunder;
 
   String get displayName {
     switch (this) {
@@ -17,6 +18,8 @@ enum TokenTier {
         return 'Platin';
       case TokenTier.monumente:
         return 'Monumente';
+      case TokenTier.weltwunder:
+        return 'Weltwunder';
     }
   }
 
@@ -32,6 +35,8 @@ enum TokenTier {
         return 250;
       case TokenTier.monumente:
         return 1000;
+      case TokenTier.weltwunder:
+        return 2000;
     }
   }
 }
@@ -61,7 +66,7 @@ class Token {
   final DateTime collectedAt;
   final int points;
   final List<String> setIds;
-  final TokenTier? tier; // null für Weltwunder
+  final TokenTier? tier; // nullable for legacy data
   final Weltwunder? weltwunder; // falls Weltwunder
 
   Token({
@@ -100,7 +105,9 @@ class Token {
                 (t) => t.name == json['tier'],
                 orElse: () => TokenTier.bronze,
               )
-            : null,
+            : (json['category'] == 'weltwunder'
+                ? TokenTier.weltwunder
+                : null),
         // weltwunder: deserialization nach Bedarf ergänzen
       );
 }

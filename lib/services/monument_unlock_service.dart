@@ -89,6 +89,8 @@ class MonumentUnlockService {
         return 3;
       case TokenTier.monumente:
         return 4;
+      case TokenTier.weltwunder:
+        return 5;
     }
   }
 

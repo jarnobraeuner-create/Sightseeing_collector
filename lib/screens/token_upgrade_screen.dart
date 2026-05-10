@@ -78,7 +78,10 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
       });
     });
     final initial = widget.initialToken;
-    if (initial != null && initial.tier != null && initial.tier != TokenTier.monumente) {
+    if (initial != null &&
+      initial.tier != null &&
+      initial.tier != TokenTier.monumente &&
+      initial.tier != TokenTier.weltwunder) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => _selectedTokenToUpgrade = initial);
       });
@@ -472,7 +475,10 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
     final List<Token> eligible;
     if (_selectedTokenToUpgrade == null) {
       eligible = tokens
-        .where((t) => t.tier != null && t.tier != TokenTier.monumente)
+        .where((t) =>
+            t.tier != null &&
+            t.tier != TokenTier.monumente &&
+            t.tier != TokenTier.weltwunder)
         .toList();
     } else {
       // Opfertokens: gleiche Stufe, beliebiges Landmark
@@ -1019,6 +1025,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         return Colors.cyan[400]!;
       case TokenTier.monumente:
         return Colors.deepPurpleAccent;
+      case TokenTier.weltwunder:
+        return Colors.tealAccent;
     }
   }
 
@@ -1034,6 +1042,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         return TokenTier.platinum;
       case TokenTier.monumente:
         return TokenTier.monumente;
+      case TokenTier.weltwunder:
+        return TokenTier.weltwunder;
     }
   }
 
@@ -1049,6 +1059,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         return '💎';
       case TokenTier.monumente:
         return '🏛️';
+      case TokenTier.weltwunder:
+        return '🌍';
     }
   }
 }
@@ -1126,6 +1138,7 @@ class _UpgradeResultDialogState extends State<_UpgradeResultDialog>
       case TokenTier.gold: return '🥇 Gold';
       case TokenTier.platinum: return '💎 Platin';
       case TokenTier.monumente: return '🏛️ Monumente';
+      case TokenTier.weltwunder: return '🌍 Weltwunder';
     }
   }
 
