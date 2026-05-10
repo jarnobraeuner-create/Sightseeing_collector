@@ -841,13 +841,13 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     );
   }
 
-  Future<void> _playCollectRewardAnimation(Landmark landmark) async {
+  Future<bool> _playCollectRewardAnimation(Landmark landmark) async {
     final imageAssetPath = widget.landmarkService.getImageUrlForTier(
       landmark.id,
       widget.pinTier,
     );
 
-    await CollectRewardOverlay.show(
+    return CollectRewardOverlay.show(
       context,
       landmarkName: landmark.name,
       imageAssetPath: imageAssetPath,
@@ -874,6 +874,10 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     try {
       final landmark = widget.landmark;
       final awardedCoins = widget.pinTier.pointValue;
+
+      final confirmed = await _playCollectRewardAnimation(landmark);
+      if (!confirmed || !mounted) return;
+
       final tokensBefore = widget.collectionService.tokens.length;
 
       widget.collectionService.collectTokenAllowDuplicate(
@@ -890,7 +894,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
         if (mounted) {
           setState(_refreshCooldown);
         }
-        ScaffoldMessenger.of(ctx).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Token konnte nicht gesammelt werden.'),
             backgroundColor: Colors.orange,
@@ -904,8 +908,6 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
         await widget.cooldownService.recordCollection(landmark.id);
       }
       widget.onCollected();
-
-      await _playCollectRewardAnimation(landmark);
       if (!mounted) return;
 
       final messenger = ScaffoldMessenger.of(context);

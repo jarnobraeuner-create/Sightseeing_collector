@@ -16,13 +16,13 @@ class CollectRewardOverlay extends StatefulWidget {
     required this.tier,
   }) : super(key: key);
 
-  static Future<void> show(
+  static Future<bool> show(
     BuildContext context, {
     required String landmarkName,
     required String imageAssetPath,
     required TokenTier tier,
   }) {
-    return showGeneralDialog<void>(
+    return showGeneralDialog<bool>(
       context: context,
       useRootNavigator: true,
       barrierLabel: 'collect_reward',
@@ -30,20 +30,23 @@ class CollectRewardOverlay extends StatefulWidget {
       barrierColor: Colors.black.withValues(alpha: 0.58),
       transitionDuration: Duration.zero,
       pageBuilder: (dialogContext, _, __) {
-        return Material(
-          color: Colors.transparent,
-          child: SafeArea(
-            child: Center(
-              child: CollectRewardOverlay(
-                landmarkName: landmarkName,
-                imageAssetPath: imageAssetPath,
-                tier: tier,
+        return PopScope(
+          canPop: false,
+          child: Material(
+            color: Colors.transparent,
+            child: SafeArea(
+              child: Center(
+                child: CollectRewardOverlay(
+                  landmarkName: landmarkName,
+                  imageAssetPath: imageAssetPath,
+                  tier: tier,
+                ),
               ),
             ),
           ),
         );
       },
-    );
+    ).then((value) => value ?? false);
   }
 
   @override
@@ -56,15 +59,17 @@ class _CollectRewardOverlayState extends State<CollectRewardOverlay>
   late final Animation<double> _suspenseFade;
   late final Animation<double> _glowPulse;
   late final Animation<double> _tokenScale;
-  late final Animation<double> _tokenFade;
   late final Animation<Offset> _tokenLift;
+  late final Animation<double> _buttonFade;
+
+  bool _isConfirming = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1250),
+      duration: const Duration(milliseconds: 1900),
     );
 
     _suspenseFade = CurvedAnimation(
@@ -74,55 +79,14 @@ class _CollectRewardOverlayState extends State<CollectRewardOverlay>
 
     _glowPulse = TweenSequence<double>([
       TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 0.2, end: 1.0)
+        tween: Tween<double>(begin: 0.18, end: 1.0)
             .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 55,
+        weight: 42,
       ),
       TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 1.0, end: 0.72)
+        tween: Tween<double>(begin: 1.0, end: 0.84)
             .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 45,
-      ),
-    ]).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.18, 0.95, curve: Curves.linear),
-      ),
-    );
-
-    _tokenScale = TweenSequence<double>([
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 0.82, end: 0.9)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 30,
-      ),
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 0.9, end: 1.14)
-            .chain(CurveTween(curve: Curves.easeOutBack)),
-        weight: 35,
-      ),
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 1.14, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 35,
-      ),
-    ]).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.18, 0.9, curve: Curves.linear),
-      ),
-    );
-
-    _tokenFade = TweenSequence<double>([
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 0.0, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 75,
-      ),
-      TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 1.0, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
-        weight: 25,
+        weight: 58,
       ),
     ]).animate(
       CurvedAnimation(
@@ -131,20 +95,45 @@ class _CollectRewardOverlayState extends State<CollectRewardOverlay>
       ),
     );
 
+    _tokenScale = TweenSequence<double>([
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 0.76, end: 0.9)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 24,
+      ),
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 0.9, end: 1.16)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 26,
+      ),
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 1.16, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 50,
+      ),
+    ]).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.1, 0.9, curve: Curves.linear),
+      ),
+    );
+
     _tokenLift = Tween<Offset>(
-      begin: const Offset(0, 0.08),
+      begin: const Offset(0, 0.12),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.22, 0.72, curve: Curves.easeOutCubic),
+        curve: const Interval(0.16, 0.74, curve: Curves.easeOutCubic),
       ),
     );
 
-    _controller.forward().whenComplete(() {
-      if (!mounted) return;
-      Navigator.of(context).pop();
-    });
+    _buttonFade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.58, 1.0, curve: Curves.easeOut),
+    );
+
+    _controller.forward();
   }
 
   @override
@@ -164,127 +153,181 @@ class _CollectRewardOverlayState extends State<CollectRewardOverlay>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        return Opacity(
-          opacity: _tokenFade.value,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Opacity(
-                opacity: _suspenseFade.value,
-                child: Container(
-                  width: 330,
-                  height: 330,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        glow.withValues(alpha: 0.58 * _glowPulse.value),
-                        glow.withValues(alpha: 0.16 * _glowPulse.value),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.62, 1.0],
-                    ),
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Opacity(
+              opacity: _suspenseFade.value,
+              child: Container(
+                width: 480,
+                height: 480,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      glow.withValues(alpha: 0.64 * _glowPulse.value),
+                      glow.withValues(alpha: 0.2 * _glowPulse.value),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 0.62, 1.0],
                   ),
                 ),
               ),
-              Transform.translate(
-                offset: Offset(0, _tokenLift.value.dy * 120),
-                child: Transform.scale(
-                  scale: _tokenScale.value,
-                  child: Container(
-                    width: 212,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.17),
-                          Colors.white.withValues(alpha: 0.08),
-                        ],
-                      ),
-                      border: Border.all(
-                        color: textColor.withValues(alpha: 0.9),
-                        width: 1.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: glow.withValues(alpha: 0.55 * _glowPulse.value),
-                          blurRadius: 42,
-                          spreadRadius: 3,
+            ),
+            SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Opacity(
+                      opacity: math.max(0, _suspenseFade.value - 0.15),
+                      child: Text(
+                        'Belohnung erhalten',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                          fontSize: 18,
                         ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          blurRadius: 18,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
+                      ),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: AspectRatio(
-                            aspectRatio: 1,
-                            child: Image.asset(
-                              widget.imageAssetPath,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: Colors.grey[850],
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  Icons.emoji_events,
-                                  size: 60,
-                                  color: glow,
+                    const SizedBox(height: 16),
+                    Transform.translate(
+                      offset: Offset(0, _tokenLift.value.dy * 130),
+                      child: Transform.scale(
+                        scale: _tokenScale.value,
+                        child: Container(
+                          width: 292,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(28),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.white.withValues(alpha: 0.2),
+                                Colors.white.withValues(alpha: 0.08),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: textColor.withValues(alpha: 0.94),
+                              width: 1.4,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: glow.withValues(alpha: 0.6 * _glowPulse.value),
+                                blurRadius: 54,
+                                spreadRadius: 5,
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                blurRadius: 20,
+                                offset: const Offset(0, 12),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: Image.asset(
+                                    widget.imageAssetPath,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      color: Colors.grey[850],
+                                      alignment: Alignment.center,
+                                      child: Icon(
+                                        Icons.emoji_events,
+                                        size: 72,
+                                        color: glow,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
+                              const SizedBox(height: 14),
+                              Text(
+                                widget.tier.displayName,
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.85,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                widget.landmarkName,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Opacity(
+                      opacity: _buttonFade.value,
+                      child: SizedBox(
+                        width: 252,
+                        height: 54,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0xFF29C76F), Color(0xFF1B974F)],
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: glow.withValues(alpha: 0.35),
+                                blurRadius: 24,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: _isConfirming
+                                ? null
+                                : () {
+                                    setState(() => _isConfirming = true);
+                                    Navigator.of(context).pop(true);
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              foregroundColor: Colors.white,
+                              textStyle: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            child: const Text('hinzufügen'),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          widget.tier.displayName,
-                          style: TextStyle(
-                            color: textColor,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.landmarkName,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              Positioned(
-                top: 120,
-                child: Opacity(
-                  opacity: math.max(0, _suspenseFade.value - 0.2),
-                  child: Text(
-                    'Belohnung erhalten',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.88),
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
