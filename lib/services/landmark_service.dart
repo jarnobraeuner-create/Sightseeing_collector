@@ -55,7 +55,7 @@ class LandmarkService extends ChangeNotifier {
         difficulty: 'hard',
         pointsReward: 5000,
         imageUrl: 'assets/images/köllner_dom_weltwunder.png',
-        relatedSetIds: [],
+        relatedSetIds: ['set_weltwunder'],
         quests: [Quest(id: 'wq1', title: 'Kölner Dom besuchen', taskType: 'checkin', completed: false)],
       ),
       Landmark(
@@ -68,7 +68,7 @@ class LandmarkService extends ChangeNotifier {
         difficulty: 'hard',
         pointsReward: 5000,
         imageUrl: 'assets/images/taj_mahal_weltwunder_token.png',
-        relatedSetIds: [],
+        relatedSetIds: ['set_weltwunder'],
         quests: [Quest(id: 'wq2', title: 'Taj Mahal besuchen', taskType: 'checkin', completed: false)],
       ),
       Landmark(
@@ -81,7 +81,7 @@ class LandmarkService extends ChangeNotifier {
         difficulty: 'hard',
         pointsReward: 5000,
         imageUrl: 'assets/images/Collosseum_Weltwunder_token.png',
-        relatedSetIds: [],
+        relatedSetIds: ['set_weltwunder'],
         quests: [Quest(id: 'wq3', title: 'Kolosseum besuchen', taskType: 'checkin', completed: false)],
       ),
       Landmark(
@@ -94,7 +94,7 @@ class LandmarkService extends ChangeNotifier {
         difficulty: 'hard',
         pointsReward: 5000,
         imageUrl: 'assets/images/Eifelturm_weltwunder_token.png',
-        relatedSetIds: [],
+        relatedSetIds: ['set_weltwunder'],
         quests: [Quest(id: 'wq4', title: 'Eiffelturm besuchen', taskType: 'checkin', completed: false)],
       ),
       Landmark(
@@ -107,7 +107,7 @@ class LandmarkService extends ChangeNotifier {
         difficulty: 'hard',
         pointsReward: 5000,
         imageUrl: 'assets/images/freiheitsstatue_welteunder_token.png',
-        relatedSetIds: [],
+        relatedSetIds: ['set_weltwunder'],
         quests: [Quest(id: 'wq5', title: 'Freiheitsstatue besuchen', taskType: 'checkin', completed: false)],
       ),
       Landmark(
@@ -120,7 +120,7 @@ class LandmarkService extends ChangeNotifier {
         difficulty: 'hard',
         pointsReward: 5000,
         imageUrl: 'assets/images/Goldengatebridge_weltwunder_token.png',
-        relatedSetIds: [],
+        relatedSetIds: ['set_weltwunder'],
         quests: [Quest(id: 'wq6', title: 'Golden Gate Bridge besuchen', taskType: 'checkin', completed: false)],
       ),
       Landmark(
@@ -133,7 +133,7 @@ class LandmarkService extends ChangeNotifier {
         difficulty: 'hard',
         pointsReward: 5000,
         imageUrl: 'assets/images/Hagia_sofia_weltwunder_token.png',
-        relatedSetIds: [],
+        relatedSetIds: ['set_weltwunder'],
         quests: [Quest(id: 'wq7', title: 'Hagia Sophia besuchen', taskType: 'checkin', completed: false)],
       ),
       // Hamburg Landmarks

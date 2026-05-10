@@ -800,6 +800,25 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     return 'Cooldown: ${CooldownService.formatDuration(_remaining!)}';
   }
 
+  Widget _buildGrayDefaultPreview() {
+    return ColorFiltered(
+      colorFilter: const ColorFilter.matrix(<double>[
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0, 0, 0, 1, 0,
+      ]),
+      child: Image.asset(
+        'assets/images/default_token.jpeg',
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          color: Colors.grey[800],
+          child: const Icon(Icons.lock, size: 60, color: Colors.white54),
+        ),
+      ),
+    );
+  }
+
   void _collect(BuildContext ctx) {
     final authService = Provider.of<AuthService>(ctx, listen: false);
     if (!authService.isLoggedIn) {
@@ -971,7 +990,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                             ),
                           )
                         // Phase 1: show specific landmark token
-                        : (landmark.imageUrl.isNotEmpty
+                        : (_isNearby && landmark.imageUrl.isNotEmpty
                             ? Image.asset(
                                 widget.landmarkService
                                     .getImageUrlForTier(landmark.id, tier),
@@ -982,11 +1001,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                                       size: 60, color: Colors.white54),
                                 ),
                               )
-                            : Container(
-                                color: Colors.grey[800],
-                                child: const Icon(Icons.location_on,
-                                    size: 60, color: Colors.amber),
-                              )),
+                            : _buildGrayDefaultPreview()),
                   ),
                 ),
               ),

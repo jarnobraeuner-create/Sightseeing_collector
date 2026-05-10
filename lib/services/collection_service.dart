@@ -32,6 +32,15 @@ class CollectionService extends ChangeNotifier {
     '7', '8', '9', '10', '11', '12',
     '22', '23',
   };
+  static const List<String> _weltwunderSetTokenIds = [
+    'koellner_dom',
+    'taj_mahal',
+    'collosseum',
+    'eiffelturm',
+    'freiheitsstatue',
+    'golden_gate_bridge',
+    'hagia_sofia',
+  ];
 
   String? _userId;
   final List<Token> _tokens = [];
@@ -246,14 +255,32 @@ class CollectionService extends ChangeNotifier {
         bonusPoints: 700,
         rewardImageUrl: 'assets/images/Leipzig_Wappen_Set_token.png',
       ),
+      CollectionSet(
+        id: 'set_weltwunder',
+        name: 'Weltwunder',
+        description: 'Sammle die 7 Weltwunder als eigenes Set',
+        requiredTokenIds: _weltwunderSetTokenIds,
+        bonusPoints: 1200,
+        rewardImageUrl: 'assets/images/Collosseum_Weltwunder_token.png',
+      ),
     ]);
   }
 
   void _rebuildSetsState() {
     _initializeSets();
     for (final token in _tokens) {
-      _updateSets(token.landmarkId, token.setIds);
+      final setIds = token.setIds.isNotEmpty
+          ? token.setIds
+          : _inferSetIdsForLandmark(token.landmarkId);
+      _updateSets(token.landmarkId, setIds);
     }
+  }
+
+  List<String> _inferSetIdsForLandmark(String landmarkId) {
+    return _sets
+        .where((set) => set.requiredTokenIds.contains(landmarkId))
+        .map((set) => set.id)
+        .toList();
   }
 
   // â”€â”€â”€ Token Collection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

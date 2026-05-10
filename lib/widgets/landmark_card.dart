@@ -40,6 +40,9 @@ class _LandmarkCardState extends State<LandmarkCard> {
         : null;
 
     final isCollected = collectionService.hasCollectedToken(widget.landmark.id);
+    final isDevMode = Provider.of<DevModeService>(context).enabled;
+    final isReachable = isDevMode ||
+      (distance != null && distance <= widget.landmark.checkInRadiusKm);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -59,7 +62,23 @@ class _LandmarkCardState extends State<LandmarkCard> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: widget.landmark.imageUrl.isNotEmpty
+                  child: (!isCollected && !isReachable)
+                      ? ColorFiltered(
+                          colorFilter: const ColorFilter.matrix(<double>[
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0, 0, 0, 1, 0,
+                          ]),
+                          child: Image.asset(
+                            'assets/images/default_token.jpeg',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(Icons.lock, size: 40);
+                            },
+                          ),
+                        )
+                      : widget.landmark.imageUrl.isNotEmpty
                       ? Image.asset(
                           widget.landmark.imageUrl,
                           fit: BoxFit.cover,

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/collection_service.dart';
+import '../services/dev_mode_service.dart';
 import '../services/landmark_service.dart';
+import '../services/location_service.dart';
 import '../services/monument_unlock_service.dart';
 import '../widgets/app_lottie.dart';
 
@@ -18,6 +20,8 @@ class SetsScreen extends StatelessWidget {
         return 'assets/images/Token_Elbphilhamonie_silber.png';
       case 'set_leipzig':
         return 'assets/images/Leipzig_Wappen_Set_token.png';
+      case 'set_weltwunder':
+        return 'assets/images/Collosseum_Weltwunder_token.png';
       default:
         return 'assets/images/Token_gold_speicherstadt.png';
     }
@@ -31,6 +35,8 @@ class SetsScreen extends StatelessWidget {
         return '🏛️';
       case 'set_leipzig':
         return '🏙️';
+      case 'set_weltwunder':
+        return '🌍';
       default:
         return '🎖️';
     }
@@ -592,6 +598,31 @@ class _TokenChipState extends State<_TokenChip> {
   OverlayEntry? _overlay;
   final GlobalKey _key = GlobalKey();
 
+  bool _isReachable(Landmark landmark) {
+    final devMode = Provider.of<DevModeService>(context, listen: false).enabled;
+    if (devMode) return true;
+    final position = Provider.of<LocationService>(context, listen: false).currentPosition;
+    if (position == null) return false;
+    final distance = landmark.getDistance(position.latitude, position.longitude);
+    return distance <= landmark.checkInRadiusKm;
+  }
+
+  Widget _grayDefaultToken() {
+    return ColorFiltered(
+      colorFilter: const ColorFilter.matrix(<double>[
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0, 0, 0, 1, 0,
+      ]),
+      child: Image.asset(
+        'assets/images/default_token.jpeg',
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(color: Colors.grey[700]),
+      ),
+    );
+  }
+
 
   void _showPopup() {
     if (widget.collected && widget.landmark != null) {
@@ -741,6 +772,7 @@ class _TokenChipState extends State<_TokenChip> {
   Widget build(BuildContext context) {
     final collected = widget.collected;
     final landmark = widget.landmark;
+    final reachable = landmark != null ? _isReachable(landmark) : false;
 
     return GestureDetector(
       onTap: _showPopup,
@@ -786,6 +818,8 @@ class _TokenChipState extends State<_TokenChip> {
                     );
                   },
                 )
+              else if (!collected && landmark != null && !reachable)
+                _grayDefaultToken()
               else
                 Container(color: Colors.black),
               if (!collected)
