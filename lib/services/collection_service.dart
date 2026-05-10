@@ -326,6 +326,12 @@ class CollectionService extends ChangeNotifier {
     List<String> setIds, {
     TokenTier tier = TokenTier.bronze,
   }) {
+    // Weltwunder dürfen nur einmal vorhanden sein; nach Entfernen sind sie wieder sammelbar.
+    if (tier == TokenTier.weltwunder && hasCollectedToken(landmarkId)) {
+      debugPrint('Weltwunder token already present for landmark: $landmarkId');
+      return;
+    }
+
     final token = Token(
       id: const Uuid().v4(),
       landmarkId: landmarkId,

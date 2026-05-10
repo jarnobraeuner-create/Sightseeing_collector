@@ -765,6 +765,19 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
   void _refreshCooldown() {
     final tier = widget.pinTier;
     final id = widget.landmark.id;
+
+    if (tier == TokenTier.weltwunder) {
+      final inCollection = widget.collectionService.tokens.any(
+        (t) => t.landmarkId == id,
+      );
+      final inSet = widget.collectionService.sets.any(
+        (s) => s.requiredTokenIds.contains(id) && s.collectedTokenIds.contains(id),
+      );
+      _canCollect = !(inCollection || inSet);
+      _remaining = null;
+      return;
+    }
+
     _canCollect = widget.cooldownService.canCollect(id, tier);
     _remaining = widget.cooldownService.remainingCooldown(id, tier);
   }
@@ -802,7 +815,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     final tier = widget.pinTier;
     if (tier == TokenTier.platinum) return 'Einmalig – nicht mehr sammelbar';
       if (tier == TokenTier.monumente) return 'Monumente-Tokens sind derzeit nicht verfügbar';
-      if (tier == TokenTier.weltwunder) return 'Weltwunder sind nur einmal sammelbar';
+      if (tier == TokenTier.weltwunder) return 'Weltwunder bereits in Sammlung/Set vorhanden';
     if (_remaining == null) return '';
     return 'Cooldown: ${CooldownService.formatDuration(_remaining!)}';
   }
@@ -851,7 +864,9 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       landmark.relatedSetIds,
       tier: widget.pinTier,
     );
-    widget.cooldownService.recordCollection(landmark.id);
+    if (widget.pinTier != TokenTier.weltwunder) {
+      widget.cooldownService.recordCollection(landmark.id);
+    }
     widget.onCollected();
 
     if (landmark.isChurch) {
@@ -942,7 +957,9 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
   @override
   Widget build(BuildContext context) {
     final landmark = widget.landmark;
-    final isEverCollected = widget.cooldownService.wasEverCollected(landmark.id);
+    final isEverCollected = widget.pinTier == TokenTier.weltwunder
+        ? widget.collectionService.hasCollectedToken(landmark.id)
+        : widget.cooldownService.wasEverCollected(landmark.id);
     final isFirstCollection = !isEverCollected;
     final tier = widget.pinTier;
     final isPlatinum = tier == TokenTier.platinum;
