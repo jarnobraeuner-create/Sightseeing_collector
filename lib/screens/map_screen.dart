@@ -365,15 +365,9 @@ class _MapScreenState extends State<MapScreen> {
   Marker _buildSingleMarker(Landmark landmark, CollectionService cs) {
     final isCollected = cs.getToken(landmark.id) != null;
     final pinTier = _pinTiers[landmark.id] ?? TokenTier.bronze;
-    String pinType;
-    switch (pinTier) {
-      case TokenTier.silver:   pinType = 'silver'; break;
-      case TokenTier.gold:     pinType = 'gold';   break;
-      case TokenTier.platinum: pinType = 'platin'; break;
-      case TokenTier.monumente: pinType = 'platin'; break;
-      case TokenTier.weltwunder: pinType = 'gold'; break;
-      default:                 pinType = 'bronze';
-    }
+    // Neutral pin before collecting – tier is intentionally not revealed visually.
+    // The actual pinTier is preserved for the collect/reward logic below.
+    const String pinType = 'bronze';
     final markerIcon = isCollected
         ? (_markerIconsGray[pinType] ?? BitmapDescriptor.defaultMarker)
         : (_markerIcons[pinType] ?? BitmapDescriptor.defaultMarker);
@@ -461,15 +455,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   String _dominantPinType(List<Landmark> landmarks) {
-    // Pick highest tier present in the cluster
-    int gold = 0, silver = 0;
-    for (final lm in landmarks) {
-      final t = _pinTiers[lm.id];
-      if (t == TokenTier.gold || t == TokenTier.platinum || t == TokenTier.monumente) gold++;
-      else if (t == TokenTier.silver) silver++;
-    }
-    if (gold > 0) return 'gold';
-    if (silver > 0) return 'silver';
+    // Always use the neutral bronze pin for cluster markers so no tier is revealed.
     return 'bronze';
   }
 

@@ -210,10 +210,6 @@ class _CollectRewardOverlayState extends State<CollectRewardOverlay>
                                 Colors.white.withValues(alpha: 0.08),
                               ],
                             ),
-                            border: Border.all(
-                              color: textColor.withValues(alpha: 0.94),
-                              width: 1.4,
-                            ),
                             boxShadow: [
                               BoxShadow(
                                 color: glow.withValues(alpha: 0.6 * _glowPulse.value),

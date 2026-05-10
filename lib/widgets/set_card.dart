@@ -4,6 +4,23 @@ import '../models/index.dart';
 import '../services/landmark_service.dart';
 import '../services/collection_service.dart';
 
+/// Sanfte, gedämpfte Pastelltöne für den Samt-Velours-Look der Set-Karten.
+/// Die Farbe wird deterministisch anhand der Set-ID vergeben.
+const _kSetPastelPalette = [
+  Color(0xFFF3EAF0), // gedämpftes Malvenrosa
+  Color(0xFFE8EFF5), // staubiges Taubenblau
+  Color(0xFFEAF2EC), // mattes Salbeigrün
+  Color(0xFFF5EFE6), // warmes Sandbeige
+  Color(0xFFEDE8F5), // blasses Lavendel
+  Color(0xFFEFF0E8), // gedämpftes Olivgrün
+  Color(0xFFF0EBE6), // zartes Terrakotta
+  Color(0xFFE6F0F0), // mildes Aquamarin
+];
+
+Color _pastellForSet(String setId) {
+  return _kSetPastelPalette[setId.hashCode.abs() % _kSetPastelPalette.length];
+}
+
 class SetCard extends StatelessWidget {
   final CollectionSet set;
 
@@ -14,8 +31,36 @@ class SetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final base = _pastellForSet(set.id);
+    // Leicht dunklere Variante für den Velours-Tiefeneffekt (Gradient)
+    final deeper = Color.alphaBlend(Colors.black.withValues(alpha: 0.07), base);
+
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [base, deeper],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: base.withValues(alpha: 0.6),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: deeper.withValues(alpha: 0.45),
+          width: 1,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
