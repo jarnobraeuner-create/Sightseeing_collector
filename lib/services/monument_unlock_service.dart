@@ -99,7 +99,7 @@ class MonumentUnlockService {
   ) {
     final minRank = _tierRank(minTier);
     return collectionService.tokens.any(
-      (t) => t.landmarkId == landmarkId && _tierRank(t.tier) >= minRank,
+      (t) => t.landmarkId == landmarkId && t.tier != null && _tierRank(t.tier!) >= minRank,
     );
   }
 

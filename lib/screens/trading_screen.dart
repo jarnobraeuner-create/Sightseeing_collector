@@ -776,7 +776,9 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
           itemBuilder: (context, index) {
             final token = myTokens[index];
             final landmark = landmarksById[token.landmarkId]!;
-            final tokenImageUrl = landmarkService.getImageUrlForTier(landmark.id, token.tier);
+            final tokenImageUrl = token.tier != null
+                ? landmarkService.getImageUrlForTier(landmark.id, token.tier!)
+                : 'assets/images/default_token.jpeg';
             
             return Card(
               color: Colors.grey[850],
@@ -809,7 +811,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${token.tier.displayName} · Wert: ~${token.points} Coins',
+                            '${token.tier?.displayName ?? 'Weltwunder'} · Wert: ~${token.points} Coins',
                             style: TextStyle(color: Colors.grey[400]),
                           ),
                         ],
@@ -865,7 +867,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '${landmark.name} · ${token.tier.displayName}',
+                      '${landmark.name} · ${token.tier?.displayName ?? 'Weltwunder'}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -938,7 +940,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   auth.firebaseUser!.uid,
                   auth.appUser?.username ?? 'Unbekannt',
                   token.id,
-                  '${landmark.name} · ${token.tier.displayName}',
+                  '${landmark.name} · ${token.tier?.displayName ?? 'Weltwunder'}',
                   tokenImageUrl,
                   parsedMinimumCoins,
                   tokenData: token.toJson(),

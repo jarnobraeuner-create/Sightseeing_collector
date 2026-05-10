@@ -789,7 +789,6 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       case TokenTier.gold: return Colors.amber[500]!;
       case TokenTier.platinum: return Colors.cyan[300]!;
       case TokenTier.monumente: return Colors.deepPurpleAccent;
-      case TokenTier.weltwunder: return Colors.tealAccent;
     }
   }
 

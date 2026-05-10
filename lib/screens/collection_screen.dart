@@ -159,7 +159,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
   void _showTokenDetail(BuildContext context, Token token) {
     final landmarkService = Provider.of<LandmarkService>(context, listen: false);
     final landmark = landmarkService.getLandmarkById(token.landmarkId);
-    final imageUrl = landmarkService.getImageUrlForTier(token.landmarkId, token.tier);
+    final imageUrl = token.tier != null
+        ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+        : 'assets/images/default_token.jpeg';
 
     Color tierColor;
     switch (token.tier) {
@@ -240,7 +242,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                       border: Border.all(color: tierColor),
                     ),
                     child: Text(
-                      '$tierEmoji ${token.tier.displayName}  ·  ${token.points} 🪙',
+                      '$tierEmoji ${token.tier?.displayName ?? 'Weltwunder'}  ·  ${token.points} 🪙',
                       style: TextStyle(
                           color: tierColor,
                           fontWeight: FontWeight.bold,

@@ -599,7 +599,12 @@ class _TokenChipState extends State<_TokenChip> {
       final collectionService = Provider.of<CollectionService>(context, listen: false);
       final tokens = collectionService.tokens.where((t) => t.landmarkId == widget.landmark!.id).toList();
       if (tokens.isEmpty) return;
-      tokens.sort((a, b) => b.tier.index.compareTo(a.tier.index));
+      tokens.sort((a, b) {
+        if (a.tier == null && b.tier != null) return 1;
+        if (a.tier != null && b.tier == null) return -1;
+        if (a.tier == null && b.tier == null) return 0;
+        return b.tier!.index.compareTo(a.tier!.index);
+      });
       final token = tokens.first;
       final landmarkService = Provider.of<LandmarkService>(context, listen: false);
       showDialog(
@@ -628,7 +633,9 @@ class _TokenChipState extends State<_TokenChip> {
                         AspectRatio(
                           aspectRatio: 1,
                           child: Image.asset(
-                            landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                            token.tier != null
+                                ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+                                : 'assets/images/default_token.jpeg',
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
                           ),
@@ -641,7 +648,7 @@ class _TokenChipState extends State<_TokenChip> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          token.tier.displayName,
+                          token.tier?.displayName ?? 'Weltwunder',
                           style: TextStyle(color: Colors.amber, fontSize: 14),
                         ),
                         Text(
@@ -762,11 +769,18 @@ class _TokenChipState extends State<_TokenChip> {
                     if (tokens.isEmpty) {
                       return Container(color: Colors.black);
                     }
-                    tokens.sort((a, b) => b.tier.index.compareTo(a.tier.index));
+                    tokens.sort((a, b) {
+                      if (a.tier == null && b.tier != null) return 1;
+                      if (a.tier != null && b.tier == null) return -1;
+                      if (a.tier == null && b.tier == null) return 0;
+                      return b.tier!.index.compareTo(a.tier!.index);
+                    });
                     final token = tokens.first;
                     final landmarkService = Provider.of<LandmarkService>(context, listen: false);
                     return Image.asset(
-                      landmarkService.getImageUrlForTier(token.landmarkId, token.tier),
+                      token.tier != null
+                          ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+                          : 'assets/images/default_token.jpeg',
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(color: Colors.black),
                     );
