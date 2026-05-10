@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -11,6 +12,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/index.dart';
 import '../services/index.dart';
+import '../widgets/collect_reward_overlay.dart';
 import '../widgets/event_dialog.dart';
 
 class MapScreen extends StatefulWidget {
@@ -839,7 +841,21 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     );
   }
 
-  void _collect(BuildContext ctx) {
+  Future<void> _playCollectRewardAnimation(Landmark landmark) async {
+    final imageAssetPath = widget.landmarkService.getImageUrlForTier(
+      landmark.id,
+      widget.pinTier,
+    );
+
+    await CollectRewardOverlay.show(
+      context,
+      landmarkName: landmark.name,
+      imageAssetPath: imageAssetPath,
+      tier: widget.pinTier,
+    );
+  }
+
+  Future<void> _collect(BuildContext ctx) async {
     final authService = Provider.of<AuthService>(ctx, listen: false);
     if (!authService.isLoggedIn) {
       Navigator.pop(ctx);
@@ -854,48 +870,83 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       );
       return;
     }
-    final landmark = widget.landmark;
-    final awardedCoins = widget.pinTier.pointValue;
-    widget.collectionService.collectTokenAllowDuplicate(
-      landmark.id,
-      landmark.name,
-      landmark.category,
-      landmark.pointsReward,
-      landmark.relatedSetIds,
-      tier: widget.pinTier,
-    );
-    if (widget.pinTier != TokenTier.weltwunder) {
-      widget.cooldownService.recordCollection(landmark.id);
-    }
-    widget.onCollected();
 
-    if (landmark.isChurch) {
-      // Fly-away animation, then show church bonus token
-      _flyCtrl.forward().then((_) {
-        if (mounted) {
-          setState(() {
-            _mainCollected = true;
-            _flyCtrl.reset();
-          });
-        }
-      });
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Token gesammelt! +$awardedCoins Coins (${widget.pinTier.displayName})',
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
+    try {
+      final landmark = widget.landmark;
+      final awardedCoins = widget.pinTier.pointValue;
+      final tokensBefore = widget.collectionService.tokens.length;
+
+      widget.collectionService.collectTokenAllowDuplicate(
+        landmark.id,
+        landmark.name,
+        landmark.category,
+        landmark.pointsReward,
+        landmark.relatedSetIds,
+        tier: widget.pinTier,
       );
-    } else {
-      Navigator.pop(ctx);
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Token gesammelt! +$awardedCoins Coins (${widget.pinTier.displayName})',
+
+      final collectSucceeded = widget.collectionService.tokens.length > tokensBefore;
+      if (!collectSucceeded) {
+        if (mounted) {
+          setState(_refreshCooldown);
+        }
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(
+            content: Text('Token konnte nicht gesammelt werden.'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
           ),
-          backgroundColor: Colors.green,
+        );
+        return;
+      }
+
+      if (widget.pinTier != TokenTier.weltwunder) {
+        await widget.cooldownService.recordCollection(landmark.id);
+      }
+      widget.onCollected();
+
+      await _playCollectRewardAnimation(landmark);
+      if (!mounted) return;
+
+      final messenger = ScaffoldMessenger.of(context);
+      if (landmark.isChurch) {
+        // Fly-away animation, then show church bonus token
+        unawaited(_flyCtrl.forward().then((_) {
+          if (mounted) {
+            setState(() {
+              _mainCollected = true;
+              _flyCtrl.reset();
+            });
+          }
+        }));
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Token gesammelt! +$awardedCoins Coins (${widget.pinTier.displayName})',
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        Navigator.of(context).pop();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Token gesammelt! +$awardedCoins Coins (${widget.pinTier.displayName})',
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Beim Einsammeln ist ein Fehler aufgetreten.'),
+          backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -921,14 +972,14 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     Provider.of<EventService>(ctx, listen: false)
         .recordChurchCollected(landmark.id);
 
-    _flyCtrl.forward().then((_) {
+    unawaited(_flyCtrl.forward().then((_) {
       if (mounted) {
         setState(() {
           _churchBonusCollected = true;
           _flyCtrl.reset();
         });
       }
-    });
+    }));
     ScaffoldMessenger.of(ctx).showSnackBar(
       const SnackBar(
         content: Text('Kirchensegen erhalten! +10 Coins ⛪'),
