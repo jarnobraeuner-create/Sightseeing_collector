@@ -290,6 +290,7 @@ class _SetCard extends StatelessWidget {
     final total = set.requiredTokenIds.length;
     final pct = total > 0 ? progress / total : 0.0;
     final isComplete = set.completed;
+    final slotPalette = _SetSlotPalette.forSetId(set.id);
 
     return Card(
       color: Colors.grey[850],
@@ -446,6 +447,7 @@ class _SetCard extends StatelessWidget {
               requiredTokenIds: set.requiredTokenIds,
               collectedTokenIds: set.collectedTokenIds,
               landmarkService: landmarkService,
+              slotPalette: slotPalette,
             ),
           ),
 
@@ -492,11 +494,13 @@ class _PagedTokenGrid extends StatefulWidget {
   final List<String> requiredTokenIds;
   final List<String> collectedTokenIds;
   final LandmarkService landmarkService;
+  final _SetSlotPalette slotPalette;
 
   const _PagedTokenGrid({
     required this.requiredTokenIds,
     required this.collectedTokenIds,
     required this.landmarkService,
+    required this.slotPalette,
   });
 
   @override
@@ -550,6 +554,7 @@ class _PagedTokenGridState extends State<_PagedTokenGrid> {
                     collected: collected,
                     landmark: landmark,
                     name: name,
+                    slotPalette: widget.slotPalette,
                   );
                 }).toList(),
               );
@@ -583,11 +588,13 @@ class _TokenChip extends StatefulWidget {
   final bool collected;
   final Landmark? landmark;
   final String name;
+  final _SetSlotPalette slotPalette;
 
   const _TokenChip({
     required this.collected,
     required this.landmark,
     required this.name,
+    required this.slotPalette,
   });
 
   @override
@@ -773,6 +780,7 @@ class _TokenChipState extends State<_TokenChip> {
     final collected = widget.collected;
     final landmark = widget.landmark;
     final reachable = landmark != null ? _isReachable(landmark) : false;
+    final slotPalette = widget.slotPalette;
 
     return GestureDetector(
       onTap: _showPopup,
@@ -782,11 +790,34 @@ class _TokenChipState extends State<_TokenChip> {
         height: 44,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              slotPalette.velvetLight,
+              slotPalette.velvetBase,
+              slotPalette.velvetDark,
+            ],
+            stops: const [0.0, 0.52, 1.0],
+          ),
           border: Border.all(
-            color: collected ? Colors.green[400]! : Colors.grey[700]!,
+            color: collected
+                ? slotPalette.borderCollected
+                : slotPalette.borderDefault,
             width: 2,
           ),
-          color: collected ? Colors.green[900] : Colors.grey[800],
+          boxShadow: [
+            BoxShadow(
+              color: slotPalette.shadowOuter,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+            BoxShadow(
+              color: slotPalette.shadowInnerGlow,
+              blurRadius: 3,
+              offset: const Offset(0, -1),
+            ),
+          ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(6),
@@ -814,14 +845,30 @@ class _TokenChipState extends State<_TokenChip> {
                           ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
                           : 'assets/images/default_token.jpeg',
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(color: Colors.black),
+                      errorBuilder: (_, __, ___) => Container(
+                        color: slotPalette.placeholderFill,
+                      ),
                     );
                   },
                 )
               else if (!collected && landmark != null && !reachable)
                 _grayDefaultToken()
               else
-                Container(color: Colors.black),
+                Container(color: slotPalette.placeholderFill),
+              if (!collected)
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.07),
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.08),
+                      ],
+                    ),
+                  ),
+                ),
               if (!collected)
                 const Center(
                   child: Icon(Icons.lock, color: Colors.white38, size: 16),
@@ -844,5 +891,76 @@ class _TokenChipState extends State<_TokenChip> {
         ),
       ),
     );
+  }
+}
+
+class _SetSlotPalette {
+  final Color velvetLight;
+  final Color velvetBase;
+  final Color velvetDark;
+  final Color borderDefault;
+  final Color borderCollected;
+  final Color shadowOuter;
+  final Color shadowInnerGlow;
+  final Color placeholderFill;
+
+  const _SetSlotPalette({
+    required this.velvetLight,
+    required this.velvetBase,
+    required this.velvetDark,
+    required this.borderDefault,
+    required this.borderCollected,
+    required this.shadowOuter,
+    required this.shadowInnerGlow,
+    required this.placeholderFill,
+  });
+
+  factory _SetSlotPalette.forSetId(String setId) {
+    switch (setId) {
+      case 'set_hamburg':
+        return const _SetSlotPalette(
+          velvetLight: Color(0xFF6E3A44),
+          velvetBase: Color(0xFF5A2E37),
+          velvetDark: Color(0xFF44232B),
+          borderDefault: Color(0xFFD8AEB8),
+          borderCollected: Color(0xFFEBC0C9),
+          shadowOuter: Color(0x5528141A),
+          shadowInnerGlow: Color(0x33E9CCD2),
+          placeholderFill: Color(0xFF2F1C22),
+        );
+      case 'set_leipzig':
+        return const _SetSlotPalette(
+          velvetLight: Color(0xFF3C5E4A),
+          velvetBase: Color(0xFF324F3E),
+          velvetDark: Color(0xFF263C2F),
+          borderDefault: Color(0xFFB8D7C3),
+          borderCollected: Color(0xFFD0E9D8),
+          shadowOuter: Color(0x5520362A),
+          shadowInnerGlow: Color(0x33CFE9D6),
+          placeholderFill: Color(0xFF1F2D25),
+        );
+      case 'set_weltwunder':
+        return const _SetSlotPalette(
+          velvetLight: Color(0xFF35666B),
+          velvetBase: Color(0xFF2C565A),
+          velvetDark: Color(0xFF204045),
+          borderDefault: Color(0xFFAED7D9),
+          borderCollected: Color(0xFFC6E9EB),
+          shadowOuter: Color(0x55192E31),
+          shadowInnerGlow: Color(0x33CDEEF0),
+          placeholderFill: Color(0xFF1B2F33),
+        );
+      default:
+        return const _SetSlotPalette(
+          velvetLight: Color(0xFF4D5362),
+          velvetBase: Color(0xFF3E4350),
+          velvetDark: Color(0xFF2E323C),
+          borderDefault: Color(0xFFBFC7D5),
+          borderCollected: Color(0xFFD7DEEA),
+          shadowOuter: Color(0x5521242B),
+          shadowInnerGlow: Color(0x33D8E0F0),
+          placeholderFill: Color(0xFF232730),
+        );
+    }
   }
 }
