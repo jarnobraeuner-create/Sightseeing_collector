@@ -1434,6 +1434,42 @@ class LandmarkService extends ChangeNotifier {
       }
     }
 
+    // Spezielle Tier-Bilder für Völkerschlachtdenkmal
+    if (landmarkId == '54') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Völkerschlachtdenkmal_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Völkerschlachtdenkmal_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Völkerschlachtdenkmal_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Bundesverwaltungsgericht
+    if (landmarkId == '55') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Bundesverwaltungsgericht_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Bundesverwaltungsgericht_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Bundesverwaltungsgericht_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
     // Spezielle Tier-Bilder für HCU Hamburg
     if (landmarkId == '17') {
       switch (tier) {
