@@ -1326,6 +1326,114 @@ class LandmarkService extends ChangeNotifier {
       }
     }
 
+    // Spezielle Tier-Bilder für St. Nikolai Kirche
+    if (landmarkId == '28') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Nikolaikirche_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Nikolaikirche_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Nikolaikirche_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Staatsoper Hamburg
+    if (landmarkId == '33') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Staatsoper_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Staatsoper_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Staatsoper_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Planetarium Hamburg
+    if (landmarkId == '35') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Planetarium_brinze.png';
+        case TokenTier.silver:
+          return 'assets/images/Planetarium_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Planetarium_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für St. Petri Kirche
+    if (landmarkId == '41') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Petrikirche_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Petrikirche_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Petrikirche_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Sternwarte Bergedorf
+    if (landmarkId == '45') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Sternwarte_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Sternwarte_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Sternwarte_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Fischauktionshalle (beide IDs)
+    if (landmarkId == '46' || landmarkId == '72') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Fischauktionshalle_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Fischauktionshalle_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Fischauktionshalle_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
     // Spezielle Tier-Bilder für HCU Hamburg
     if (landmarkId == '17') {
       switch (tier) {
