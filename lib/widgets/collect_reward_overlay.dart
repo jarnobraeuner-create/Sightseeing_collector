@@ -90,8 +90,8 @@ class _CollectRewardOverlayState extends State<CollectRewardOverlay>
       duration: const Duration(milliseconds: 3200),
     );
 
-    // Rotation: fast 3 turns (0→6π), then ¾ turn easeOut deceleration (6π→7.5π),
-    // then static. Uses Interval so the spin occupies the first 72% of the timeline.
+    // Rotation: fast 3 turns (0→6π), then 1 full turn easeOut deceleration (6π→8π),
+    // then static. End angle 8π = 4 × 2π = exactly 0° → token lands upright.
     _spinAngle = TweenSequence<double>([
       // Fast clockwise spin: 3 full rotations
       TweenSequenceItem<double>(
@@ -99,15 +99,15 @@ class _CollectRewardOverlayState extends State<CollectRewardOverlay>
             .chain(CurveTween(curve: Curves.easeInOut)),
         weight: 55,
       ),
-      // Deceleration: ¾ more rotation easing to stop
+      // Deceleration: 1 full turn easing to stop — ends exactly at 0° (8π = 4 turns)
       TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 6 * math.pi, end: 7.5 * math.pi)
+        tween: Tween<double>(begin: 6 * math.pi, end: 8 * math.pi)
             .chain(CurveTween(curve: Curves.easeOut)),
         weight: 20,
       ),
-      // At rest — no further rotation
+      // At rest — angle held at 8π (≡ 0°)
       TweenSequenceItem<double>(
-        tween: Tween<double>(begin: 7.5 * math.pi, end: 7.5 * math.pi),
+        tween: Tween<double>(begin: 8 * math.pi, end: 8 * math.pi),
         weight: 25,
       ),
     ]).animate(_controller);
@@ -285,40 +285,49 @@ class _CollectRewardOverlayState extends State<CollectRewardOverlay>
                                 borderRadius: BorderRadius.circular(20),
                                 child: AspectRatio(
                                   aspectRatio: 1,
-                                  child: Transform.rotate(
-                                    angle: _spinAngle.value,
-                                    child: Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        // Default token (fades out during crossfade)
-                                        Opacity(
-                                          opacity: 1.0 - _crossfade.value,
-                                          child: Image.asset(
-                                            widget.defaultImageAssetPath,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                Container(color: Colors.grey[800]),
-                                          ),
-                                        ),
-                                        // Real token (fades in during crossfade)
-                                        Opacity(
-                                          opacity: _crossfade.value,
-                                          child: Image.asset(
-                                            widget.imageAssetPath,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => Container(
-                                              color: Colors.grey[850],
-                                              alignment: Alignment.center,
-                                              child: Icon(
-                                                Icons.emoji_events,
-                                                size: 72,
-                                                color: glow,
+                                  // Outer stack: stable black background + rotating images
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      // Stable non-rotating black background
+                                      Container(color: Colors.black),
+                                      // Rotating layer
+                                      Transform.rotate(
+                                        angle: _spinAngle.value,
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            // Default token (fades out during crossfade)
+                                            Opacity(
+                                              opacity: 1.0 - _crossfade.value,
+                                              child: Image.asset(
+                                                widget.defaultImageAssetPath,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) =>
+                                                    Container(color: Colors.transparent),
                                               ),
                                             ),
-                                          ),
+                                            // Real token (fades in during crossfade)
+                                            Opacity(
+                                              opacity: _crossfade.value,
+                                              child: Image.asset(
+                                                widget.imageAssetPath,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => Container(
+                                                  color: Colors.transparent,
+                                                  alignment: Alignment.center,
+                                                  child: Icon(
+                                                    Icons.emoji_events,
+                                                    size: 72,
+                                                    color: glow,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),

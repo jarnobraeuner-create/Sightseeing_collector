@@ -1052,15 +1052,14 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                               child: const Icon(Icons.church, size: 60, color: Colors.white54),
                             ),
                           )
-                        // Phase 1: show specific landmark token
-                        : (_isNearby && landmark.imageUrl.isNotEmpty
+                        // Phase 1: always show default token to keep the reveal a surprise
+                        : (_isNearby
                             ? Image.asset(
-                                widget.landmarkService
-                                    .getImageUrlForTier(landmark.id, tier),
+                                'assets/images/default_token.jpeg',
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Container(
                                   color: Colors.grey[800],
-                                  child: const Icon(Icons.image_not_supported,
+                                  child: const Icon(Icons.help_outline,
                                       size: 60, color: Colors.white54),
                                 ),
                               )
