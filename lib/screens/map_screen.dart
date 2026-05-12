@@ -365,9 +365,9 @@ class _MapScreenState extends State<MapScreen> {
   Marker _buildSingleMarker(Landmark landmark, CollectionService cs) {
     final isCollected = cs.getToken(landmark.id) != null;
     final pinTier = _pinTiers[landmark.id] ?? TokenTier.bronze;
-    // Neutral pin before collecting – tier is intentionally not revealed visually.
+    // All pins use the same gold image so the tier is not revealed before collecting.
     // The actual pinTier is preserved for the collect/reward logic below.
-    const String pinType = 'bronze';
+    const String pinType = 'gold';
     final markerIcon = isCollected
         ? (_markerIconsGray[pinType] ?? BitmapDescriptor.defaultMarker)
         : (_markerIcons[pinType] ?? BitmapDescriptor.defaultMarker);
@@ -455,8 +455,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   String _dominantPinType(List<Landmark> landmarks) {
-    // Always use the neutral bronze pin for cluster markers so no tier is revealed.
-    return 'bronze';
+    // Always use the gold pin for cluster markers so no tier is revealed.
+    return 'gold';
   }
 
   Future<BitmapDescriptor> _createClusterIcon(
