@@ -839,7 +839,7 @@ class LandmarkService extends ChangeNotifier {
         category: 'sightseeing',
         difficulty: 'easy',
         pointsReward: 110,
-        imageUrl: 'assets/images/default_token.jpeg',
+        imageUrl: 'assets/images/Gewandhaus_bronze.png',
         relatedSetIds: ['set_leipzig'],
         quests: [Quest(id: 'q52', title: 'Gewandhaus besuchen', taskType: 'checkin', completed: false)],
       ),
@@ -852,7 +852,7 @@ class LandmarkService extends ChangeNotifier {
         category: 'sightseeing',
         difficulty: 'easy',
         pointsReward: 100,
-        imageUrl: 'assets/images/default_token.jpeg',
+        imageUrl: 'assets/images/Panoramatower_bronze.png',
         relatedSetIds: ['set_leipzig'],
         quests: [Quest(id: 'q53', title: 'Aussicht genießen', taskType: 'checkin', completed: false)],
       ),
@@ -904,7 +904,7 @@ class LandmarkService extends ChangeNotifier {
         category: 'sightseeing',
         difficulty: 'easy',
         pointsReward: 110,
-        imageUrl: 'assets/images/default_token.jpeg',
+        imageUrl: 'assets/images/Altes_Rathaus_bronze.png',
         relatedSetIds: ['set_leipzig'],
         quests: [Quest(id: 'q57', title: 'Altes Rathaus besuchen', taskType: 'checkin', completed: false)],
       ),
@@ -1034,7 +1034,7 @@ class LandmarkService extends ChangeNotifier {
         category: 'sightseeing',
         difficulty: 'easy',
         pointsReward: 110,
-        imageUrl: 'assets/images/default_token.jpeg',
+        imageUrl: 'assets/images/Mädlerpassage_bronze.png',
         relatedSetIds: ['set_leipzig'],
         quests: [Quest(id: 'q67', title: 'Passage durchqueren', taskType: 'checkin', completed: false)],
       ),
@@ -1047,7 +1047,7 @@ class LandmarkService extends ChangeNotifier {
         category: 'sightseeing',
         difficulty: 'easy',
         pointsReward: 110,
-        imageUrl: 'assets/images/default_token.jpeg',
+        imageUrl: 'assets/images/Oper_Leipzig_bronze.png',
         relatedSetIds: ['set_leipzig'],
         quests: [Quest(id: 'q68', title: 'Oper besuchen', taskType: 'checkin', completed: false)],
       ),
@@ -1461,6 +1461,96 @@ class LandmarkService extends ChangeNotifier {
           return 'assets/images/Bundesverwaltungsgericht_silber.png';
         case TokenTier.gold:
           return 'assets/images/Bundesverwaltungsgericht_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Gewandhaus Leipzig
+    if (landmarkId == '52') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Gewandhaus_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Gewandhaus_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Gewandhaus_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Panoramatower Leipzig
+    if (landmarkId == '53') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Panoramatower_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Panoramatower_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Panoramatower_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Altes Rathaus Leipzig
+    if (landmarkId == '57') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Altes_Rathaus_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Altes_rathaus_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Altes_Rathaus_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Mädlerpassage
+    if (landmarkId == '67') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Mädlerpassage_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Mädlerpassage_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Mädlerpassage_gold.png';
+        case TokenTier.platinum:
+          return landmark.imageUrl;
+        case TokenTier.monumente:
+          return landmark.imageUrl;
+        case TokenTier.weltwunder:
+          return landmark.imageUrl;
+      }
+    }
+
+    // Spezielle Tier-Bilder für Oper Leipzig
+    if (landmarkId == '68') {
+      switch (tier) {
+        case TokenTier.bronze:
+          return 'assets/images/Oper_Leipzig_bronze.png';
+        case TokenTier.silver:
+          return 'assets/images/Oper_leipzig_silber.png';
+        case TokenTier.gold:
+          return 'assets/images/Oper_Leipzig_gold.png';
         case TokenTier.platinum:
           return landmark.imageUrl;
         case TokenTier.monumente:
