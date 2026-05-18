@@ -86,4 +86,14 @@ class LootboxService extends ChangeNotifier {
     _canOpen = true;
     notifyListeners();
   }
+
+  /// Full reset: clears daily lootbox cooldown AND all extra lootboxes.
+  Future<void> resetAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefKey);
+    await prefs.remove(_prefExtraKey);
+    _canOpen = true;
+    _extraLootboxes = 0;
+    notifyListeners();
+  }
 }

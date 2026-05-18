@@ -5,3 +5,5 @@ export 'profile_screen.dart';
 export 'sets_screen.dart';
 export 'auth_screen.dart';
 export 'auth_gate.dart';
+export 'friends_screen.dart';
+export 'leaderboard_screen.dart';

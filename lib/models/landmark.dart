@@ -44,6 +44,7 @@ class Landmark {
   final TokenTier defaultTier;
   final double checkInRadiusKm;
   final bool isChurch;
+  final bool isPark;
 
   Landmark({
     required this.id,
@@ -60,7 +61,14 @@ class Landmark {
     this.defaultTier = TokenTier.bronze,
     this.checkInRadiusKm = 0.1,
     this.isChurch = false,
+    this.isPark = false,
   });
+
+  /// Landmarks that are exclusively for event tracking.
+  /// They never add a token to the main collection.
+  bool get isEventOnly =>
+      (isChurch && imageUrl == 'assets/images/Kirche_default_token.png') ||
+      (isPark && imageUrl == 'assets/images/Park_token.png');
 
   // Calculate distance to user using Haversine formula
   double getDistance(double userLat, double userLon) {

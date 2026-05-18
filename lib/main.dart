@@ -7,10 +7,19 @@ import 'screens/index.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await NotificationService.instance.initialize();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+    // App startet trotzdem - offline-Mode
+  }
+  try {
+    await NotificationService.instance.initialize();
+  } catch (e) {
+    debugPrint('Notification service initialization failed: $e');
+  }
   runApp(const SightseeingCollectorApp());
 }
 
@@ -57,7 +66,24 @@ class SightseeingCollectorApp extends StatelessWidget {
             return service;
           },
         ),
-        ChangeNotifierProvider(create: (_) => EventService()),
+        ChangeNotifierProxyProvider<DevModeService, EventService>(
+          create: (_) => EventService(),
+          update: (_, devMode, event) {
+            event!.setDevMode(devMode.enabled);
+            return event;
+          },
+        ),
+        ChangeNotifierProvider(create: (_) => CosmeticService()),
+        ChangeNotifierProxyProvider<AuthService, FriendService>(
+          create: (_) => FriendService(),
+          update: (_, auth, service) {
+            service!.setUser(
+              auth.isLoggedIn ? auth.firebaseUser?.uid : null,
+              auth.appUser?.username,
+            );
+            return service;
+          },
+        ),
       ],
       child: MaterialApp(
         title: 'Sightseeing Collector',

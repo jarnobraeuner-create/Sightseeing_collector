@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/event_service.dart';
 import '../services/collection_service.dart';
 import '../services/lootbox_service.dart';
+import '../services/dev_mode_service.dart';
 
 /// Zeigt alle aktiven Events als Popup-Dialog.
 class EventDialog extends StatelessWidget {
@@ -429,6 +430,40 @@ class _EventCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   _ClaimButton(onClaim: () => _claimReward(context)),
                 ],
+
+                // ── Dev-Mode: Reset Button ──────────────────────────────────
+                Builder(builder: (ctx) {
+                  final isDevMode = ctx.watch<DevModeService>().enabled;
+                  if (!isDevMode) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          await eventService.resetEvent(event.id);
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                content: Text('🔄 Event "${event.title}" zurückgesetzt'),
+                                backgroundColor: Colors.deepOrange,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.restart_alt, size: 15),
+                        label: const Text('Event zurücksetzen [Dev]', style: TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.deepOrangeAccent,
+                          side: const BorderSide(color: Colors.deepOrangeAccent, width: 1),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ],
             ),
           ),
@@ -499,8 +534,8 @@ class _ClaimButtonState extends State<_ClaimButton>
     super.initState();
     _shimmer = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat();
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -514,9 +549,14 @@ class _ClaimButtonState extends State<_ClaimButton>
     return AnimatedBuilder(
       animation: _shimmer,
       builder: (_, __) {
+        final t = Curves.easeInOut.transform(_shimmer.value);
+        final glowAlpha = 0.35 + t * 0.35;
+        final blurRadius = 10.0 + t * 8.0;
         return GestureDetector(
           onTap: widget.onClaim,
-          child: Container(
+          child: Transform.scale(
+            scale: 1.0 + t * 0.018,
+            child: Container(
             width: double.infinity,
             height: 46,
             decoration: BoxDecoration(
@@ -525,22 +565,21 @@ class _ClaimButtonState extends State<_ClaimButton>
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: const [
-                  Color(0xFFE67E00),
+                  Color(0xFFD4690A),
                   Color(0xFFFFD700),
-                  Color(0xFFE67E00),
+                  Color(0xFFD4690A),
                 ],
                 stops: [
                   0.0,
-                  (_shimmer.value * 1.4 - 0.2).clamp(0.0, 1.0),
+                  t.clamp(0.1, 0.9),
                   1.0,
                 ],
-                transform: GradientRotation(_shimmer.value * math.pi * 0.15),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.amber.withValues(alpha: 0.5),
-                  blurRadius: 12,
-                  spreadRadius: 2,
+                  color: Colors.amber.withValues(alpha: glowAlpha),
+                  blurRadius: blurRadius,
+                  spreadRadius: 1.0 + t,
                 ),
               ],
             ),
@@ -567,6 +606,7 @@ class _ClaimButtonState extends State<_ClaimButton>
                 ),
               ],
             ),
+          ),
           ),
         );
       },

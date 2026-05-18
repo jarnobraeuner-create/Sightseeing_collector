@@ -2,9 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------
     // Hilfsfunktionen
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------
     function signedIn() {
       return request.auth != null;
     }
@@ -20,7 +20,7 @@ service cloud.firestore {
     function isValidUserCreate(userId) {
       return isOwnUser(userId)
         && request.resource.data.keys().hasOnly([
-          'uid', 'username', 'email', 'createdAt', 'coins'
+          'uid', 'username', 'email', 'createdAt', 'coins', 'usernameLower'
         ])
         && request.resource.data.keys().hasAll([
           'uid', 'username', 'email', 'createdAt'
@@ -33,13 +33,15 @@ service cloud.firestore {
         && request.resource.data.email.size() > 0
         && request.resource.data.createdAt is timestamp
         && (!('coins' in request.resource.data)
-            || request.resource.data.coins is number);
+            || request.resource.data.coins is number)
+        && (!('usernameLower' in request.resource.data)
+            || request.resource.data.usernameLower is string);
     }
 
     function isValidUserUpdate(userId) {
       return isOwnUser(userId)
         && request.resource.data.keys().hasOnly([
-          'uid', 'username', 'email', 'createdAt', 'coins'
+          'uid', 'username', 'email', 'createdAt', 'coins', 'usernameLower'
         ])
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.email == resource.data.email
@@ -48,7 +50,9 @@ service cloud.firestore {
         && request.resource.data.username.size() >= 3
         && request.resource.data.username.size() <= 20
         && (!('coins' in request.resource.data)
-            || request.resource.data.coins is number);
+            || request.resource.data.coins is number)
+        && (!('usernameLower' in request.resource.data)
+            || request.resource.data.usernameLower is string);
     }
 
     // Nur coins darf per merge aktualisiert werden (CollectionService)
@@ -152,34 +156,73 @@ service cloud.firestore {
       && request.resource.data.tokenClaimed == true;
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------
     // Users
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------
     match /users/{userId} {
-      // Username-Eindeutigkeit prüfen (nur für authentifizierte User)
+      // Alle eingeloggten User duerfen die Sammlung lesen (fuer Spielersuche & Freunde)
       allow list: if signedIn();
 
-      allow get: if isOwnUser(userId);
+      allow get: if signedIn();
       allow create: if isValidUserCreate(userId);
-      // Profil-Update (username) ODER nur Coins-Update (CollectionService)
+      // Profil-Update (username/usernameLower) ODER nur Coins-Update (CollectionService)
       allow update: if isValidUserUpdate(userId) || isOwnCoinsUpdate(userId);
       allow delete: if isOwnUser(userId);
 
       match /tokens/{tokenId} {
         allow read, write: if isOwnUser(userId);
       }
+
+      match /stats/{statId} {
+        allow read: if signedIn();
+        allow write: if isOwnUser(userId);
+      }
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------
+    // Freundschaftsanfragen
+    // -------------------------------------------------------------
+    match /friend_requests/{requestId} {
+      allow get: if signedIn() && (
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toUid == request.auth.uid
+      );
+      // Abfragen nach fromUid / toUid erlauben
+      allow list: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['fromUid', 'fromUsername', 'toUid', 'toUsername', 'status', 'createdAt'])
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt is timestamp;
+      // Empfaenger darf Status aendern (accepted/rejected)
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['accepted', 'rejected'];
+      allow delete: if signedIn() && (
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toUid == request.auth.uid
+      );
+    }
+
+    // -------------------------------------------------------------
+    // oeffentliche Statistiken (Rangliste)
+    // -------------------------------------------------------------
+    match /public_stats/{userId} {
+      allow read: if signedIn();
+      allow write: if isOwnUser(userId);
+    }
+
+    // -------------------------------------------------------------
     // Auctions
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------
     match /auctions/{auctionId} {
       allow read: if signedIn();
       allow create: if signedIn() && isValidAuctionCreate();
       allow update: if isValidAuctionUpdateBySeller() || isValidBidUpdate() || isValidAcceptBidUpdate() || isValidClaimUpdate();
       allow delete: if isAuctionSeller();
 
-      // Gebote als Subcollection – jeder eingeloggte User darf lesen und eigene Gebote erstellen
+      // Gebote als Subcollection - jeder eingeloggte User darf lesen und eigene Gebote erstellen
       match /bids/{bidId} {
         allow read: if signedIn();
         allow create: if signedIn()
@@ -191,9 +234,9 @@ service cloud.firestore {
       }
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------
     // Alles andere verbieten
-    // ─────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;
     }

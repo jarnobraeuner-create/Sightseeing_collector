@@ -19,19 +19,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   // Page order: Trading(0) | Karte(1) | Sets(2) | Profil(3)
   static const int _initialPage = 1;
-  static const Map<String, String> _taskRewardLandmarkIds = {
-    'task_michel': '4', // Hamburger Michel
-    'task_elbphi': '2', // Elbphilharmonie
-    'task_speicherstadt': '1', // Speicherstadt
-  };
-  static const Map<String, String> _taskRewardTitles = {
-    'task_michel': '🏛️ Michel-Belohnung',
-    'task_elbphi': '🏛️ Elbphi-Belohnung',
-    'task_speicherstadt': '🏛️ Speicherstadt-Belohnung',
-  };
   late final PageController _pageController;
   int _currentPage = _initialPage;
-  bool _isProcessingMonumentRewards = false;
 
   @override
   void initState() {
@@ -89,32 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // _maybeGrantMonumentTaskRewards entfernt
   }
 
-  bool _hasMonumentTokenForLandmark(
-    CollectionService collectionService,
-    String landmarkId,
-  ) {
-    return collectionService.tokens.any(
-      (t) => t.landmarkId == landmarkId && t.tier == TokenTier.monumente,
-    );
-  }
 
-  // Monumente-Belohnungs-Dialog und zugehörige Logik entfernt
-
-  Future<void> _showMonumentRewardSequence(
-    Landmark rewardLandmark,
-    String title,
-  ) async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => LootboxDialog(
-        forcedTier: TokenTier.monumente,
-        forcedLandmarkId: rewardLandmark.id,
-        displayOnlyReward: true,
-        customTitle: title,
-      ),
-    );
-  }
 
   void _showSetCompletedBanner(CollectionSet set) {
     if (!mounted) return;
@@ -461,7 +425,9 @@ class LandmarkDetailScreen extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             distance != null
-                                ? '${distance.toStringAsFixed(2)} km away'
+                                ? distance < 1.0
+                                    ? '${(distance * 1000).toStringAsFixed(0)} m away'
+                                    : '${distance.toStringAsFixed(2)} km away'
                                 : 'Location unavailable',
                             style: TextStyle(
                               color: isNearby ? Colors.green : Colors.grey[600],
@@ -568,6 +534,7 @@ class LandmarkDetailScreen extends StatelessWidget {
                                         );
                                         return;
                                       }
+                                      
                                       collectionService.collectToken(
                                         landmark.id,
                                         landmark.name,
@@ -575,15 +542,26 @@ class LandmarkDetailScreen extends StatelessWidget {
                                         landmark.pointsReward,
                                         landmark.relatedSetIds,
                                       );
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Token collected! +${landmark.pointsReward} points',
-                                          ),
-                                          backgroundColor: Colors.green,
+                                      
+                                      // Get the tier of the newly collected token
+                                      final lastToken = collectionService.tokens.isNotEmpty 
+                                        ? collectionService.tokens.last 
+                                        : null;
+                                      
+                                      // Close landmark dialog
+                                      Navigator.pop(context);
+                                      
+                                      // Show animation dialog
+                                      showDialog<void>(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (_) => TokenCollectionDialog(
+                                          landmarkName: landmark.name,
+                                          landmarkCategory: landmark.category,
+                                          collectedTier: lastToken?.tier,
+                                          points: landmark.pointsReward,
                                         ),
                                       );
-                                      Navigator.pop(context);
                                     }
                                   : null),
                           icon: Icon(
