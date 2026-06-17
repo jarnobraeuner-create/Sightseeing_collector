@@ -44,7 +44,8 @@ class Landmark {
   final TokenTier defaultTier;
   final double checkInRadiusKm;
   final bool isChurch;
-  final bool isPark;
+  final String mode; // 'day', 'night', oder andere Modi für Erweiterbarkeit
+  final List<String> eventIds; // Event-IDs bei denen dieser Standort mitmacht
 
   Landmark({
     required this.id,
@@ -61,14 +62,9 @@ class Landmark {
     this.defaultTier = TokenTier.bronze,
     this.checkInRadiusKm = 0.1,
     this.isChurch = false,
-    this.isPark = false,
+    this.mode = 'day', // Default zu Tagesmodus
+    this.eventIds = const [],
   });
-
-  /// Landmarks that are exclusively for event tracking.
-  /// They never add a token to the main collection.
-  bool get isEventOnly =>
-      (isChurch && imageUrl == 'assets/images/Kirche_default_token.png') ||
-      (isPark && imageUrl == 'assets/images/Park_token.png');
 
   // Calculate distance to user using Haversine formula
   double getDistance(double userLat, double userLon) {
@@ -106,6 +102,7 @@ class Landmark {
         'quests': quests.map((q) => q.toJson()).toList(),
         'relatedSetIds': relatedSetIds,
         'defaultTier': defaultTier.name,
+        'mode': mode,
       };
 
   factory Landmark.fromJson(Map<String, dynamic> json) => Landmark(
@@ -127,5 +124,6 @@ class Landmark {
           (e) => e.name == json['defaultTier'],
           orElse: () => TokenTier.bronze,
         ),
+        mode: json['mode'] as String? ?? 'day',
       );
 }

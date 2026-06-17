@@ -7,8 +7,9 @@ import 'notification_service.dart';
 import 'landmark_service.dart';
 
 class CollectionService extends ChangeNotifier {
-    // Anzahl der Lootboxen (Dummy-Implementierung, bitte ggf. anpassen)
-    int get lootboxCount => 0; // TODO: Hier die echte Anzahl der Lootboxen aus dem User-Objekt oder Firestore zurückgeben
+  // Anzahl der Lootboxen (Dummy-Implementierung, bitte ggf. anpassen)
+  int get lootboxCount =>
+      0; // TODO: Hier die echte Anzahl der Lootboxen aus dem User-Objekt oder Firestore zurückgeben
   static const String _monumentRewardClaimedKey = 'monument_reward_claimed';
   bool _monumentRewardAvailable = false;
 
@@ -27,20 +28,18 @@ class CollectionService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_monumentRewardClaimedKey) ?? false;
   }
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const Set<String> _removedLandmarkIds = {
-    '7', '8', '9', '10', '11', '12',
-    '22', '23',
+    '7',
+    '8',
+    '9',
+    '10',
+    '11',
+    '12',
+    '22',
+    '23',
   };
-  static const List<String> _weltwunderSetTokenIds = [
-    'koellner_dom',
-    'taj_mahal',
-    'collosseum',
-    'eiffelturm',
-    'freiheitsstatue',
-    'golden_gate_bridge',
-    'hagia_sofia',
-  ];
 
   String? _userId;
   final List<Token> _tokens = [];
@@ -53,7 +52,8 @@ class CollectionService extends ChangeNotifier {
   List<CollectionSet> get sets => _sets;
   int get totalPoints => _totalPoints;
   bool get isLoaded => _isLoaded;
-  /// Enthält das zuletzt abgeschlossene Set (null wenn keines). 
+
+  /// Enthält das zuletzt abgeschlossene Set (null wenn keines).
   /// Nach Anzeige via [clearLastCompletedSet] zurücksetzen.
   CollectionSet? get lastCompletedSet => _lastCompletedSet;
 
@@ -100,11 +100,8 @@ class CollectionService extends ChangeNotifier {
         _totalPoints = (userDoc.data()?['coins'] as num?)?.toInt() ?? 0;
       }
 
-      final tokensSnap = await _db
-          .collection('users')
-          .doc(uid)
-          .collection('tokens')
-          .get();
+      final tokensSnap =
+          await _db.collection('users').doc(uid).collection('tokens').get();
 
       _tokens.clear();
       for (final doc in tokensSnap.docs) {
@@ -167,8 +164,8 @@ class CollectionService extends ChangeNotifier {
         await _db
             .collection('auctions')
             .doc(doc.id)
-            .update({'tokenClaimed': true})
-            .catchError((e) => debugPrint('Error marking claimed: $e'));
+            .update({'tokenClaimed': true}).catchError(
+                (e) => debugPrint('Error marking claimed: $e'));
       }
     } catch (e) {
       debugPrint('Error claiming won auctions: $e');
@@ -191,7 +188,8 @@ class CollectionService extends ChangeNotifier {
       CollectionSet(
         id: 'set_hamburg',
         name: 'Hamburg',
-        description: 'Sammle alle klassischen Sehensw\u00fcrdigkeiten in Hamburg',
+        description:
+            'Sammle alle klassischen Sehensw\u00fcrdigkeiten in Hamburg',
         requiredTokenIds: [
           '1',
           '2',
@@ -251,17 +249,27 @@ class CollectionService extends ChangeNotifier {
         id: 'set_leipzig',
         name: 'Leipzig',
         description: 'Entdecke alle Sehenswürdigkeiten in Leipzig',
-        requiredTokenIds: ['52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68'],
+        requiredTokenIds: [
+          '52',
+          '53',
+          '54',
+          '55',
+          '56',
+          '57',
+          '58',
+          '59',
+          '60',
+          '61',
+          '62',
+          '63',
+          '64',
+          '65',
+          '66',
+          '67',
+          '68'
+        ],
         bonusPoints: 700,
         rewardImageUrl: 'assets/images/Leipzig_Wappen_Set_token.png',
-      ),
-      CollectionSet(
-        id: 'set_weltwunder',
-        name: 'Weltwunder',
-        description: 'Sammle die 7 Weltwunder als eigenes Set',
-        requiredTokenIds: _weltwunderSetTokenIds,
-        bonusPoints: 1200,
-        rewardImageUrl: 'assets/images/Collosseum_Weltwunder_token.png',
       ),
     ]);
   }
@@ -269,18 +277,8 @@ class CollectionService extends ChangeNotifier {
   void _rebuildSetsState() {
     _initializeSets();
     for (final token in _tokens) {
-      final setIds = token.setIds.isNotEmpty
-          ? token.setIds
-          : _inferSetIdsForLandmark(token.landmarkId);
-      _updateSets(token.landmarkId, setIds);
+      _updateSets(token.landmarkId, token.setIds);
     }
-  }
-
-  List<String> _inferSetIdsForLandmark(String landmarkId) {
-    return _sets
-        .where((set) => set.requiredTokenIds.contains(landmarkId))
-        .map((set) => set.id)
-        .toList();
   }
 
   // â”€â”€â”€ Token Collection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -291,10 +289,41 @@ class CollectionService extends ChangeNotifier {
     String category,
     int points,
     List<String> setIds, {
-    TokenTier tier = TokenTier.bronze,
+    TokenTier? tier,
+    Landmark? landmark,
   }) {
     if (hasCollectedToken(landmarkId)) {
       debugPrint('Token already collected for landmark: $landmarkId');
+      return;
+    }
+
+    // Weltwunder: immer als eigenes Token anlegen
+    if (landmark != null && landmark.category == 'weltwunder') {
+      final weltwunder = Weltwunder(
+        id: landmark.id,
+        name: landmark.name,
+        description: landmark.description,
+        imageUrl: landmark.imageUrl,
+        latitude: landmark.latitude,
+        longitude: landmark.longitude,
+      );
+      final token = Token(
+        id: const Uuid().v4(),
+        landmarkId: landmark.id,
+        landmarkName: landmark.name,
+        category: landmark.category,
+        collectedAt: DateTime.now(),
+        points: points,
+        setIds: setIds,
+        tier: null,
+        weltwunder: weltwunder,
+      );
+      _tokens.add(token);
+      _totalPoints += token.points;
+      _updateSets(landmark.id, setIds);
+      notifyListeners();
+      _persistToken(token);
+      _persistCoins();
       return;
     }
 
@@ -304,9 +333,9 @@ class CollectionService extends ChangeNotifier {
       landmarkName: landmarkName,
       category: category,
       collectedAt: DateTime.now(),
-      points: tier.pointValue,
+      points: (tier ?? TokenTier.bronze).pointValue,
       setIds: setIds,
-      tier: tier,
+      tier: tier ?? TokenTier.bronze,
     );
 
     _tokens.add(token);
@@ -324,23 +353,47 @@ class CollectionService extends ChangeNotifier {
     String category,
     int points,
     List<String> setIds, {
-    TokenTier tier = TokenTier.bronze,
+    TokenTier? tier,
+    Landmark? landmark,
   }) {
-    // Weltwunder dürfen nur einmal vorhanden sein; nach Entfernen sind sie wieder sammelbar.
-    if (tier == TokenTier.weltwunder && hasCollectedToken(landmarkId)) {
-      debugPrint('Weltwunder token already present for landmark: $landmarkId');
+    // Weltwunder: immer als eigenes Token anlegen
+    if (landmark != null && landmark.category == 'weltwunder') {
+      final weltwunder = Weltwunder(
+        id: landmark.id,
+        name: landmark.name,
+        description: landmark.description,
+        imageUrl: landmark.imageUrl,
+        latitude: landmark.latitude,
+        longitude: landmark.longitude,
+      );
+      final token = Token(
+        id: const Uuid().v4(),
+        landmarkId: landmark.id,
+        landmarkName: landmark.name,
+        category: landmark.category,
+        collectedAt: DateTime.now(),
+        points: points,
+        setIds: setIds,
+        tier: null,
+        weltwunder: weltwunder,
+      );
+      _tokens.add(token);
+      _totalPoints += token.points;
+      _updateSets(landmark.id, setIds);
+      notifyListeners();
+      _persistToken(token);
+      _persistCoins();
       return;
     }
-
     final token = Token(
       id: const Uuid().v4(),
       landmarkId: landmarkId,
       landmarkName: landmarkName,
       category: category,
       collectedAt: DateTime.now(),
-      points: tier.pointValue,
+      points: (tier ?? TokenTier.bronze).pointValue,
       setIds: setIds,
-      tier: tier,
+      tier: tier ?? TokenTier.bronze,
     );
     _tokens.add(token);
     _totalPoints += token.points;
@@ -386,8 +439,8 @@ class CollectionService extends ChangeNotifier {
       if (!set.requiredTokenIds.contains(landmarkId)) continue;
       if (set.collectedTokenIds.contains(landmarkId)) continue;
 
-      final updatedCollectedTokens =
-          List<String>.from(set.collectedTokenIds)..add(landmarkId);
+      final updatedCollectedTokens = List<String>.from(set.collectedTokenIds)
+        ..add(landmarkId);
       final isComplete =
           updatedCollectedTokens.length == set.requiredTokenIds.length;
 
@@ -400,7 +453,8 @@ class CollectionService extends ChangeNotifier {
         _totalPoints += set.bonusPoints;
         _lastCompletedSet = _sets[setIndex];
         debugPrint('Set completed: ${set.name}. Bonus: ${set.bonusPoints}');
-        NotificationService.instance.showSetCompleted(set.name, set.bonusPoints);
+        NotificationService.instance
+            .showSetCompleted(set.name, set.bonusPoints);
       }
     }
   }
@@ -469,23 +523,22 @@ class CollectionService extends ChangeNotifier {
   // â”€â”€â”€ Token Upgrade System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   bool canUpgradeToken(String landmarkId, TokenTier fromTier) {
-    if (fromTier == TokenTier.monumente || fromTier == TokenTier.weltwunder) {
+    if (fromTier == TokenTier.monumente) {
       return false;
     }
+    // Weltwunder können nicht geupgradet werden (werden nicht als TokenTier behandelt)
     final count = _tokens
-      .where((t) => t.landmarkId == landmarkId && t.tier == fromTier)
-      .length;
+        .where((t) => t.landmarkId == landmarkId && t.tier == fromTier)
+        .length;
     return count >= 5;
   }
 
   void upgradeTokens(String landmarkId, TokenTier fromTier, TokenTier toTier) {
-    if (fromTier == TokenTier.monumente ||
-        toTier == TokenTier.monumente ||
-        fromTier == TokenTier.weltwunder ||
-        toTier == TokenTier.weltwunder) {
+    if (fromTier == TokenTier.monumente || toTier == TokenTier.monumente) {
       debugPrint('Upgrade auf oder von Monumente nicht erlaubt');
       return;
     }
+    // Weltwunder können nicht geupgradet werden (werden nicht als TokenTier behandelt)
     final tokensToUpgrade = _tokens
         .where((t) => t.landmarkId == landmarkId && t.tier == fromTier)
         .take(5)
@@ -525,12 +578,11 @@ class CollectionService extends ChangeNotifier {
   ) {
     final mainToken = _tokens.firstWhere((t) => t.id == mainTokenId);
     if (toTier == TokenTier.monumente ||
-        toTier == TokenTier.weltwunder ||
-        mainToken.tier == TokenTier.monumente ||
-        mainToken.tier == TokenTier.weltwunder) {
+        mainToken.tier == TokenTier.monumente) {
       debugPrint('Upgrade auf oder von Monumente nicht erlaubt');
       return;
     }
+    // Weltwunder können nicht geupgradet werden (werden nicht als TokenTier behandelt)
     _tokens.removeWhere((t) => t.id == mainTokenId);
     _totalPoints -= mainToken.points;
     _deleteTokenFromFirestore(mainTokenId);
@@ -565,19 +617,84 @@ class CollectionService extends ChangeNotifier {
         .length;
   }
 
+  /// Legt einen Event-Token an – einmalig pro Landmark und Event.
+  void collectEventToken({
+    required String landmarkId,
+    required String landmarkName,
+    required String eventId,
+    required String eventTitle,
+    required String tokenImageUrl,
+    required double latitude,
+    required double longitude,
+    required int points,
+  }) {
+    final weltwunder = Weltwunder(
+      id: '${landmarkId}_evt_$eventId',
+      name: '$landmarkName – $eventTitle',
+      description: '',
+      imageUrl: tokenImageUrl,
+      latitude: latitude,
+      longitude: longitude,
+    );
+    final token = Token(
+      id: const Uuid().v4(),
+      landmarkId: '${landmarkId}_evt_$eventId',
+      landmarkName: '$landmarkName – $eventTitle',
+      category: 'event',
+      collectedAt: DateTime.now(),
+      points: points,
+      setIds: const [],
+      tier: null,
+      weltwunder: weltwunder,
+    );
+    _tokens.add(token);
+    _totalPoints += token.points;
+    notifyListeners();
+    _persistToken(token);
+    _persistCoins();
+  }
+
   // Alle Tokens für Testzwecke sammeln (alle Tiers pro Landmark)
   void collectAllTokensForTesting(List<Landmark> landmarks) {
+    const weltwunderIds = [
+      'koellner_dom',
+      'taj_mahal',
+      'collosseum',
+      'eiffelturm',
+      'freiheitsstatue',
+      'golden_gate_bridge',
+      'hagia_sofia',
+    ];
     for (final landmark in landmarks) {
+      // Weltwunder: nur als eigenen Token anlegen, keine Tier-Tokens
+      if (weltwunderIds.contains(landmark.id)) {
+        final weltwunder = Weltwunder(
+          id: landmark.id,
+          name: landmark.name,
+          description: landmark.description,
+          imageUrl: landmark.imageUrl,
+          latitude: landmark.latitude,
+          longitude: landmark.longitude,
+        );
+        final token = Token(
+          id: const Uuid().v4(),
+          landmarkId: landmark.id,
+          landmarkName: landmark.name,
+          category: landmark.category,
+          collectedAt: DateTime.now(),
+          points: landmark.pointsReward,
+          setIds: landmark.relatedSetIds,
+          tier: null,
+          weltwunder: weltwunder,
+        );
+        _tokens.add(token);
+        _totalPoints += token.points;
+        continue;
+      }
       for (final tier in TokenTier.values) {
         // Monument-Tokens nur für Monument-fähige Landmarks
         if (tier == TokenTier.monumente &&
             !LandmarkService.monumentLandmarkIds.contains(landmark.id)) {
-          continue;
-        }
-        if (tier == TokenTier.weltwunder && landmark.category != 'weltwunder') {
-          continue;
-        }
-        if (tier != TokenTier.weltwunder && landmark.category == 'weltwunder') {
           continue;
         }
         final token = Token(
@@ -655,7 +772,7 @@ class CollectionService extends ChangeNotifier {
     _db
         .collection('users')
         .doc(_userId)
-        .set({'coins': _totalPoints}, SetOptions(merge: true))
-        .catchError((e) => debugPrint('Error saving coins: $e'));
+        .set({'coins': _totalPoints}, SetOptions(merge: true)).catchError(
+            (e) => debugPrint('Error saving coins: $e'));
   }
 }

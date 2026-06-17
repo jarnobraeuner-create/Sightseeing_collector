@@ -28,48 +28,16 @@ class AppUser {
         'uid': uid,
         'email': email,
         'username': username,
-        'usernameLower': username.toLowerCase(),
         'createdAt': Timestamp.fromDate(createdAt),
       };
 }
 
 class AuthService extends ChangeNotifier {
-  FirebaseAuth? _auth;
-  FirebaseFirestore? _db;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  FirebaseAuth get auth {
-    try {
-      _auth ??= FirebaseAuth.instance;
-      return _auth!;
-    } catch (e) {
-      throw Exception('Firebase not initialized: $e');
-    }
-  }
-
-  FirebaseFirestore get db {
-    try {
-      _db ??= FirebaseFirestore.instance;
-      return _db!;
-    } catch (e) {
-      throw Exception('Firebase not initialized: $e');
-    }
-  }
-
-  User? get firebaseUser {
-    try {
-      return auth.currentUser;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  bool get isLoggedIn {
-    try {
-      return auth.currentUser != null;
-    } catch (_) {
-      return false;
-    }
-  }
+  User? get firebaseUser => _auth.currentUser;
+  bool get isLoggedIn => _auth.currentUser != null;
 
   AppUser? _appUser;
   AppUser? get appUser => _appUser;
@@ -84,26 +52,7 @@ class AuthService extends ChangeNotifier {
   bool get isInitialized => _isInitialized;
 
   AuthService() {
-    // Set initialized to true with a timeout - app should show immediately
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (!_isInitialized) {
-        _isInitialized = true;
-        notifyListeners();
-      }
-    });
-    _initializeAuthListener();
-  }
-
-  void _initializeAuthListener() {
-    Future.microtask(() {
-      try {
-        auth.authStateChanges().listen(_onAuthStateChanged);
-      } catch (e) {
-        debugPrint('Failed to initialize auth listener: $e');
-        _isInitialized = true;
-        notifyListeners();
-      }
-    });
+    _auth.authStateChanges().listen(_onAuthStateChanged);
   }
 
   Future<void> _onAuthStateChanged(User? user) async {
@@ -112,15 +61,13 @@ class AuthService extends ChangeNotifier {
     } else {
       await _loadUserProfile(user.uid);
     }
-    if (!_isInitialized) {
-      _isInitialized = true;
-      notifyListeners();
-    }
+    _isInitialized = true;
+    notifyListeners();
   }
 
   Future<void> _loadUserProfile(String uid) async {
     try {
-      final doc = await db.collection('users').doc(uid).get();
+      final doc = await _db.collection('users').doc(uid).get();
       if (doc.exists && doc.data() != null) {
         _appUser = AppUser.fromFirestore(doc.data()!, uid);
       }
@@ -143,13 +90,13 @@ class AuthService extends ChangeNotifier {
     UserCredential? credential;
     try {
       // 1. Firebase Auth-User erstellen (jetzt eingeloggt)
-      credential = await auth.createUserWithEmailAndPassword(
+      credential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
 
       // 2. Username-Eindeutigkeit prüfen (jetzt authentifiziert)
-      final usernameQuery = await db
+      final usernameQuery = await _db
           .collection('users')
           .where('username', isEqualTo: username.trim())
           .limit(1)
@@ -172,7 +119,7 @@ class AuthService extends ChangeNotifier {
         createdAt: DateTime.now(),
       );
 
-      await db
+      await _db
           .collection('users')
           .doc(credential.user!.uid)
           .set(newUser.toFirestore());
@@ -182,7 +129,8 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
-      _error = _translateError(e.code);
+      _logAuthException('register', e);
+      _error = _translateError(e.code, message: e.message);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -210,7 +158,7 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await auth.signInWithEmailAndPassword(
+      await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
@@ -218,11 +166,31 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
-      _error = _translateError(e.code);
+      _logAuthException('login', e);
+      if (_isConnectionResetError(e)) {
+        try {
+          await Future<void>.delayed(const Duration(milliseconds: 700));
+          await _auth.signInWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          );
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        } on FirebaseAuthException catch (retryError) {
+          _logAuthException('login-retry', retryError);
+          _error = _translateError(retryError.code, message: retryError.message);
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
+      }
+      _error = _translateError(e.code, message: e.message);
       _isLoading = false;
       notifyListeners();
       return false;
     } catch (e) {
+      debugPrint('Auth unknown login error: $e');
       _error = 'Ein unbekannter Fehler ist aufgetreten.';
       _isLoading = false;
       notifyListeners();
@@ -233,11 +201,7 @@ class AuthService extends ChangeNotifier {
   // ─── Logout ───────────────────────────────────────────────────────────────
 
   Future<void> logout() async {
-    try {
-      await auth.signOut();
-    } catch (e) {
-      debugPrint('Logout error: $e');
-    }
+    await _auth.signOut();
     _appUser = null;
     notifyListeners();
   }
@@ -246,18 +210,22 @@ class AuthService extends ChangeNotifier {
 
   Future<bool> sendPasswordReset(String email) async {
     try {
-      await auth.sendPasswordResetEmail(email: email.trim());
+      await _auth.sendPasswordResetEmail(email: email.trim());
       return true;
+    } on FirebaseAuthException catch (e) {
+      _logAuthException('password-reset', e);
+      return false;
     } catch (e) {
-      debugPrint('Password reset error: $e');
+      debugPrint('Auth unknown password-reset error: $e');
       return false;
     }
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  String _translateError(String code) {
-    switch (code) {
+  String _translateError(String code, {String? message}) {
+    final normalizedCode = code.toLowerCase();
+    switch (normalizedCode) {
       case 'email-already-in-use':
         return 'Diese E-Mail-Adresse wird bereits verwendet.';
       case 'invalid-email':
@@ -268,13 +236,47 @@ class AuthService extends ChangeNotifier {
       case 'wrong-password':
       case 'invalid-credential':
         return 'E-Mail oder Passwort ist falsch.';
+      case 'network-request-failed':
+        return 'Netzwerkfehler. Bitte prüfe deine Internetverbindung.';
+      case 'operation-not-allowed':
+        return 'Anmeldung ist aktuell nicht verfügbar. Bitte später erneut versuchen.';
+      case 'unknown':
+        if (_isConnectionResetMessage(message)) {
+          return 'Netzwerkfehler (Verbindung zurückgesetzt). Bitte prüfe Internet, VPN/Firewall sowie automatische Datum-/Uhrzeiteinstellung und versuche es erneut.';
+        }
+        return message?.trim().isNotEmpty == true
+            ? 'Anmeldung fehlgeschlagen: ${message!.trim()}'
+            : 'Anmeldung fehlgeschlagen. Bitte versuche es erneut.';
       case 'user-disabled':
         return 'Dieses Konto wurde deaktiviert.';
       case 'too-many-requests':
         return 'Zu viele Versuche. Bitte warte kurz.';
       default:
-        return 'Fehler: $code';
+        if (message?.trim().isNotEmpty == true) {
+          return 'Anmeldung fehlgeschlagen: ${message!.trim()}';
+        }
+        return 'Anmeldung fehlgeschlagen (Code: $normalizedCode).';
     }
+  }
+
+  void _logAuthException(String operation, FirebaseAuthException e) {
+    debugPrint('Auth operation failed: $operation');
+    debugPrint('FULL ERROR: $e');
+    debugPrint('CODE: ${e.code}');
+    debugPrint('MESSAGE: ${e.message ?? 'no-message'}');
+    debugPrint('EMAIL: ${e.email ?? 'n/a'}');
+    debugPrint('CREDENTIAL: ${e.credential != null ? 'present' : 'null'}');
+  }
+
+  bool _isConnectionResetError(FirebaseAuthException e) {
+    return e.code.toLowerCase() == 'unknown' && _isConnectionResetMessage(e.message);
+  }
+
+  bool _isConnectionResetMessage(String? message) {
+    final normalizedMessage = message?.toLowerCase() ?? '';
+    return normalizedMessage.contains('connection reset') ||
+        normalizedMessage.contains('socket') ||
+        normalizedMessage.contains('network');
   }
 
   void clearError() {

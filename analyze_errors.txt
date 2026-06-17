@@ -1,0 +1,56 @@
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\collection_screen.dart:162:75 - argument_type_not_assignable
+  error - The property 'displayName' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\collection_screen.dart:243:48 - unchecked_use_of_nullable_value
+warning - The value of the field '_taskRewardLandmarkIds' isn't used - lib\screens\home_screen.dart:22:36 - unused_field
+warning - The value of the field '_taskRewardTitles' isn't used - lib\screens\home_screen.dart:27:36 - unused_field
+warning - The value of the field '_isProcessingMonumentRewards' isn't used - lib\screens\home_screen.dart:34:8 - unused_field
+warning - The declaration '_hasMonumentTokenForLandmark' isn't referenced - lib\screens\home_screen.dart:92:8 - unused_element
+warning - The declaration '_showMonumentRewardSequence' isn't referenced - lib\screens\home_screen.dart:103:16 - unused_element
+   info - 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead - lib\screens\map_screen.dart:158:56 - deprecated_member_use
+   info - 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead - lib\screens\map_screen.dart:171:60 - deprecated_member_use
+   info - 'setMapStyle' is deprecated and shouldn't be used. Use GoogleMap.style instead - lib\screens\map_screen.dart:237:21 - deprecated_member_use
+   info - 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead - lib\screens\map_screen.dart:543:29 - deprecated_member_use
+  error - There's no constant named 'weltwunder' in 'TokenTier' - lib\screens\map_screen.dart:792:22 - undefined_enum_constant
+warning - The declaration '_logout' isn't referenced - lib\screens\profile_screen.dart:27:16 - unused_element
+warning - A value for optional parameter 'badge' isn't ever given - lib\screens\profile_screen.dart:268:10 - unused_element_parameter
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile_screen.dart:286:32 - deprecated_member_use
+  error - The property 'index' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\sets_screen.dart:602:36 - unchecked_use_of_nullable_value
+  error - The property 'index' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\sets_screen.dart:602:59 - unchecked_use_of_nullable_value
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\sets_screen.dart:631:82 - argument_type_not_assignable
+  error - The property 'displayName' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\sets_screen.dart:644:38 - unchecked_use_of_nullable_value
+  error - The property 'index' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\sets_screen.dart:765:50 - unchecked_use_of_nullable_value
+  error - The property 'index' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\sets_screen.dart:765:73 - unchecked_use_of_nullable_value
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\sets_screen.dart:769:76 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:64:65 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:240:39 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:323:28 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:329:41 - argument_type_not_assignable
+  error - There's no constant named 'weltwunder' in 'TokenTier' - lib\screens\token_upgrade_screen.dart:470:76 - undefined_enum_constant
+  error - The property 'displayName' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\token_upgrade_screen.dart:503:71 - unchecked_use_of_nullable_value
+  error - The property 'name' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\token_upgrade_screen.dart:513:45 - unchecked_use_of_nullable_value
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:521:48 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:622:47 - argument_type_not_assignable
+  error - The property 'name' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\token_upgrade_screen.dart:628:64 - unchecked_use_of_nullable_value
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:720:42 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:763:33 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:825:63 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:827:33 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:828:37 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\token_upgrade_screen.dart:951:33 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\screens\trading_screen.dart:779:83 - argument_type_not_assignable
+  error - The property 'displayName' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\trading_screen.dart:812:43 - unchecked_use_of_nullable_value
+  error - The property 'displayName' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\trading_screen.dart:868:56 - unchecked_use_of_nullable_value
+  error - The property 'displayName' can't be unconditionally accessed because the receiver can be 'null' - lib\screens\trading_screen.dart:941:52 - unchecked_use_of_nullable_value
+warning - The left operand can't be null, so the right operand is never executed - lib\services\collection_service.dart:569:48 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\services\collection_service.dart:570:42 - dead_null_aware_expression
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\services\monument_unlock_service.dart:102:54 - argument_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\daily_reward_dialog.dart:182:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\daily_reward_dialog.dart:183:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\daily_reward_dialog.dart:285:24 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\daily_reward_dialog.dart:286:24 - deprecated_member_use
+warning - The operand can't be 'null', so the condition is always 'false' - lib\widgets\set_card.dart:137:19 - unnecessary_null_comparison
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\widgets\set_card.dart:165:90 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\widgets\set_card.dart:229:74 - argument_type_not_assignable
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\widgets\token_card.dart:47:82 - argument_type_not_assignable
+  error - The property 'displayName' can't be unconditionally accessed because the receiver can be 'null' - lib\widgets\token_card.dart:93:42 - unchecked_use_of_nullable_value
+  error - The argument type 'TokenTier?' can't be assigned to the parameter type 'TokenTier'.  - lib\widgets\token_card.dart:96:54 - argument_type_not_assignable
+  error - There's no constant named 'weltwunder' in 'TokenTier' - lib\widgets\token_card.dart:141:22 - undefined_enum_constant

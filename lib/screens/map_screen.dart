@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -9,11 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/index.dart';
 import '../services/index.dart';
-import '../widgets/collect_reward_overlay.dart';
 import '../widgets/event_dialog.dart';
+import '../widgets/map_mode_toggle_button.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -21,19 +18,6 @@ class MapScreen extends StatefulWidget {
   @override
   State<MapScreen> createState() => _MapScreenState();
 }
-
-// ─── Pin-Tier Randomization Constants ────────────────────────────────────────
-const _kPinTiersKey = 'pin_tiers_data_v1';
-const _kPinTiersTimestampKey = 'pin_tiers_timestamp_v1';
-const _kPinRefreshHours = 24;
-
-TokenTier _rollPinTier(Random rng) {
-  final roll = rng.nextDouble() * 100;
-  if (roll < 1.0) return TokenTier.gold;   // 1%
-  if (roll < 6.0) return TokenTier.silver; // 5%
-  return TokenTier.bronze;                 // 94%
-}
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
@@ -43,9 +27,6 @@ class _MapScreenState extends State<MapScreen> {
   final Map<String, BitmapDescriptor> _markerIconsGray = {};
   bool _isUpdatingMarkers = false;
 
-  // Random pin tiers, refreshed every 24h
-  Map<String, TokenTier> _pinTiers = {};
-
   // Zoom-based clustering
   double _currentZoom = 13.0;
   final Map<String, BitmapDescriptor> _clusterIconCache = {};
@@ -54,100 +35,77 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _loadAllMarkerIcons();
-    _loadOrRefreshPinTiers();
     // LocationService im Hintergrund initialisieren ohne Rendering zu blockieren
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        Provider.of<LocationService>(context, listen: false).ensureInitialized();
+        Provider.of<LocationService>(context, listen: false)
+            .ensureInitialized();
       }
     });
   }
 
-  Future<void> _loadOrRefreshPinTiers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final savedTs = prefs.getInt(_kPinTiersTimestampKey) ?? 0;
-    final ageHours = (now - savedTs) / (1000 * 60 * 60);
-
-    if (ageHours < _kPinRefreshHours) {
-      // Load saved tiers
-      final raw = prefs.getString(_kPinTiersKey);
-      if (raw != null) {
-        final Map<String, dynamic> decoded = jsonDecode(raw) as Map<String, dynamic>;
-        final loaded = <String, TokenTier>{};
-        decoded.forEach((id, tierName) {
-          loaded[id] = _tierFromName(tierName as String);
-        });
-        if (mounted) {
-          setState(() => _pinTiers = loaded);
-          _updateMarkers();
-        }
-        return;
-      }
-    }
-
-    // Generate fresh random tiers
-    await _generateAndSavePinTiers(prefs);
-  }
-
-  Future<void> _generateAndSavePinTiers(SharedPreferences prefs) async {
-    final landmarkService = Provider.of<LandmarkService>(context, listen: false);
-    final rng = Random();
-    final newTiers = <String, TokenTier>{};
-    for (final lm in landmarkService.landmarks) {
-      newTiers[lm.id] = _rollPinTier(rng);
-    }
-    final encoded = jsonEncode(
-      newTiers.map((id, tier) => MapEntry(id, _tierToName(tier))),
-    );
-    await prefs.setString(_kPinTiersKey, encoded);
-    await prefs.setInt(_kPinTiersTimestampKey, DateTime.now().millisecondsSinceEpoch);
-    if (mounted) {
-      setState(() => _pinTiers = newTiers);
-      _updateMarkers();
-    }
-  }
-
-  String _tierToName(TokenTier t) {
-    switch (t) {
-      case TokenTier.silver: return 'silver';
-      case TokenTier.gold: return 'gold';
-      case TokenTier.platinum: return 'platinum';
-      case TokenTier.monumente: return 'monumente';
-      case TokenTier.weltwunder: return 'weltwunder';
-      default: return 'bronze';
-    }
-  }
-
-  TokenTier _tierFromName(String name) {
-    switch (name) {
-      case 'silver': return TokenTier.silver;
-      case 'gold': return TokenTier.gold;
-      case 'platinum': return TokenTier.platinum;
-      case 'monumente': return TokenTier.monumente;
-      case 'weltwunder': return TokenTier.weltwunder;
-      default: return TokenTier.bronze;
-    }
-  }
-
   Future<void> _loadAllMarkerIcons() async {
     await Future.wait([
-      _loadMarkerIcon('bronze', 'assets/images/Map_Pin_Bronze.png'),
-      _loadMarkerIcon('silver', 'assets/images/Map_pin_silber.png'),
       _loadMarkerIcon('gold', 'assets/images/map_pin_gold.png'),
-      _loadMarkerIcon('platin', 'assets/images/Platin_mappin_platin.png'),
     ]);
-    
+    if (mounted) {
+      _markerIcons['event'] = await _createEventMarkerIcon(grayscale: false);
+      _markerIconsGray['event'] = await _createEventMarkerIcon(grayscale: true);
+    }
     if (mounted) {
       _updateMarkers();
     }
+  }
+
+  Future<BitmapDescriptor> _createEventMarkerIcon({required bool grayscale}) async {
+    final ByteData assetData = await rootBundle.load('assets/images/map_pin_gold.png');
+    final ui.Codec codec = await ui.instantiateImageCodec(
+      assetData.buffer.asUint8List(),
+      targetWidth: 200,
+      targetHeight: 200,
+    );
+    ui.Image pinImage = (await codec.getNextFrame()).image;
+    if (grayscale) pinImage = await _convertToGrayscale(pinImage);
+    const int size = 260;
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(
+        recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
+    canvas.drawImageRect(
+      pinImage,
+      Rect.fromLTWH(0, 0, pinImage.width.toDouble(), pinImage.height.toDouble()),
+      Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+      Paint(),
+    );
+    if (!grayscale) {
+      final badgeCenter = Offset(size * 0.76, size * 0.22);
+      canvas.drawCircle(badgeCenter, 38, Paint()..color = const Color(0xFFFFD700));
+      canvas.drawCircle(
+          badgeCenter,
+          38,
+          Paint()
+            ..color = Colors.white
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3.0);
+      final starPainter = TextPainter(
+        text: const TextSpan(text: '⭐', style: TextStyle(fontSize: 30)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      starPainter.paint(
+          canvas,
+          Offset(badgeCenter.dx - starPainter.width / 2,
+              badgeCenter.dy - starPainter.height / 2));
+    }
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(size, size);
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
 
   Future<void> _loadMarkerIcon(String tierKey, String imagePath) async {
     try {
       final ByteData data = await rootBundle.load(imagePath);
       final Uint8List bytes = data.buffer.asUint8List();
-      
+
       final ui.Codec codec = await ui.instantiateImageCodec(
         bytes,
         targetWidth: 200,
@@ -157,17 +115,17 @@ class _MapScreenState extends State<MapScreen> {
       final ByteData? resizedData = await frameInfo.image.toByteData(
         format: ui.ImageByteFormat.png,
       );
-      
+
       if (resizedData != null) {
         final BitmapDescriptor icon = BitmapDescriptor.fromBytes(
           resizedData.buffer.asUint8List(),
         );
-        
+
         final ui.Image grayImage = await _convertToGrayscale(frameInfo.image);
         final ByteData? grayData = await grayImage.toByteData(
           format: ui.ImageByteFormat.png,
         );
-        
+
         if (mounted) {
           setState(() {
             _markerIcons[tierKey] = icon;
@@ -185,28 +143,30 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<ui.Image> _convertToGrayscale(ui.Image image) async {
-    final ByteData? data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final ByteData? data =
+        await image.toByteData(format: ui.ImageByteFormat.rawRgba);
     if (data == null) return image;
-    
+
     final Uint8List pixels = data.buffer.asUint8List();
-    
+
     // Konvertiere zu Graustufen
     for (int i = 0; i < pixels.length; i += 4) {
       final int r = pixels[i];
       final int g = pixels[i + 1];
       final int b = pixels[i + 2];
-      
+
       // Graustufen-Formel: 0.299*R + 0.587*G + 0.114*B
       final int gray = (0.299 * r + 0.587 * g + 0.114 * b).round();
-      
+
       pixels[i] = gray;
       pixels[i + 1] = gray;
       pixels[i + 2] = gray;
       // Alpha-Kanal (i+3) bleibt unverändert
     }
-    
+
     // Erstelle neues Bild aus modifizierten Pixeln
-    final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(pixels);
+    final ui.ImmutableBuffer buffer =
+        await ui.ImmutableBuffer.fromUint8List(pixels);
     final ui.ImageDescriptor descriptor = ui.ImageDescriptor.raw(
       buffer,
       width: image.width,
@@ -215,7 +175,7 @@ class _MapScreenState extends State<MapScreen> {
     );
     final ui.Codec codec = await descriptor.instantiateCodec();
     final ui.FrameInfo frameInfo = await codec.getNextFrame();
-    
+
     return frameInfo.image;
   }
 
@@ -229,7 +189,8 @@ class _MapScreenState extends State<MapScreen> {
     _mapController = controller;
     // Einmalig auf Nutzerposition zentrieren wenn GPS bereits verfügbar
     if (!_hasCenteredOnUser) {
-      final locationService = Provider.of<LocationService>(context, listen: false);
+      final locationService =
+          Provider.of<LocationService>(context, listen: false);
       final position = locationService.currentPosition;
       if (position != null) {
         _hasCenteredOnUser = true;
@@ -238,107 +199,68 @@ class _MapScreenState extends State<MapScreen> {
         );
       }
     }
-    _mapController?.setMapStyle('''
-[
-  {
-    "elementType": "geometry",
-    "stylers": [{"color": "#212121"}]
-  },
-  {
-    "elementType": "labels.icon",
-    "stylers": [{"visibility": "off"}]
-  },
-  {
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#757575"}]
-  },
-  {
-    "elementType": "labels.text.stroke",
-    "stylers": [{"color": "#212121"}]
-  },
-  {
-    "featureType": "administrative",
-    "elementType": "geometry",
-    "stylers": [{"color": "#757575"}]
-  },
-  {
-    "featureType": "administrative.country",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#9e9e9e"}]
-  },
-  {
-    "featureType": "administrative.locality",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#bdbdbd"}]
-  },
-  {
-    "featureType": "poi",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#757575"}]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "geometry",
-    "stylers": [{"color": "#181818"}]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#616161"}]
-  },
-  {
-    "featureType": "poi.park",
-    "elementType": "labels.text.stroke",
-    "stylers": [{"color": "#1b1b1b"}]
-  },
-  {
-    "featureType": "road",
-    "elementType": "geometry.fill",
-    "stylers": [{"color": "#2c2c2c"}]
-  },
-  {
-    "featureType": "road",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#8a8a8a"}]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry",
-    "stylers": [{"color": "#373737"}]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry",
-    "stylers": [{"color": "#3c3c3c"}]
-  },
-  {
-    "featureType": "road.highway.controlled_access",
-    "elementType": "geometry",
-    "stylers": [{"color": "#4e4e4e"}]
-  },
-  {
-    "featureType": "road.local",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#616161"}]
-  },
-  {
-    "featureType": "transit",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#757575"}]
-  },
-  {
-    "featureType": "water",
-    "elementType": "geometry",
-    "stylers": [{"color": "#000000"}]
-  },
-  {
-    "featureType": "water",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#3d3d3d"}]
-  }
-]
-    ''');
     _updateMarkers();
+  }
+
+  String _mapStyleJson(bool isDayMode) {
+    if (isDayMode) {
+      return '''[
+  {"elementType":"geometry","stylers":[{"color":"#ebe3cd"}]},
+  {"elementType":"labels.text.fill","stylers":[{"color":"#523735"}]},
+  {"elementType":"labels.text.stroke","stylers":[{"color":"#f5f1e6"}]},
+  {"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"color":"#c9b2a6"}]},
+  {"featureType":"administrative.land_parcel","elementType":"geometry.stroke","stylers":[{"color":"#dcd2be"}]},
+  {"featureType":"administrative.land_parcel","elementType":"labels.text.fill","stylers":[{"color":"#ae9e90"}]},
+  {"featureType":"landscape.natural","elementType":"geometry","stylers":[{"color":"#dfd2ae"}]},
+  {"featureType":"poi","elementType":"geometry","stylers":[{"color":"#dfd2ae"}]},
+  {"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#93817c"}]},
+  {"featureType":"poi.park","elementType":"geometry.fill","stylers":[{"color":"#a5b076"}]},
+  {"featureType":"poi.park","elementType":"labels.text.fill","stylers":[{"color":"#447530"}]},
+  {"featureType":"road","elementType":"geometry","stylers":[{"color":"#f5f1e6"}]},
+  {"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#fdfcf8"}]},
+  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#f8c967"}]},
+  {"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#e9bc62"}]},
+  {"featureType":"road.highway.controlled_access","elementType":"geometry","stylers":[{"color":"#e98d58"}]},
+  {"featureType":"road.highway.controlled_access","elementType":"geometry.stroke","stylers":[{"color":"#db8555"}]},
+  {"featureType":"road.local","elementType":"labels.text.fill","stylers":[{"color":"#806b63"}]},
+  {"featureType":"transit.line","elementType":"geometry","stylers":[{"color":"#dfd2ae"}]},
+  {"featureType":"transit.line","elementType":"labels.text.fill","stylers":[{"color":"#8f7d77"}]},
+  {"featureType":"transit.line","elementType":"labels.text.stroke","stylers":[{"color":"#ebe3cd"}]},
+  {"featureType":"transit.station","elementType":"geometry","stylers":[{"color":"#dfd2ae"}]},
+  {"featureType":"water","elementType":"geometry.fill","stylers":[{"color":"#b9d3c2"}]},
+  {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#92998d"}]}
+]''';
+    } else {
+      return '''[
+  {"elementType":"geometry","stylers":[{"color":"#242f3e"}]},
+  {"elementType":"labels.text.stroke","stylers":[{"color":"#242f3e"}]},
+  {"elementType":"labels.text.fill","stylers":[{"color":"#746855"}]},
+  {"featureType":"administrative.locality","elementType":"labels.text.fill","stylers":[{"color":"#d59563"}]},
+  {"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#d59563"}]},
+  {"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#263c3f"}]},
+  {"featureType":"poi.park","elementType":"labels.text.fill","stylers":[{"color":"#6b9a76"}]},
+  {"featureType":"road","elementType":"geometry","stylers":[{"color":"#38414e"}]},
+  {"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#212a37"}]},
+  {"featureType":"road","elementType":"labels.text.fill","stylers":[{"color":"#9ca5b3"}]},
+  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#746855"}]},
+  {"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#1f2835"}]},
+  {"featureType":"road.highway","elementType":"labels.text.fill","stylers":[{"color":"#f3d19c"}]},
+  {"featureType":"transit","elementType":"geometry","stylers":[{"color":"#2f3948"}]},
+  {"featureType":"transit.station","elementType":"labels.text.fill","stylers":[{"color":"#d59563"}]},
+  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#17263c"}]},
+  {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#515c6d"}]},
+  {"featureType":"water","elementType":"labels.text.stroke","stylers":[{"color":"#17263c"}]}
+]''';
+    }
+  }
+
+  /// Filtert Landmarks nach aktuellem Modus (Tag/Nacht)
+  List<Landmark> _filterLandmarksByMode(List<Landmark> landmarks) {
+    final mapModeService =
+        Provider.of<MapModeService>(context, listen: false);
+    return landmarks
+        .where((lm) => lm.mode == (mapModeService.isDayMode ? 'day' : 'night'))
+        .toList();
   }
 
   void _updateMarkers() {
@@ -349,13 +271,17 @@ class _MapScreenState extends State<MapScreen> {
         _isUpdatingMarkers = false;
         return;
       }
-      final landmarkService = Provider.of<LandmarkService>(context, listen: false);
-      final collectionService = Provider.of<CollectionService>(context, listen: false);
+      final landmarkService =
+          Provider.of<LandmarkService>(context, listen: false);
+      final collectionService =
+          Provider.of<CollectionService>(context, listen: false);
       final Set<Marker> newMarkers;
       if (_currentZoom >= 10.0) {
-        newMarkers = _buildIndividualMarkers(landmarkService, collectionService);
+        newMarkers =
+            _buildIndividualMarkers(landmarkService, collectionService);
       } else {
-        newMarkers = await _buildClusteredMarkers(landmarkService, collectionService);
+        newMarkers =
+            await _buildClusteredMarkers(landmarkService, collectionService);
       }
       if (mounted) setState(() => _markers = newMarkers);
       _isUpdatingMarkers = false;
@@ -364,29 +290,47 @@ class _MapScreenState extends State<MapScreen> {
 
   Marker _buildSingleMarker(Landmark landmark, CollectionService cs) {
     final isCollected = cs.getToken(landmark.id) != null;
-    final pinTier = _pinTiers[landmark.id] ?? TokenTier.bronze;
-    // All pins use the same gold image so the tier is not revealed before collecting.
-    // The actual pinTier is preserved for the collect/reward logic below.
-    const String pinType = 'gold';
+    if (landmark.category == 'weltwunder') {
+      // Spezielles Icon für Weltwunder
+      final markerIcon = isCollected
+          ? (_markerIconsGray['weltwunder'] ?? BitmapDescriptor.defaultMarker)
+          : (_markerIcons['weltwunder'] ?? BitmapDescriptor.defaultMarker);
+      return Marker(
+        markerId: MarkerId(landmark.id),
+        position: LatLng(landmark.latitude, landmark.longitude),
+        icon: markerIcon,
+        alpha: isCollected ? 0.7 : 1.0,
+        onTap: () => _showLandmarkDetails(landmark, null),
+        infoWindow: InfoWindow.noText,
+      );
+    }
+    final hasActiveEvent = landmark.eventIds.isNotEmpty &&
+        EventService.allEvents
+            .any((e) => e.isActive && landmark.eventIds.contains(e.id));
+    final pinKey = hasActiveEvent ? 'event' : 'gold';
     final markerIcon = isCollected
-        ? (_markerIconsGray[pinType] ?? BitmapDescriptor.defaultMarker)
-        : (_markerIcons[pinType] ?? BitmapDescriptor.defaultMarker);
+        ? (_markerIconsGray[pinKey] ?? BitmapDescriptor.defaultMarker)
+        : (_markerIcons[pinKey] ?? BitmapDescriptor.defaultMarker);
     return Marker(
       markerId: MarkerId(landmark.id),
       position: LatLng(landmark.latitude, landmark.longitude),
       icon: markerIcon,
       alpha: isCollected ? 0.7 : 1.0,
-      onTap: () => _showLandmarkDetails(landmark, pinTier),
+      onTap: () => _showLandmarkDetails(landmark, null),
       infoWindow: InfoWindow.noText,
     );
   }
 
-  Set<Marker> _buildIndividualMarkers(LandmarkService ls, CollectionService cs) =>
-      ls.landmarks.map((lm) => _buildSingleMarker(lm, cs)).toSet();
+  Set<Marker> _buildIndividualMarkers(
+          LandmarkService ls, CollectionService cs) {
+    final filtered = _filterLandmarksByMode(ls.landmarks);
+    return filtered.map((lm) => _buildSingleMarker(lm, cs)).toSet();
+  }
 
   Future<Set<Marker>> _buildClusteredMarkers(
       LandmarkService ls, CollectionService cs) async {
-    final clusters = _computeSetClusters(ls.landmarks);
+    final filtered = _filterLandmarksByMode(ls.landmarks);
+    final clusters = _computeSetClusters(filtered);
     final markers = <Marker>{};
     for (final cluster in clusters) {
       if (cluster.landmarks.length == 1) {
@@ -394,7 +338,8 @@ class _MapScreenState extends State<MapScreen> {
       } else {
         // Determine dominant tier for pin color
         final pinType = _dominantPinType(cluster.landmarks);
-        final cacheKey = '${cluster.landmarks.length}_${cluster.setId}_$pinType';
+        final cacheKey =
+            '${cluster.landmarks.length}_${cluster.setId}_$pinType';
         _clusterIconCache[cacheKey] ??= await _createClusterIcon(
             cluster.landmarks.length, cluster.label, pinType);
         markers.add(Marker(
@@ -417,7 +362,8 @@ class _MapScreenState extends State<MapScreen> {
   List<_Cluster> _computeSetClusters(List<Landmark> landmarks) {
     final Map<String, _Cluster> bySet = {};
     for (final lm in landmarks) {
-      final setId = lm.relatedSetIds.isNotEmpty ? lm.relatedSetIds.first : 'misc';
+      final setId =
+          lm.relatedSetIds.isNotEmpty ? lm.relatedSetIds.first : 'misc';
       // Non-city sets → treat each landmark as its own "cluster" of 1
       final clusterKey = _citySets.contains(setId) ? setId : 'single_${lm.id}';
       if (bySet.containsKey(clusterKey)) {
@@ -433,10 +379,12 @@ class _MapScreenState extends State<MapScreen> {
     }
     // Recalculate center as average
     return bySet.values.map((c) {
-      final avgLat = c.landmarks.map((l) => l.latitude).reduce((a, b) => a + b) /
-          c.landmarks.length;
-      final avgLng = c.landmarks.map((l) => l.longitude).reduce((a, b) => a + b) /
-          c.landmarks.length;
+      final avgLat =
+          c.landmarks.map((l) => l.latitude).reduce((a, b) => a + b) /
+              c.landmarks.length;
+      final avgLng =
+          c.landmarks.map((l) => l.longitude).reduce((a, b) => a + b) /
+              c.landmarks.length;
       return _Cluster(
           setId: c.setId,
           label: c.label,
@@ -447,15 +395,18 @@ class _MapScreenState extends State<MapScreen> {
 
   String _setLabel(String setId) {
     switch (setId) {
-      case 'set_hamburg':  return 'Hamburg';
-      case 'set_leipzig':  return 'Leipzig';
-      case 'set_monuments': return 'Denkmäler';
-      default: return setId;
+      case 'set_hamburg':
+        return 'Hamburg';
+      case 'set_leipzig':
+        return 'Leipzig';
+      case 'set_monuments':
+        return 'Denkmäler';
+      default:
+        return setId;
     }
   }
 
   String _dominantPinType(List<Landmark> landmarks) {
-    // Always use the gold pin for cluster markers so no tier is revealed.
     return 'gold';
   }
 
@@ -463,15 +414,18 @@ class _MapScreenState extends State<MapScreen> {
       int count, String label, String pinType) async {
     // Load the real map pin asset
     final assetPath = {
-      'gold':   'assets/images/map_pin_gold.png',
-      'silver': 'assets/images/Map_pin_silber.png',
-      'platin': 'assets/images/Platin_mappin_platin.png',
-      'bronze': 'assets/images/Map_Pin_Bronze.png',
-    }[pinType] ?? 'assets/images/Map_Pin_Bronze.png';
+          'gold': 'assets/images/map_pin_gold.png',
+          'silver': 'assets/images/Map_pin_silber.png',
+          'platin': 'assets/images/Platin_mappin_platin.png',
+          'bronze': 'assets/images/Map_Pin_Bronze.png',
+        }[pinType] ??
+        'assets/images/Map_Pin_Bronze.png';
 
     final ByteData assetData = await rootBundle.load(assetPath);
     final ui.Codec pinCodec = await ui.instantiateImageCodec(
-        assetData.buffer.asUint8List(), targetWidth: 260, targetHeight: 260);
+        assetData.buffer.asUint8List(),
+        targetWidth: 260,
+        targetHeight: 260);
     final ui.Image pinImage = (await pinCodec.getNextFrame()).image;
 
     const int size = 340;
@@ -480,18 +434,18 @@ class _MapScreenState extends State<MapScreen> {
         recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
 
     // Draw the map pin centered
-    final pinSrc =
-        Rect.fromLTWH(0, 0, pinImage.width.toDouble(), pinImage.height.toDouble());
-    final pinDst = Rect.fromLTWH(
-        (size - 240) / 2, (size - 240) / 2, 240, 240);
+    final pinSrc = Rect.fromLTWH(
+        0, 0, pinImage.width.toDouble(), pinImage.height.toDouble());
+    final pinDst = Rect.fromLTWH((size - 240) / 2, (size - 240) / 2, 240, 240);
     canvas.drawImageRect(pinImage, pinSrc, pinDst, Paint());
 
     // Badge circle in top-right corner
     final badgeCenter = Offset(size * 0.72, size * 0.28);
-    canvas.drawCircle(badgeCenter, 42,
-        Paint()..color = const Color(0xDD212121));
     canvas.drawCircle(
-      badgeCenter, 42,
+        badgeCenter, 42, Paint()..color = const Color(0xDD212121));
+    canvas.drawCircle(
+      badgeCenter,
+      42,
       Paint()
         ..color = Colors.amber
         ..style = PaintingStyle.stroke
@@ -503,9 +457,7 @@ class _MapScreenState extends State<MapScreen> {
       text: TextSpan(
           text: '$count',
           style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold)),
+              color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
       textDirection: TextDirection.ltr,
     )..layout();
     countPainter.paint(
@@ -525,8 +477,7 @@ class _MapScreenState extends State<MapScreen> {
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: 220);
     labelPainter.paint(
-        canvas,
-        Offset((size - labelPainter.width) / 2, size * 0.80));
+        canvas, Offset((size - labelPainter.width) / 2, size * 0.80));
 
     final picture = recorder.endRecording();
     final img = await picture.toImage(size, size);
@@ -547,7 +498,8 @@ class _MapScreenState extends State<MapScreen> {
           IconButton(
             icon: const Icon(Icons.my_location),
             onPressed: () {
-              final locationService = Provider.of<LocationService>(context, listen: false);
+              final locationService =
+                  Provider.of<LocationService>(context, listen: false);
               locationService.refreshLocation();
               final position = locationService.currentPosition;
               if (position != null && _mapController != null) {
@@ -567,112 +519,134 @@ class _MapScreenState extends State<MapScreen> {
       ),
       body: Stack(
         children: [
-          Consumer<LocationService>(
-              builder: (context, locationService, child) {
-                final position = locationService.currentPosition;
-                final hasLocation = position != null;
+          Consumer2<LocationService, MapModeService>(
+            builder: (context, locationService, mapModeService, child) {
+              final position = locationService.currentPosition;
+              final hasLocation = position != null;
 
-                // Einmalig zur Nutzerposition springen wenn Karte bereit
-                if (hasLocation && !_hasCenteredOnUser && _mapController != null) {
-                  _hasCenteredOnUser = true;
-                  Future.microtask(() {
-                    _mapController?.animateCamera(
-                      CameraUpdate.newLatLng(
-                        LatLng(position.latitude, position.longitude),
-                      ),
-                    );
-                  });
-                }
-
-                return Stack(
-                  children: [
-                    GoogleMap(
-                      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                        Factory<EagerGestureRecognizer>(() => EagerGestureRecognizer()),
-                      },
-                      onMapCreated: _onMapCreated,
-                      onCameraMove: (pos) {
-                        if ((pos.zoom - _currentZoom).abs() >= 0.4) {
-                          _currentZoom = pos.zoom;
-                          _clusterIconCache.clear(); // force re-render at new size
-                          _updateMarkers();
-                        }
-                      },
-                      initialCameraPosition: const CameraPosition(
-                        target: LatLng(53.5500, 10.0000), // Hamburg Fallback
-                        zoom: 13.0,
-                      ),
-                      markers: _markers,
-                      myLocationEnabled: locationService.isLocationAccessGranted,
-                      myLocationButtonEnabled: false,
-                      mapType: MapType.normal,
-                      zoomControlsEnabled: true,
-                      compassEnabled: true,
+              // Einmalig zur Nutzerposition springen wenn Karte bereit
+              if (hasLocation &&
+                  !_hasCenteredOnUser &&
+                  _mapController != null) {
+                _hasCenteredOnUser = true;
+                Future.microtask(() {
+                  _mapController?.animateCamera(
+                    CameraUpdate.newLatLng(
+                      LatLng(position.latitude, position.longitude),
                     ),
-                    // Overlay-Spinner solange kein Standort bekannt
-                    if (!hasLocation)
-                      Positioned(
-                        bottom: 24,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.black87,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.amber,
-                                  ),
+                  );
+                });
+              }
+
+              return Stack(
+                children: [
+                  GoogleMap(
+                    gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                      Factory<EagerGestureRecognizer>(
+                          () => EagerGestureRecognizer()),
+                    },
+                    onMapCreated: _onMapCreated,
+                    onCameraMove: (pos) {
+                      if ((pos.zoom - _currentZoom).abs() >= 0.4) {
+                        _currentZoom = pos.zoom;
+                        _clusterIconCache
+                            .clear(); // force re-render at new size
+                        _updateMarkers();
+                      }
+                    },
+                    initialCameraPosition: const CameraPosition(
+                      target: LatLng(53.5500, 10.0000), // Hamburg Fallback
+                      zoom: 13.0,
+                    ),
+                    style: _mapStyleJson(mapModeService.isDayMode),
+                    markers: _markers,
+                    myLocationEnabled: locationService.isLocationAccessGranted,
+                    myLocationButtonEnabled: false,
+                    mapType: MapType.normal,
+                    zoomControlsEnabled: true,
+                    compassEnabled: true,
+                  ),
+                  // Overlay-Spinner solange kein Standort bekannt
+                  if (!hasLocation)
+                    Positioned(
+                      bottom: 24,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.amber,
                                 ),
-                                SizedBox(width: 10),
-                                Text(
-                                  'Standort wird ermittelt …',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ],
-                            ),
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Standort wird ermittelt …',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                  ],
-                );
-              },
-            ),
+                    ),
+                ],
+              );
+            },
+          ),
           // ── Event-Icon oben links (außerhalb des GoogleMap-Stacks) ───
           Positioned(
             top: 12 + MediaQuery.of(context).padding.top + kToolbarHeight,
             left: 12,
             child: const _EventMapButton(),
           ),
+          // ── Map Mode Toggle Button oben rechts ───
+          Positioned(
+            top: 12 + MediaQuery.of(context).padding.top + kToolbarHeight,
+            right: 12,
+            child: MapModeToggleButton(
+              onModeChanged: () {
+                // Landmarks neu filtern und anzeigen
+                _updateMarkers();
+              },
+            ),
+          ),
         ],
       ),
     );
   }
 
-  void _showLandmarkDetails(Landmark landmark, TokenTier pinTier) {
-    final locationService = Provider.of<LocationService>(context, listen: false);
-    final collectionService = Provider.of<CollectionService>(context, listen: false);
-    final landmarkService = Provider.of<LandmarkService>(context, listen: false);
-    final cooldownService = Provider.of<CooldownService>(context, listen: false);
+  void _showLandmarkDetails(Landmark landmark, TokenTier? pinTier) {
+    final locationService =
+        Provider.of<LocationService>(context, listen: false);
+    final collectionService =
+        Provider.of<CollectionService>(context, listen: false);
+    final landmarkService =
+        Provider.of<LandmarkService>(context, listen: false);
+    final cooldownService =
+        Provider.of<CooldownService>(context, listen: false);
     final position = locationService.currentPosition;
 
     final distance = position != null
         ? landmark.getDistance(position.latitude, position.longitude)
         : null;
 
+    FocusScope.of(context).unfocus();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _LandmarkBottomSheet(
         landmark: landmark,
@@ -681,9 +655,7 @@ class _MapScreenState extends State<MapScreen> {
         landmarkService: landmarkService,
         cooldownService: cooldownService,
         onCollected: _updateMarkers,
-        pinTier: landmark.category == 'weltwunder'
-            ? TokenTier.weltwunder
-            : pinTier,
+        pinTier: pinTier,
       ),
     );
   }
@@ -698,7 +670,7 @@ class _LandmarkBottomSheet extends StatefulWidget {
   final LandmarkService landmarkService;
   final CooldownService cooldownService;
   final VoidCallback onCollected;
-  final TokenTier pinTier;
+  final TokenTier? pinTier;
 
   const _LandmarkBottomSheet({
     required this.landmark,
@@ -720,8 +692,9 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
   bool _canCollect = false;
 
   // Church two-phase collect
-  bool _mainCollected = false;      // main token was collected
+  bool _mainCollected = false; // main token was collected
   bool _churchBonusCollected = false; // default church token was collected too
+  bool _eventTokenCollected = false; // event token was collected
 
   // Fly-away animation
   late final AnimationController _flyCtrl;
@@ -753,21 +726,10 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
   void _refreshCooldown() {
     final tier = widget.pinTier;
     final id = widget.landmark.id;
-
-    if (tier == TokenTier.weltwunder) {
-      final inCollection = widget.collectionService.tokens.any(
-        (t) => t.landmarkId == id,
-      );
-      final inSet = widget.collectionService.sets.any(
-        (s) => s.requiredTokenIds.contains(id) && s.collectedTokenIds.contains(id),
-      );
-      _canCollect = !(inCollection || inSet);
-      _remaining = null;
-      return;
-    }
-
-    _canCollect = widget.cooldownService.canCollect(id, tier);
-    _remaining = widget.cooldownService.remainingCooldown(id, tier);
+    _canCollect =
+        widget.cooldownService.canCollect(id, tier ?? TokenTier.bronze);
+    _remaining =
+        widget.cooldownService.remainingCooldown(id, tier ?? TokenTier.bronze);
   }
 
   void _startTimer() {
@@ -782,7 +744,8 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
   // Distanz in km; <= checkInRadiusKm = innerhalb Sammelbereich
   bool get _isNearby {
     // Dev-Mode: Standortbeschränkung aufheben
-    if (Provider.of<DevModeService>(context, listen: false).enabled) return true;
+    if (Provider.of<DevModeService>(context, listen: false).enabled)
+      return true;
     final d = widget.distance;
     if (d == null) return false; // kein GPS = nicht sammelbar
     return d <= widget.landmark.checkInRadiusKm;
@@ -790,58 +753,91 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
 
   Color get _tierColor {
     switch (widget.pinTier) {
-      case TokenTier.bronze: return Colors.brown[400]!;
-      case TokenTier.silver: return Colors.grey[400]!;
-      case TokenTier.gold: return Colors.amber[500]!;
-      case TokenTier.platinum: return Colors.cyan[300]!;
-      case TokenTier.monumente: return Colors.deepPurpleAccent;
-      case TokenTier.weltwunder: return Colors.tealAccent;
+      case TokenTier.bronze:
+        return Colors.brown[400]!;
+      case TokenTier.silver:
+        return Colors.grey[400]!;
+      case TokenTier.gold:
+        return Colors.amber[500]!;
+      case TokenTier.platinum:
+        return Colors.cyan[300]!;
+      case TokenTier.monumente:
+        return Colors.deepPurpleAccent;
+      default:
+        return Colors.amber[500]!; // Random/unknown tier – gold color
     }
   }
 
   String get _cooldownLabel {
     final tier = widget.pinTier;
     if (tier == TokenTier.platinum) return 'Einmalig – nicht mehr sammelbar';
-      if (tier == TokenTier.monumente) return 'Monumente-Tokens sind derzeit nicht verfügbar';
-      if (tier == TokenTier.weltwunder) return 'Weltwunder bereits in Sammlung/Set vorhanden';
+    if (tier == TokenTier.monumente)
+      return 'Monumente-Tokens sind derzeit nicht verfügbar';
     if (_remaining == null) return '';
     return 'Cooldown: ${CooldownService.formatDuration(_remaining!)}';
   }
 
-  Widget _buildGrayDefaultPreview() {
-    return ColorFiltered(
-      colorFilter: const ColorFilter.matrix(<double>[
-        0.2126, 0.7152, 0.0722, 0, 0,
-        0.2126, 0.7152, 0.0722, 0, 0,
-        0.2126, 0.7152, 0.0722, 0, 0,
-        0, 0, 0, 1, 0,
-      ]),
-      child: Image.asset(
-        'assets/images/default_token.jpeg',
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-          color: Colors.grey[800],
-          child: const Icon(Icons.lock, size: 60, color: Colors.white54),
-        ),
+  /// Gibt das aktive Event zurück, das für diesen Standort gilt und noch nicht besucht wurde.
+  GameEvent? _activeEventForToken() {
+    final eventService = Provider.of<EventService>(context, listen: false);
+    for (final event in EventService.allEvents) {
+      if (!event.isActive) continue;
+      if (!event.landmarkIds.contains(widget.landmark.id)) continue;
+      if (eventService.hasLandmarkBeenVisited(event.id, widget.landmark.id)) {
+        continue;
+      }
+      return event;
+    }
+    return null;
+  }
+
+  void _collectEventToken(BuildContext ctx) {
+    final event = _activeEventForToken()!;
+    final landmark = widget.landmark;
+    Provider.of<EventService>(ctx, listen: false)
+        .recordEventLandmarkCollected(event.id, landmark.id);
+    widget.collectionService.collectEventToken(
+      landmarkId: landmark.id,
+      landmarkName: landmark.name,
+      eventId: event.id,
+      eventTitle: event.title,
+      tokenImageUrl: event.tokenImageUrl,
+      latitude: landmark.latitude,
+      longitude: landmark.longitude,
+      points: event.rewardCoins ~/ event.requiredCount,
+    );
+    widget.onCollected();
+    _flyCtrl.forward().then((_) {
+      if (mounted) {
+        setState(() {
+          _eventTokenCollected = true;
+          _flyCtrl.reset();
+        });
+        if (!widget.landmark.isChurch) {
+          Future.microtask(() {
+            if (mounted) Navigator.pop(ctx);
+          });
+        }
+      }
+    });
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Text('⭐ Event-Token gesammelt! (${event.title})'),
+        backgroundColor: Colors.amber[700],
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
-  Future<bool> _playCollectRewardAnimation(Landmark landmark) async {
-    final imageAssetPath = widget.landmarkService.getImageUrlForTier(
-      landmark.id,
-      widget.pinTier,
-    );
-
-    return CollectRewardOverlay.show(
-      context,
-      landmarkName: landmark.name,
-      imageAssetPath: imageAssetPath,
-      tier: widget.pinTier,
-    );
+  TokenTier _rollCollectTier() {
+    final roll = Random().nextDouble() * 100;
+    if (roll < 0.5) return TokenTier.platinum;  // 0.5%
+    if (roll < 3.5) return TokenTier.gold;      // 3%
+    if (roll < 18.5) return TokenTier.silver;   // 15%
+    return TokenTier.bronze;                     // 81.5%
   }
 
-  Future<void> _collect(BuildContext ctx) async {
+  void _collect(BuildContext ctx) {
     final authService = Provider.of<AuthService>(ctx, listen: false);
     if (!authService.isLoggedIn) {
       Navigator.pop(ctx);
@@ -856,85 +852,82 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       );
       return;
     }
-
-    try {
-      final landmark = widget.landmark;
-      final awardedCoins = widget.pinTier.pointValue;
-
-      final confirmed = await _playCollectRewardAnimation(landmark);
-      if (!confirmed || !mounted) return;
-
-      final tokensBefore = widget.collectionService.tokens.length;
-
+    final landmark = widget.landmark;
+    if (landmark.category == 'weltwunder') {
       widget.collectionService.collectTokenAllowDuplicate(
         landmark.id,
         landmark.name,
         landmark.category,
         landmark.pointsReward,
         landmark.relatedSetIds,
-        tier: widget.pinTier,
+        tier: null,
+        landmark: landmark,
       );
-
-      final collectSucceeded = widget.collectionService.tokens.length > tokensBefore;
-      if (!collectSucceeded) {
-        if (mounted) {
-          setState(_refreshCooldown);
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Token konnte nicht gesammelt werden.'),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-
-      if (widget.pinTier != TokenTier.weltwunder) {
-        await widget.cooldownService.recordCollection(landmark.id);
-      }
+      widget.cooldownService.recordCollection(landmark.id);
       widget.onCollected();
-      if (!mounted) return;
+      Navigator.pop(ctx);
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          content:
+              Text('Weltwunder gesammelt! +${landmark.pointsReward} Coins'),
+          backgroundColor: Colors.deepPurple,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final rolledTier = _rollCollectTier();
+    final awardedCoins = rolledTier.pointValue;
+    widget.collectionService.collectTokenAllowDuplicate(
+      landmark.id,
+      landmark.name,
+      landmark.category,
+      landmark.pointsReward,
+      landmark.relatedSetIds,
+      tier: rolledTier,
+    );
+    widget.cooldownService.recordCollection(landmark.id);
+    widget.onCollected();
 
-      final messenger = ScaffoldMessenger.of(context);
-      if (landmark.isChurch) {
-        // Fly-away animation, then show church bonus token
-        unawaited(_flyCtrl.forward().then((_) {
+    if (landmark.isChurch) {
+      // Fly-away animation, then show church bonus token
+      _flyCtrl.forward().then((_) {
+        if (mounted) {
+          setState(() {
+            _mainCollected = true;
+            _flyCtrl.reset();
+          });
+        }
+      });
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Token gesammelt! +$awardedCoins Coins (${rolledTier.displayName})',
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      final hasEventToken = _activeEventForToken() != null;
+      if (hasEventToken) {
+        _flyCtrl.forward().then((_) {
           if (mounted) {
             setState(() {
               _mainCollected = true;
               _flyCtrl.reset();
             });
           }
-        }));
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              'Token gesammelt! +$awardedCoins Coins (${widget.pinTier.displayName})',
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        });
       } else {
-        if (!mounted) return;
-        Navigator.of(context).pop();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              'Token gesammelt! +$awardedCoins Coins (${widget.pinTier.displayName})',
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        Navigator.pop(ctx);
       }
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Beim Einsammeln ist ein Fehler aufgetreten.'),
-          backgroundColor: Colors.red,
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Token gesammelt! +$awardedCoins Coins (${rolledTier.displayName})',
+          ),
+          backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -960,14 +953,14 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     Provider.of<EventService>(ctx, listen: false)
         .recordChurchCollected(landmark.id);
 
-    unawaited(_flyCtrl.forward().then((_) {
+    _flyCtrl.forward().then((_) {
       if (mounted) {
         setState(() {
           _churchBonusCollected = true;
           _flyCtrl.reset();
         });
       }
-    }));
+    });
     ScaffoldMessenger.of(ctx).showSnackBar(
       const SnackBar(
         content: Text('Kirchensegen erhalten! +10 Coins ⛪'),
@@ -996,13 +989,15 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
   @override
   Widget build(BuildContext context) {
     final landmark = widget.landmark;
-    final isEverCollected = widget.pinTier == TokenTier.weltwunder
-        ? widget.collectionService.hasCollectedToken(landmark.id)
-        : widget.cooldownService.wasEverCollected(landmark.id);
+    final isEverCollected =
+        widget.cooldownService.wasEverCollected(landmark.id);
     final isFirstCollection = !isEverCollected;
     final tier = widget.pinTier;
-    final isPlatinum = tier == TokenTier.platinum;
-    final isMonumente = tier == TokenTier.monumente;
+    final isPlatinum = (tier ?? TokenTier.bronze) == TokenTier.platinum;
+    final isMonumente = (tier ?? TokenTier.bronze) == TokenTier.monumente;
+    final activeEvent = _activeEventForToken();
+    final isEventPhase = _mainCollected && activeEvent != null && !_eventTokenCollected;
+    final isChurchPhase = _mainCollected && !isEventPhase && widget.landmark.isChurch;
 
     return Container(
       decoration: BoxDecoration(
@@ -1049,21 +1044,27 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
                               color: Colors.grey[800],
-                              child: const Icon(Icons.church, size: 60, color: Colors.white54),
+                              child: const Icon(Icons.church,
+                                  size: 60, color: Colors.white54),
                             ),
                           )
-                        // Phase 1: always show default token to keep the reveal a surprise
-                        : (_isNearby
+                        // Phase 1: show specific landmark token
+                        : (landmark.imageUrl.isNotEmpty
                             ? Image.asset(
-                                'assets/images/default_token.jpeg',
+                                widget.landmarkService.getImageUrlForTier(
+                                    landmark.id, tier ?? TokenTier.bronze),
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Container(
                                   color: Colors.grey[800],
-                                  child: const Icon(Icons.help_outline,
+                                  child: const Icon(Icons.image_not_supported,
                                       size: 60, color: Colors.white54),
                                 ),
                               )
-                            : _buildGrayDefaultPreview()),
+                            : Container(
+                                color: Colors.grey[800],
+                                child: const Icon(Icons.location_on,
+                                    size: 60, color: Colors.amber),
+                              )),
                   ),
                 ),
               ),
@@ -1074,9 +1075,11 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
             children: [
               Expanded(
                 child: Text(
-                  _mainCollected
-                      ? '⛪ Kirchensegen'
-                      : landmark.name,
+                  isEventPhase
+                      ? '${landmark.name} ⭐'
+                      : isChurchPhase
+                          ? '⛪ Kirchensegen'
+                          : landmark.name,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -1085,24 +1088,36 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
               ),
               // Tier badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: _tierColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _tierColor, width: 1),
                 ),
                 child: Text(
-                  _mainCollected ? 'Bonus' : tier.displayName,
-                  style: TextStyle(color: _tierColor, fontWeight: FontWeight.bold, fontSize: 12),
+                  isEventPhase
+                      ? '⭐ Event'
+                      : isChurchPhase
+                          ? 'Bonus'
+                          : (landmark.category == 'weltwunder'
+                              ? 'Weltwunder'
+                              : '?'),
+                  style: TextStyle(
+                      color: _tierColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            _mainCollected
-                ? 'Du hast die Kirche besucht! Sammle jetzt den Kirchensegen als Bonus-Token (+50 Coins).'
-                : landmark.description,
+            isEventPhase
+                ? 'Du hast diesen Standort besucht! Sammle jetzt den Event-Token. (${activeEvent.title})'
+                : isChurchPhase
+                    ? 'Du hast die Kirche besucht! Sammle jetzt den Kirchensegen als Bonus-Token (+50 Coins).'
+                    : landmark.description,
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
@@ -1129,7 +1144,8 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                         colors: [Colors.amber[700]!, Colors.amber[500]!]),
@@ -1173,55 +1189,24 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
           ],
           // Buttons
           if (_mainCollected) ...[
-            // ── Phase 2: church bonus token ──
-            if (_churchBonusCollected) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.teal.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.teal),
-                ),
-                child: const Column(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.tealAccent, size: 26),
-                    SizedBox(height: 4),
-                    Text('Kirchensegen gesammelt! ⛪',
-                        style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.grey),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Schließen', style: TextStyle(color: Colors.grey)),
-                ),
-              ),
-            ] else ...[
+            if (isEventPhase) ...[
+              // ── Event Token Phase ──
               Row(
                 children: [
                   Expanded(
                     child: SizedBox(
                       height: 50,
                       child: ElevatedButton.icon(
-                        icon: const Icon(Icons.church),
-                        label: const Text('Kirchensegen +50 🪙'),
+                        icon: const Icon(Icons.star),
+                        label: Text('Event-Token: ${activeEvent.title}'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal[600],
-                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.amber[700],
+                          foregroundColor: Colors.black,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                           elevation: 6,
                         ),
-                        onPressed: () => _collectChurchBonus(context),
+                        onPressed: () => _collectEventToken(context),
                       ),
                     ),
                   ),
@@ -1231,16 +1216,109 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.grey),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Überspringen', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      child: const Text('Überspringen',
+                          style: TextStyle(color: Colors.grey, fontSize: 12)),
                     ),
                   ),
                 ],
               ),
+            ] else if (isChurchPhase) ...[
+              // ── Church Bonus Phase ──
+              if (_churchBonusCollected) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.teal),
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(Icons.check_circle,
+                          color: Colors.tealAccent, size: 26),
+                      SizedBox(height: 4),
+                      Text('Kirchensegen gesammelt! ⛪',
+                          style: TextStyle(
+                              color: Colors.tealAccent,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.grey),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Schließen',
+                        style: TextStyle(color: Colors.grey)),
+                  ),
+                ),
+              ] else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.church),
+                          label: const Text('Kirchensegen +50 🪙'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal[600],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            elevation: 6,
+                          ),
+                          onPressed: () => _collectChurchBonus(context),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      height: 50,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.grey),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Überspringen',
+                            style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ] else ...[
+              // All done (non-church, event token just collected or no event)
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.grey),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Schließen',
+                      style: TextStyle(color: Colors.grey)),
+                ),
+              ),
             ],
-          ] else if (!_isNearby) ...[                
+          ] else if (!_isNearby) ...[
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1271,7 +1349,8 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                     height: 50,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.add_circle_outline),
-                      label: Text(isFirstCollection ? 'Sammeln' : 'Erneut sammeln'),
+                      label: Text(
+                          isFirstCollection ? 'Sammeln' : 'Erneut sammeln'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green[600],
                         foregroundColor: Colors.white,
@@ -1318,7 +1397,9 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                 child: Text(
                   isMonumente
                       ? 'Derzeit nicht verfügbar'
-                      : (isPlatinum ? 'Einmalig gesammelt ✓' : 'Cooldown aktiv…'),
+                      : (isPlatinum
+                          ? 'Einmalig gesammelt ✓'
+                          : 'Cooldown aktiv…'),
                 ),
               ),
             ),
@@ -1379,9 +1460,10 @@ class _EventMapButtonState extends State<_EventMapButton>
     return Consumer<EventService>(
       builder: (context, eventService, _) {
         final hasPending = eventService.pendingReward() != null;
-        final firstEvent = EventService.allEvents.isNotEmpty
-            ? EventService.allEvents.first
-            : null;
+        final activeEvents = EventService.allEvents
+            .where((e) => e.isActive)
+            .toList();
+        final firstEvent = activeEvents.isNotEmpty ? activeEvents.first : null;
         final count =
             firstEvent != null ? eventService.collectedCount(firstEvent.id) : 0;
         final required = firstEvent?.requiredCount ?? 1;
@@ -1422,7 +1504,10 @@ class _EventMapButtonState extends State<_EventMapButton>
                         end: Alignment.bottomRight,
                         colors: hasPending
                             ? [const Color(0xFF3D2000), const Color(0xFF1A1A2E)]
-                            : [const Color(0xFF2D0A4E), const Color(0xFF1A1A2E)],
+                            : [
+                                const Color(0xFF2D0A4E),
+                                const Color(0xFF1A1A2E)
+                              ],
                       ),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
@@ -1430,8 +1515,8 @@ class _EventMapButtonState extends State<_EventMapButton>
                         width: 1.5,
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 9),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1447,7 +1532,9 @@ class _EventMapButtonState extends State<_EventMapButton>
                                 strokeWidth: 2.5,
                                 backgroundColor: Colors.white12,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  hasPending ? Colors.amber : const Color(0xFF9B59B6),
+                                  hasPending
+                                      ? Colors.amber
+                                      : const Color(0xFF9B59B6),
                                 ),
                               ),
                               Text(
@@ -1465,16 +1552,14 @@ class _EventMapButtonState extends State<_EventMapButton>
                             Text(
                               hasPending ? 'Belohnung!' : 'Events',
                               style: TextStyle(
-                                color: hasPending
-                                    ? Colors.amber
-                                    : Colors.white,
+                                color: hasPending ? Colors.amber : Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.3,
                               ),
                             ),
                             Text(
-                              '$count / $required ⛪',
+                              '$count / $required',
                               style: TextStyle(
                                 color: Colors.grey[400],
                                 fontSize: 10,

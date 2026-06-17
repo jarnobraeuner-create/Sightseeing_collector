@@ -1,45 +1,36 @@
-import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class FeedbackService {
-  static const String placeholderRecipient = 'feedback@example.com';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<bool> sendFeedbackEmail({
+  /// Speichert das Feedback direkt in der Firestore-Collection „feedback".
+  /// Gibt null zurück bei Erfolg, sonst die Fehlermeldung als String.
+  Future<String?> sendFeedback({
     required String message,
     String? username,
     String? userEmail,
     String? imagePath,
   }) async {
-    final body = StringBuffer()
-      ..writeln('Neues In-App-Feedback')
-      ..writeln('')
-      ..writeln('Nutzername: ${username?.trim().isNotEmpty == true ? username!.trim() : 'Unbekannt'}')
-      ..writeln('Account-E-Mail: ${userEmail?.trim().isNotEmpty == true ? userEmail!.trim() : 'Nicht hinterlegt'}')
-      ..writeln('')
-      ..writeln('Nachricht:')
-      ..writeln(message.trim());
-
-    if (imagePath != null && imagePath.trim().isNotEmpty) {
-      body
-        ..writeln('')
-        ..writeln('Ausgewähltes Bild:')
-        ..writeln(imagePath.trim())
-        ..writeln('')
-        ..writeln('Hinweis: Die aktuelle Platzhalter-Implementierung öffnet den Mail-Client. Das Bild wird noch nicht automatisch als Anhang übergeben.');
+    try {
+      final data = <String, dynamic>{
+        'message': message.trim(),
+        'username': username?.trim().isNotEmpty == true
+            ? username!.trim()
+            : 'Unbekannt',
+        'userEmail': userEmail?.trim().isNotEmpty == true
+            ? userEmail!.trim()
+            : 'Nicht hinterlegt',
+        'sentAt': FieldValue.serverTimestamp(),
+      };
+      if (imagePath != null && imagePath.trim().isNotEmpty) {
+        data['imagePath'] = imagePath.trim();
+      }
+      await _firestore.collection('feedback').add(data);
+      return null;
+    } catch (e) {
+      debugPrint('FeedbackService Fehler: $e');
+      return e.toString();
     }
-
-    final uri = Uri(
-      scheme: 'mailto',
-      path: placeholderRecipient,
-      queryParameters: {
-        'subject': 'App-Feedback Sightseeing Collector',
-        'body': body.toString(),
-      },
-    );
-
-    if (!await canLaunchUrl(uri)) {
-      return false;
-    }
-
-    return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 }

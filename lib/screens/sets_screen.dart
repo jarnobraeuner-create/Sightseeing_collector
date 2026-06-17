@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/collection_service.dart';
-import '../services/dev_mode_service.dart';
 import '../services/landmark_service.dart';
-import '../services/location_service.dart';
 import '../services/monument_unlock_service.dart';
 import '../widgets/app_lottie.dart';
 
@@ -20,8 +18,6 @@ class SetsScreen extends StatelessWidget {
         return 'assets/images/Token_Elbphilhamonie_silber.png';
       case 'set_leipzig':
         return 'assets/images/Leipzig_Wappen_Set_token.png';
-      case 'set_weltwunder':
-        return 'assets/images/Collosseum_Weltwunder_token.png';
       default:
         return 'assets/images/Token_gold_speicherstadt.png';
     }
@@ -35,8 +31,6 @@ class SetsScreen extends StatelessWidget {
         return '🏛️';
       case 'set_leipzig':
         return '🏙️';
-      case 'set_weltwunder':
-        return '🌍';
       default:
         return '🎖️';
     }
@@ -290,7 +284,6 @@ class _SetCard extends StatelessWidget {
     final total = set.requiredTokenIds.length;
     final pct = total > 0 ? progress / total : 0.0;
     final isComplete = set.completed;
-    final slotPalette = _SetSlotPalette.forSetId(set.id);
 
     return Card(
       color: Colors.grey[850],
@@ -447,7 +440,6 @@ class _SetCard extends StatelessWidget {
               requiredTokenIds: set.requiredTokenIds,
               collectedTokenIds: set.collectedTokenIds,
               landmarkService: landmarkService,
-              slotPalette: slotPalette,
             ),
           ),
 
@@ -494,13 +486,11 @@ class _PagedTokenGrid extends StatefulWidget {
   final List<String> requiredTokenIds;
   final List<String> collectedTokenIds;
   final LandmarkService landmarkService;
-  final _SetSlotPalette slotPalette;
 
   const _PagedTokenGrid({
     required this.requiredTokenIds,
     required this.collectedTokenIds,
     required this.landmarkService,
-    required this.slotPalette,
   });
 
   @override
@@ -554,7 +544,6 @@ class _PagedTokenGridState extends State<_PagedTokenGrid> {
                     collected: collected,
                     landmark: landmark,
                     name: name,
-                    slotPalette: widget.slotPalette,
                   );
                 }).toList(),
               );
@@ -588,13 +577,11 @@ class _TokenChip extends StatefulWidget {
   final bool collected;
   final Landmark? landmark;
   final String name;
-  final _SetSlotPalette slotPalette;
 
   const _TokenChip({
     required this.collected,
     required this.landmark,
     required this.name,
-    required this.slotPalette,
   });
 
   @override
@@ -605,31 +592,6 @@ class _TokenChipState extends State<_TokenChip> {
   OverlayEntry? _overlay;
   final GlobalKey _key = GlobalKey();
 
-  bool _isReachable(Landmark landmark) {
-    final devMode = Provider.of<DevModeService>(context, listen: false).enabled;
-    if (devMode) return true;
-    final position = Provider.of<LocationService>(context, listen: false).currentPosition;
-    if (position == null) return false;
-    final distance = landmark.getDistance(position.latitude, position.longitude);
-    return distance <= landmark.checkInRadiusKm;
-  }
-
-  Widget _grayDefaultToken() {
-    return ColorFiltered(
-      colorFilter: const ColorFilter.matrix(<double>[
-        0.2126, 0.7152, 0.0722, 0, 0,
-        0.2126, 0.7152, 0.0722, 0, 0,
-        0.2126, 0.7152, 0.0722, 0, 0,
-        0, 0, 0, 1, 0,
-      ]),
-      child: Image.asset(
-        'assets/images/default_token.jpeg',
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(color: Colors.grey[700]),
-      ),
-    );
-  }
-
 
   void _showPopup() {
     if (widget.collected && widget.landmark != null) {
@@ -637,12 +599,7 @@ class _TokenChipState extends State<_TokenChip> {
       final collectionService = Provider.of<CollectionService>(context, listen: false);
       final tokens = collectionService.tokens.where((t) => t.landmarkId == widget.landmark!.id).toList();
       if (tokens.isEmpty) return;
-      tokens.sort((a, b) {
-        if (a.tier == null && b.tier != null) return 1;
-        if (a.tier != null && b.tier == null) return -1;
-        if (a.tier == null && b.tier == null) return 0;
-        return b.tier!.index.compareTo(a.tier!.index);
-      });
+      tokens.sort((a, b) => (b.tier?.index ?? -1).compareTo(a.tier?.index ?? -1));
       final token = tokens.first;
       final landmarkService = Provider.of<LandmarkService>(context, listen: false);
       showDialog(
@@ -656,7 +613,7 @@ class _TokenChipState extends State<_TokenChip> {
             onTap: () => Navigator.of(context).pop(),
             child: Center(
               child: GestureDetector(
-                onTap: () {}, // Damit das Pop-up selbst nicht schließt
+                onTap: () {},
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -670,13 +627,19 @@ class _TokenChipState extends State<_TokenChip> {
                       children: [
                         AspectRatio(
                           aspectRatio: 1,
-                          child: Image.asset(
-                            token.tier != null
-                                ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
-                                : 'assets/images/default_token.jpeg',
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
-                          ),
+                          child: token.tier != null
+                              ? Image.asset(
+                                  landmarkService.getImageUrlForTier(token.landmarkId, token.tier!),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
+                                )
+                              : (token.weltwunder != null
+                                  ? Image.network(
+                                      token.weltwunder!.imageUrl,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
+                                    )
+                                  : const Icon(Icons.emoji_events, size: 80, color: Colors.amber)),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -686,7 +649,7 @@ class _TokenChipState extends State<_TokenChip> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          token.tier?.displayName ?? 'Weltwunder',
+                          token.tier != null ? token.tier!.displayName : 'Weltwunder',
                           style: TextStyle(color: Colors.amber, fontSize: 14),
                         ),
                         Text(
@@ -779,8 +742,6 @@ class _TokenChipState extends State<_TokenChip> {
   Widget build(BuildContext context) {
     final collected = widget.collected;
     final landmark = widget.landmark;
-    final reachable = landmark != null ? _isReachable(landmark) : false;
-    final slotPalette = widget.slotPalette;
 
     return GestureDetector(
       onTap: _showPopup,
@@ -790,34 +751,11 @@ class _TokenChipState extends State<_TokenChip> {
         height: 44,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              slotPalette.velvetLight,
-              slotPalette.velvetBase,
-              slotPalette.velvetDark,
-            ],
-            stops: const [0.0, 0.52, 1.0],
-          ),
           border: Border.all(
-            color: collected
-                ? slotPalette.borderCollected
-                : slotPalette.borderDefault,
+            color: collected ? Colors.green[400]! : Colors.grey[700]!,
             width: 2,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: slotPalette.shadowOuter,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-            BoxShadow(
-              color: slotPalette.shadowInnerGlow,
-              blurRadius: 3,
-              offset: const Offset(0, -1),
-            ),
-          ],
+          color: collected ? Colors.green[900] : Colors.grey[800],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(6),
@@ -832,43 +770,28 @@ class _TokenChipState extends State<_TokenChip> {
                     if (tokens.isEmpty) {
                       return Container(color: Colors.black);
                     }
-                    tokens.sort((a, b) {
-                      if (a.tier == null && b.tier != null) return 1;
-                      if (a.tier != null && b.tier == null) return -1;
-                      if (a.tier == null && b.tier == null) return 0;
-                      return b.tier!.index.compareTo(a.tier!.index);
-                    });
+                    tokens.sort((a, b) => (b.tier?.index ?? -1).compareTo(a.tier?.index ?? -1));
                     final token = tokens.first;
                     final landmarkService = Provider.of<LandmarkService>(context, listen: false);
-                    return Image.asset(
-                      token.tier != null
-                          ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
-                          : 'assets/images/default_token.jpeg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: slotPalette.placeholderFill,
-                      ),
-                    );
+                    if (token.tier != null) {
+                      return Image.asset(
+                        landmarkService.getImageUrlForTier(token.landmarkId, token.tier!),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(color: Colors.black),
+                      );
+                    } else if (token.weltwunder != null) {
+                      return Image.network(
+                        token.weltwunder!.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(color: Colors.black),
+                      );
+                    } else {
+                      return Container(color: Colors.black);
+                    }
                   },
                 )
-              else if (!collected && landmark != null && !reachable)
-                _grayDefaultToken()
               else
-                Container(color: slotPalette.placeholderFill),
-              if (!collected)
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.07),
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.08),
-                      ],
-                    ),
-                  ),
-                ),
+                Container(color: Colors.black),
               if (!collected)
                 const Center(
                   child: Icon(Icons.lock, color: Colors.white38, size: 16),
@@ -891,76 +814,5 @@ class _TokenChipState extends State<_TokenChip> {
         ),
       ),
     );
-  }
-}
-
-class _SetSlotPalette {
-  final Color velvetLight;
-  final Color velvetBase;
-  final Color velvetDark;
-  final Color borderDefault;
-  final Color borderCollected;
-  final Color shadowOuter;
-  final Color shadowInnerGlow;
-  final Color placeholderFill;
-
-  const _SetSlotPalette({
-    required this.velvetLight,
-    required this.velvetBase,
-    required this.velvetDark,
-    required this.borderDefault,
-    required this.borderCollected,
-    required this.shadowOuter,
-    required this.shadowInnerGlow,
-    required this.placeholderFill,
-  });
-
-  factory _SetSlotPalette.forSetId(String setId) {
-    switch (setId) {
-      case 'set_hamburg':
-        return const _SetSlotPalette(
-          velvetLight: Color(0xFF6E3A44),
-          velvetBase: Color(0xFF5A2E37),
-          velvetDark: Color(0xFF44232B),
-          borderDefault: Color(0xFFD8AEB8),
-          borderCollected: Color(0xFFEBC0C9),
-          shadowOuter: Color(0x5528141A),
-          shadowInnerGlow: Color(0x33E9CCD2),
-          placeholderFill: Color(0xFF2F1C22),
-        );
-      case 'set_leipzig':
-        return const _SetSlotPalette(
-          velvetLight: Color(0xFF3C5E4A),
-          velvetBase: Color(0xFF324F3E),
-          velvetDark: Color(0xFF263C2F),
-          borderDefault: Color(0xFFB8D7C3),
-          borderCollected: Color(0xFFD0E9D8),
-          shadowOuter: Color(0x5520362A),
-          shadowInnerGlow: Color(0x33CFE9D6),
-          placeholderFill: Color(0xFF1F2D25),
-        );
-      case 'set_weltwunder':
-        return const _SetSlotPalette(
-          velvetLight: Color(0xFF35666B),
-          velvetBase: Color(0xFF2C565A),
-          velvetDark: Color(0xFF204045),
-          borderDefault: Color(0xFFAED7D9),
-          borderCollected: Color(0xFFC6E9EB),
-          shadowOuter: Color(0x55192E31),
-          shadowInnerGlow: Color(0x33CDEEF0),
-          placeholderFill: Color(0xFF1B2F33),
-        );
-      default:
-        return const _SetSlotPalette(
-          velvetLight: Color(0xFF4D5362),
-          velvetBase: Color(0xFF3E4350),
-          velvetDark: Color(0xFF2E323C),
-          borderDefault: Color(0xFFBFC7D5),
-          borderCollected: Color(0xFFD7DEEA),
-          shadowOuter: Color(0x5521242B),
-          shadowInnerGlow: Color(0x33D8E0F0),
-          placeholderFill: Color(0xFF232730),
-        );
-    }
   }
 }

@@ -13,10 +13,6 @@ class CollectionScreen extends StatefulWidget {
 }
 
 class _CollectionScreenState extends State<CollectionScreen> {
-  bool _isWeltwunderToken(Token t) =>
-      t.tier == TokenTier.weltwunder ||
-      (t.tier == null && t.category == 'weltwunder');
-
   List<_TokenCategory> _buildCategories(List<Token> tokens) {
     return [
       _TokenCategory(
@@ -31,7 +27,14 @@ class _CollectionScreenState extends State<CollectionScreen> {
         label: 'Weltwunder',
         icon: Icons.public,
         color: Colors.tealAccent,
-        predicate: _isWeltwunderToken,
+        predicate: (t) => t.category == 'weltwunder',
+      ),
+      _TokenCategory(
+        key: 'event',
+        label: 'Event Tokens',
+        icon: Icons.star,
+        color: Colors.yellowAccent,
+        predicate: (t) => t.category == 'event',
       ),
       _TokenCategory(
         key: 'monumente',
@@ -171,8 +174,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
     final landmarkService = Provider.of<LandmarkService>(context, listen: false);
     final landmark = landmarkService.getLandmarkById(token.landmarkId);
     final imageUrl = token.tier != null
-        ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
-        : 'assets/images/default_token.jpeg';
+      ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+      : (token.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg');
 
     Color tierColor;
     switch (token.tier) {
@@ -181,7 +184,6 @@ class _CollectionScreenState extends State<CollectionScreen> {
       case TokenTier.gold:   tierColor = Colors.amber[500]!; break;
       case TokenTier.platinum: tierColor = Colors.cyan[300]!; break;
       case TokenTier.monumente: tierColor = Colors.deepPurpleAccent; break;
-      case TokenTier.weltwunder: tierColor = Colors.tealAccent; break;
       case null: tierColor = Colors.tealAccent; break; // Weltwunder
     }
 
@@ -192,7 +194,6 @@ class _CollectionScreenState extends State<CollectionScreen> {
       case TokenTier.gold:   tierEmoji = '🥇'; break;
       case TokenTier.platinum: tierEmoji = '💎'; break;
       case TokenTier.monumente: tierEmoji = '🏛️'; break;
-      case TokenTier.weltwunder: tierEmoji = '🌍'; break;
       case null: tierEmoji = '🌍'; break; // Weltwunder
     }
 
@@ -255,7 +256,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                       border: Border.all(color: tierColor),
                     ),
                     child: Text(
-                      '$tierEmoji ${token.tier?.displayName ?? 'Weltwunder'}  ·  ${token.points} 🪙',
+                      '$tierEmoji ${token.tier != null ? token.tier!.displayName : 'Weltwunder'}  ·  ${token.points} 🪙',
                       style: TextStyle(
                           color: tierColor,
                           fontWeight: FontWeight.bold,
@@ -326,12 +327,6 @@ class _CollectionScreenState extends State<CollectionScreen> {
         final visibleTokens = collectionService.tokens
             .where((t) => !t.landmarkId.endsWith('_church'))
             .toList();
-        final weltwunderTokens = visibleTokens
-          .where(_isWeltwunderToken)
-          .toList();
-        final regularTokens = visibleTokens
-          .where((t) => !_isWeltwunderToken(t))
-          .toList();
         final categories = _buildCategories(visibleTokens);
 
         if (visibleTokens.isEmpty) {
@@ -436,65 +431,13 @@ class _CollectionScreenState extends State<CollectionScreen> {
                 ),
               );
             }(),
-            // ── Weltwunder tier (directly under set tokens) ──────────────
-            if (weltwunderTokens.isNotEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                sliver: SliverToBoxAdapter(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.public, color: Colors.tealAccent, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Weltwunder',
-                        style: TextStyle(
-                          color: Colors.tealAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            if (weltwunderTokens.isNotEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                sliver: SliverGrid(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, index) {
-                      final token = weltwunderTokens[index];
-                      return TokenCard(
-                        token: token,
-                        onTap: () => _showTokenDetail(context, token),
-                        onLongPress: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  TokenUpgradeScreen(initialToken: token),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    childCount: weltwunderTokens.length,
-                  ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                ),
-              ),
             // ── Regular tokens ────────────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverGrid(
                 delegate: SliverChildBuilderDelegate(
                   (_, index) {
-                    final token = regularTokens[index];
+                    final token = visibleTokens[index];
                     return TokenCard(
                       token: token,
                       onTap: () => _showTokenDetail(context, token),
@@ -509,7 +452,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                       },
                     );
                   },
-                  childCount: regularTokens.length,
+                  childCount: visibleTokens.length,
                 ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,

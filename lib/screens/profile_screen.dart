@@ -9,32 +9,20 @@ import '../services/index.dart';
 import '../widgets/lootbox_dialog.dart';
 import 'collection_screen.dart';
 import 'token_upgrade_screen.dart';
-import 'friends_screen.dart';
-import 'leaderboard_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return _LoggedInProfile();
+    return const _LoggedInProfile();
   }
 }
 
 class _LoggedInProfile extends StatelessWidget {
-  _LoggedInProfile({Key? key}) : super(key: key);
+  const _LoggedInProfile({Key? key}) : super(key: key);
 
   int _calculateLevel(int points) => (points / 100).floor() + 1;
-
-  void _publishStats(BuildContext context, Map<String, int> stats) {
-    final friendService = context.read<FriendService>();
-    friendService.publishMyStats(
-      totalPoints: stats['totalPoints'] ?? 0,
-      totalTokens: stats['totalTokens'] ?? 0,
-      visitedLandmarks: stats['visitedLandmarks'] ?? 0,
-      leaderboardScore: stats['leaderboardScore'] ?? 0,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,106 +73,16 @@ class _LoggedInProfile extends StatelessWidget {
           final level = _calculateLevel(stats['totalPoints'] ?? 0);
           final username = authService.appUser?.username ?? 'Explorer';
 
-          // Publish stats so friends can see them (debounced by Firestore merge)
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _publishStats(context, stats.map((k, v) => MapEntry(k, v)));
-          });
-
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Avatar & Name
-                Consumer<CosmeticService>(
-                  builder: (context, cosmeticService, _) {
-                    final frame = cosmeticService.selectedFrame;
-                    final imagePath = cosmeticService.profileImagePath;
-                    return GestureDetector(
-                      onTap: () async {
-                        final picker = ImagePicker();
-                        final picked = await picker.pickImage(
-                          source: ImageSource.gallery,
-                          imageQuality: 85,
-                        );
-                        if (picked != null) {
-                          await cosmeticService.setProfileImagePath(picked.path);
-                        }
-                      },
-                      child: Center(
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Frame ring
-                            if (frame != null)
-                              Container(
-                                width: 116,
-                                height: 116,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: frame.gradientColors,
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: frame.primaryColor.withValues(alpha: 0.5),
-                                      blurRadius: 16,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                              )
-                            else
-                              Container(
-                                width: 108,
-                                height: 108,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.amber[700],
-                                ),
-                              ),
-                            // Photo or default icon
-                            ClipOval(
-                              child: SizedBox(
-                                width: 100,
-                                height: 100,
-                                child: imagePath != null && !kIsWeb
-                                    ? Image.file(
-                                        File(imagePath),
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
-                                          color: Colors.grey[800],
-                                          child: const Icon(Icons.person, size: 48, color: Colors.white),
-                                        ),
-                                      )
-                                    : Container(
-                                        color: Colors.grey[800],
-                                        child: const Icon(Icons.person, size: 48, color: Colors.white),
-                                      ),
-                              ),
-                            ),
-                            // Camera overlay
-                            Positioned(
-                              bottom: 4,
-                              right: 4,
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: Colors.amber[700],
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.grey[900]!, width: 2),
-                                ),
-                                child: const Icon(Icons.camera_alt, size: 14, color: Colors.black),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.amber[700],
+                  child: const Icon(Icons.person, size: 48, color: Colors.white),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -212,10 +110,13 @@ class _LoggedInProfile extends StatelessWidget {
                               label: 'Lootboxen\n${lootboxService.extraLootboxes + (lootboxService.canOpen ? 1 : 0)}',
                               color: Colors.amber[700]!,
                               onTap: lootboxService.canOpenAny
-                                  ? () => showDialog(
+                                  ? () {
+                                      FocusScope.of(context).unfocus();
+                                      showDialog(
                                         context: context,
                                         builder: (_) => const LootboxDialog(),
-                                      )
+                                      );
+                                    }
                                   : () {},
                             ),
                           ),
@@ -249,37 +150,6 @@ class _LoggedInProfile extends StatelessWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const TokenUpgradeScreen()),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Consumer<FriendService>(
-                        builder: (ctx, fs, _) => _ActionButton(
-                          icon: Icons.group,
-                          label: 'Freunde\n${fs.incomingCount > 0 ? "${fs.incomingCount} neu" : ""}',
-                          color: Colors.teal[700]!,
-                          badge: fs.incomingCount,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const FriendsScreen()),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ActionButton(
-                        icon: Icons.emoji_events,
-                        label: 'Rangliste',
-                        color: Colors.amber[800]!,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
                         ),
                       ),
                     ),
@@ -373,14 +243,12 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  final int badge;
 
   const _ActionButton({
     required this.icon,
     required this.label,
     required this.color,
     required this.onTap,
-    this.badge = 0,
   });
 
   @override
@@ -420,16 +288,6 @@ class _ActionButton extends StatelessWidget {
               ],
             ),
           ),
-          if (badge > 0)
-            Positioned(
-              top: -6,
-              right: -6,
-              child: Container(
-                padding: const EdgeInsets.all(5),
-                decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                child: Text('$badge', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-              ),
-            ),
         ],
       ),
     );
@@ -489,7 +347,7 @@ class _FeedbackCardState extends State<_FeedbackCard> {
 
     final auth = Provider.of<AuthService>(context, listen: false);
 
-    final success = await _feedbackService.sendFeedbackEmail(
+    final error = await _feedbackService.sendFeedback(
       message: message,
       username: auth.appUser?.username,
       userEmail: auth.appUser?.email,
@@ -502,11 +360,12 @@ class _FeedbackCardState extends State<_FeedbackCard> {
       _isSubmitting = false;
     });
 
-    if (!success) {
+    if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kein Mail-Client verfügbar. Bitte später erneut versuchen.'),
+        SnackBar(
+          content: Text('Fehler: $error'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 6),
         ),
       );
       return;
@@ -520,7 +379,7 @@ class _FeedbackCardState extends State<_FeedbackCard> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Feedback wurde an den Mail-Client übergeben.'),
+        content: Text('Feedback erfolgreich gesendet. Danke!'),
         backgroundColor: Colors.green,
       ),
     );
@@ -532,7 +391,7 @@ class _FeedbackCardState extends State<_FeedbackCard> {
       title: '✉️ Feedback',
       children: [
         Text(
-          'Schicke Fehlerberichte oder Verbesserungsvorschläge direkt per E-Mail.',
+          'Schicke Fehlerberichte oder Verbesserungsvorschläge direkt an das Entwicklerteam.',
           style: TextStyle(color: Colors.grey[400], fontSize: 13),
         ),
         const SizedBox(height: 12),

@@ -300,6 +300,7 @@ class LandmarkService extends ChangeNotifier {
         pointsReward: 85,
         imageUrl: 'assets/images/Token_HaynsPark_Gold.png',
         relatedSetIds: ['set_hamburg'],
+        eventIds: ['parks_juli_2026'],
         quests: [
           Quest(
             id: 'q14',
@@ -321,6 +322,7 @@ class LandmarkService extends ChangeNotifier {
         pointsReward: 90,
         imageUrl: 'assets/images/Token_P_u_B_Gold.png',
         relatedSetIds: ['set_hamburg'],
+        eventIds: ['parks_juli_2026'],
         quests: [
           Quest(
             id: 'q15',
@@ -1168,6 +1170,122 @@ class LandmarkService extends ChangeNotifier {
             completed: false,
           ),
         ],
+      ),
+
+      // ─── NACHT-LANDMARKS Hamburg ───────────────────────────────────────
+      // Mystische und seltene Orte, die nur im Nachtmodus erscheinen
+      Landmark(
+        id: 'n1',
+        name: 'Nachtwächterpfad',
+        description:
+            'Ein mystischer Pfad durch die alte Altstadt, wo ehemals Nachtwächter ihre Runden gingen. Legendär für nächtliche Erscheinungen.',
+        latitude: 53.5465,
+        longitude: 9.9878,
+        category: 'sightseeing',
+        difficulty: 'hard',
+        pointsReward: 250,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: [],
+        mode: 'night',
+        quests: [Quest(id: 'qn1', title: 'Nachtwächterpfad erkunden', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'n2',
+        name: 'Mondschein-Speicherstadt',
+        description:
+            'Die Speicherstadt im Mondlicht – eine verzauberte Welt mit geheimnisvollen Ecken und magischen Reflexionen im Wasser.',
+        latitude: 53.5445,
+        longitude: 9.9974,
+        category: 'sightseeing',
+        difficulty: 'hard',
+        pointsReward: 280,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: [],
+        mode: 'night',
+        defaultTier: TokenTier.gold,
+        quests: [Quest(id: 'qn2', title: 'Mondlicht erleben', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'n3',
+        name: 'Elbe-Phantom',
+        description:
+            'Ein geheimnisvoller Ort an der Elbe, wo Legenden von Schiffsgespenstern und uralten Meereswesen erzählt werden.',
+        latitude: 53.5410,
+        longitude: 9.9890,
+        category: 'sightseeing',
+        difficulty: 'hard',
+        pointsReward: 300,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: [],
+        mode: 'night',
+        defaultTier: TokenTier.platinum,
+        quests: [Quest(id: 'qn3', title: 'Elbe-Phantom beschwören', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'n4',
+        name: 'Sternenobservatorium (Geheim)',
+        description:
+            'Ein verstecktes Observatorium, wo Sternengucker die Himmelskörper studieren. Nur nachts sichtbar für Eingeweihte.',
+        latitude: 53.5950,
+        longitude: 10.0150,
+        category: 'sightseeing',
+        difficulty: 'medium',
+        pointsReward: 200,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: [],
+        mode: 'night',
+        defaultTier: TokenTier.silver,
+        quests: [Quest(id: 'qn4', title: 'Sterne beobachten', taskType: 'checkin', completed: false)],
+      ),
+
+      // ─── NACHT-LANDMARKS Leipzig ──────────────────────────────────────
+      Landmark(
+        id: 'n5',
+        name: 'Marienkirche (Nachts)',
+        description:
+            'Die Marienkirche in Leipzig erstrahlt nachts in mystischem Glanz. Ein Ort der Ruhe und mystischen Schönheit.',
+        latitude: 51.3399,
+        longitude: 12.3754,
+        category: 'sightseeing',
+        difficulty: 'hard',
+        pointsReward: 260,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: [],
+        mode: 'night',
+        defaultTier: TokenTier.gold,
+        isChurch: true,
+        quests: [Quest(id: 'qn5', title: 'Nachtkirche besuchen', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'n6',
+        name: 'Zeitgeschichtliches Forum (Dunkel)',
+        description:
+            'Das Zeitgeschichtliche Forum wird nachts zu einer Installation voller Geschichte und Geheimnisse.',
+        latitude: 51.3363,
+        longitude: 12.3786,
+        category: 'sightseeing',
+        difficulty: 'medium',
+        pointsReward: 180,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: [],
+        mode: 'night',
+        quests: [Quest(id: 'qn6', title: 'Geschichte im Dunkel', taskType: 'checkin', completed: false)],
+      ),
+      Landmark(
+        id: 'n7',
+        name: 'Augustusplatz Mondlicht',
+        description:
+            'Der Augustusplatz unter Mondlicht – ein surreales Spektakel mit Gebäudeschatten und magischen Lichtspielen.',
+        latitude: 51.3397,
+        longitude: 12.3769,
+        category: 'sightseeing',
+        difficulty: 'hard',
+        pointsReward: 240,
+        imageUrl: 'assets/images/default_token.jpeg',
+        relatedSetIds: [],
+        mode: 'night',
+        defaultTier: TokenTier.platinum,
+        quests: [Quest(id: 'qn7', title: 'Augustusplatz magisch', taskType: 'checkin', completed: false)],
       ),
     ]);
   }

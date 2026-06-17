@@ -778,7 +778,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
             final landmark = landmarksById[token.landmarkId]!;
             final tokenImageUrl = token.tier != null
                 ? landmarkService.getImageUrlForTier(landmark.id, token.tier!)
-                : 'assets/images/default_token.jpeg';
+                : (token.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg');
             
             return Card(
               color: Colors.grey[850],
@@ -811,7 +811,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${token.tier?.displayName ?? 'Weltwunder'} · Wert: ~${token.points} Coins',
+                            '${token.tier != null ? token.tier!.displayName : 'Weltwunder'} · Wert: ~${token.points} Coins',
                             style: TextStyle(color: Colors.grey[400]),
                           ),
                         ],
@@ -867,7 +867,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '${landmark.name} · ${token.tier?.displayName ?? 'Weltwunder'}',
+                      '${landmark.name} · ${token.tier != null ? token.tier!.displayName : 'Weltwunder'}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -940,7 +940,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
                   auth.firebaseUser!.uid,
                   auth.appUser?.username ?? 'Unbekannt',
                   token.id,
-                  '${landmark.name} · ${token.tier?.displayName ?? 'Weltwunder'}',
+                  '${landmark.name} · ${token.tier != null ? token.tier!.displayName : 'Weltwunder'}',
                   tokenImageUrl,
                   parsedMinimumCoins,
                   tokenData: token.toJson(),

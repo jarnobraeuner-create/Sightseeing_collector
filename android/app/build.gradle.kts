@@ -23,8 +23,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        }
     }
 
     defaultConfig {
@@ -36,6 +38,21 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Load MAPS_API_KEY from local.properties
+        val mapsKey = try {
+            val localPropsFile = rootProject.file("local.properties")
+            if (localPropsFile.exists()) {
+                val localProps = Properties()
+                localProps.load(FileInputStream(localPropsFile))
+                localProps.getProperty("MAPS_API_KEY", "").ifEmpty { "AIzaSyDummy_API_Key_Replace_With_Yours" }
+            } else {
+                "AIzaSyDummy_API_Key_Replace_With_Yours"
+            }
+        } catch (e: Exception) {
+            "AIzaSyDummy_API_Key_Replace_With_Yours"
+        }
+        manifestPlaceholders["MAPS_API_KEY"] = mapsKey
     }
 
     buildTypes {
@@ -43,37 +60,6 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-        }
-    }
-
-    // Load MAPS_API_KEY from local.properties (not checked into VCS).
-    // Add a line `MAPS_API_KEY=YOUR_API_KEY` to the project's `local.properties`.
-    try {
-        val localPropsFile = rootProject.file("local.properties")
-        if (localPropsFile.exists()) {
-            val localProps = Properties()
-            localProps.load(FileInputStream(localPropsFile))
-            val mapsKey = localProps.getProperty("MAPS_API_KEY", "")
-            if (mapsKey.isNotEmpty()) {
-                defaultConfig {
-                    manifestPlaceholders["MAPS_API_KEY"] = mapsKey
-                }
-            } else {
-                // Use dummy key to allow app to start - Maps will show error but app won't crash
-                defaultConfig {
-                    manifestPlaceholders["MAPS_API_KEY"] = "AIzaSyDummy_API_Key_Replace_With_Yours"
-                }
-            }
-        } else {
-            // Use dummy key to allow app to start - Maps will show error but app won't crash
-            defaultConfig {
-                manifestPlaceholders["MAPS_API_KEY"] = "AIzaSyDummy_API_Key_Replace_With_Yours"
-            }
-        }
-    } catch (e: Exception) {
-        // If anything fails, use dummy key to allow app to start
-        defaultConfig {
-            manifestPlaceholders["MAPS_API_KEY"] = "AIzaSyDummy_API_Key_Replace_With_Yours"
         }
     }
 }

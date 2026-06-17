@@ -20,7 +20,6 @@ class TokenCard extends StatelessWidget {
     return Consumer<LandmarkService>(
       builder: (context, landmarkService, child) {
         final landmark = landmarkService.getLandmarkById(token.landmarkId);
-        final tier = token.tier;
         
         return GestureDetector(
           onTap: onTap,
@@ -45,9 +44,9 @@ class TokenCard extends StatelessWidget {
                             top: Radius.circular(4),
                           ),
                           child: Image.asset(
-                            tier != null
-                                ? landmarkService.getImageUrlForTier(token.landmarkId, tier)
-                                : 'assets/images/default_token.jpeg',
+                            token.tier != null
+                                ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+                                : (token.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg'),
                             fit: BoxFit.cover,
                             width: double.infinity,
                             errorBuilder: (context, error, stackTrace) => Center(
@@ -93,10 +92,10 @@ class TokenCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              tier?.displayName ?? 'Weltwunder',
+                              token.tier != null ? token.tier!.displayName : 'Weltwunder',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: _getTierColor(tier),
+                                color: token.tier != null ? _getTierColor(token.tier!) : Colors.tealAccent,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -129,10 +128,7 @@ class TokenCard extends StatelessWidget {
     );
   }
 
-  Color _getTierColor(TokenTier? tier) {
-    if (tier == null) {
-      return Colors.tealAccent;
-    }
+  Color _getTierColor(TokenTier tier) {
     switch (tier) {
       case TokenTier.bronze:
         return Colors.orange[700]!;
@@ -144,8 +140,6 @@ class TokenCard extends StatelessWidget {
         return Colors.cyan[400]!;
       case TokenTier.monumente:
         return Colors.deepPurpleAccent;
-      case TokenTier.weltwunder:
-        return Colors.tealAccent;
     }
   }
 }

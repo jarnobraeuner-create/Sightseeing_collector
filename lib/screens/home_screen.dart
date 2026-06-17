@@ -60,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final lootboxService = context.read<LootboxService>();
     await lootboxService.addExtraLootboxes(1);
     if (!mounted) return;
+    FocusScope.of(context).unfocus();
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -77,8 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     // _maybeGrantMonumentTaskRewards entfernt
   }
-
-
 
   void _showSetCompletedBanner(CollectionSet set) {
     if (!mounted) return;
@@ -425,9 +424,7 @@ class LandmarkDetailScreen extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             distance != null
-                                ? distance < 1.0
-                                    ? '${(distance * 1000).toStringAsFixed(0)} m away'
-                                    : '${distance.toStringAsFixed(2)} km away'
+                                ? '${distance.toStringAsFixed(2)} km away'
                                 : 'Location unavailable',
                             style: TextStyle(
                               color: isNearby ? Colors.green : Colors.grey[600],
@@ -534,7 +531,6 @@ class LandmarkDetailScreen extends StatelessWidget {
                                         );
                                         return;
                                       }
-                                      
                                       collectionService.collectToken(
                                         landmark.id,
                                         landmark.name,
@@ -542,26 +538,15 @@ class LandmarkDetailScreen extends StatelessWidget {
                                         landmark.pointsReward,
                                         landmark.relatedSetIds,
                                       );
-                                      
-                                      // Get the tier of the newly collected token
-                                      final lastToken = collectionService.tokens.isNotEmpty 
-                                        ? collectionService.tokens.last 
-                                        : null;
-                                      
-                                      // Close landmark dialog
-                                      Navigator.pop(context);
-                                      
-                                      // Show animation dialog
-                                      showDialog<void>(
-                                        context: context,
-                                        barrierDismissible: false,
-                                        builder: (_) => TokenCollectionDialog(
-                                          landmarkName: landmark.name,
-                                          landmarkCategory: landmark.category,
-                                          collectedTier: lastToken?.tier,
-                                          points: landmark.pointsReward,
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Token collected! +${landmark.pointsReward} points',
+                                          ),
+                                          backgroundColor: Colors.green,
                                         ),
                                       );
+                                      Navigator.pop(context);
                                     }
                                   : null),
                           icon: Icon(

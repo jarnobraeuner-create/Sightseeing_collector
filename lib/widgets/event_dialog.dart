@@ -17,7 +17,9 @@ class EventDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       child: Consumer<EventService>(
         builder: (context, eventService, _) {
-          final events = EventService.allEvents;
+          final events = EventService.allEvents
+              .where((e) => !e.isExpired)
+              .toList();
           return Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),

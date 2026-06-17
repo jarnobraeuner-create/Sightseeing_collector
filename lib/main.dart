@@ -33,6 +33,7 @@ class SightseeingCollectorApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => LocationService()),
         ChangeNotifierProvider(create: (_) => LandmarkService()),
+        ChangeNotifierProvider(create: (_) => MapModeService()),
         // CollectionService bekommt die userId vom AuthService
         ChangeNotifierProxyProvider<AuthService, CollectionService>(
           create: (_) => CollectionService(),
