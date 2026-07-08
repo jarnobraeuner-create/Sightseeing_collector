@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "lottie-react-native": "^7.3.6"
   },
   "devDependencies": {

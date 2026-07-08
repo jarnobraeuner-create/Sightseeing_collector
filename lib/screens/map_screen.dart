@@ -10,6 +10,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/index.dart';
 import '../services/index.dart';
 import '../widgets/event_dialog.dart';
+import '../widgets/night_mode_coming_soon_dialog.dart';
 import '../widgets/map_mode_toggle_button.dart';
 
 class MapScreen extends StatefulWidget {
@@ -23,13 +24,22 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
   bool _hasCenteredOnUser = false;
+  bool _nightModeComingSoonShown = false;
   final Map<String, BitmapDescriptor> _markerIcons = {};
   final Map<String, BitmapDescriptor> _markerIconsGray = {};
+  final Map<String, BitmapDescriptor> _eventMarkerIcons = {};
+  final Map<String, BitmapDescriptor> _eventMarkerIconsGray = {};
   bool _isUpdatingMarkers = false;
+  bool _showEventMarkers = true;
+  bool _showNormalTokens = true;
+  bool _showWorldWonderTokens = true;
+  final Set<String> _loadingEventMarkerAssets = <String>{};
 
   // Zoom-based clustering
   double _currentZoom = 13.0;
+  static const double _eventVisibilityZoomThreshold = 12.0;
   final Map<String, BitmapDescriptor> _clusterIconCache = {};
+  static const double _eventMergeTolerance = 0.00025;
 
   @override
   void initState() {
@@ -40,6 +50,8 @@ class _MapScreenState extends State<MapScreen> {
       if (mounted) {
         Provider.of<LocationService>(context, listen: false)
             .ensureInitialized();
+        Provider.of<EventTokenService>(context, listen: false)
+            .addListener(_updateMarkers);
       }
     });
   }
@@ -47,18 +59,32 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _loadAllMarkerIcons() async {
     await Future.wait([
       _loadMarkerIcon('gold', 'assets/images/map_pin_gold.png'),
+      _loadMarkerIcon('event_park', MarkerAssetService.parkEventMarker),
+      _loadMarkerIcon('event_bridge', MarkerAssetService.bridgeEventMarker),
+      _loadMarkerIcon('weltwunder', MarkerAssetService.worldWonderMarker),
+      _loadMarkerIcon('night', MarkerAssetService.nightModeMarker),
     ]);
     if (mounted) {
       _markerIcons['event'] = await _createEventMarkerIcon(grayscale: false);
       _markerIconsGray['event'] = await _createEventMarkerIcon(grayscale: true);
+      _eventMarkerIcons[MarkerAssetService.parkEventMarker] =
+          _markerIcons['event_park'] ?? _markerIcons['event']!;
+      _eventMarkerIconsGray[MarkerAssetService.parkEventMarker] =
+          _markerIconsGray['event_park'] ?? _markerIconsGray['event']!;
+      _eventMarkerIcons[MarkerAssetService.bridgeEventMarker] =
+          _markerIcons['event_bridge'] ?? _markerIcons['event']!;
+      _eventMarkerIconsGray[MarkerAssetService.bridgeEventMarker] =
+          _markerIconsGray['event_bridge'] ?? _markerIconsGray['event']!;
     }
     if (mounted) {
       _updateMarkers();
     }
   }
 
-  Future<BitmapDescriptor> _createEventMarkerIcon({required bool grayscale}) async {
-    final ByteData assetData = await rootBundle.load('assets/images/map_pin_gold.png');
+  Future<BitmapDescriptor> _createEventMarkerIcon(
+      {required bool grayscale}) async {
+    final ByteData assetData =
+        await rootBundle.load('assets/images/map_pin_gold.png');
     final ui.Codec codec = await ui.instantiateImageCodec(
       assetData.buffer.asUint8List(),
       targetWidth: 200,
@@ -72,13 +98,15 @@ class _MapScreenState extends State<MapScreen> {
         recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
     canvas.drawImageRect(
       pinImage,
-      Rect.fromLTWH(0, 0, pinImage.width.toDouble(), pinImage.height.toDouble()),
+      Rect.fromLTWH(
+          0, 0, pinImage.width.toDouble(), pinImage.height.toDouble()),
       Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
       Paint(),
     );
     if (!grayscale) {
       final badgeCenter = Offset(size * 0.76, size * 0.22);
-      canvas.drawCircle(badgeCenter, 38, Paint()..color = const Color(0xFFFFD700));
+      canvas.drawCircle(
+          badgeCenter, 38, Paint()..color = const Color(0xFFFFD700));
       canvas.drawCircle(
           badgeCenter,
           38,
@@ -181,6 +209,10 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    try {
+      Provider.of<EventTokenService>(context, listen: false)
+          .removeListener(_updateMarkers);
+    } catch (_) {}
     _mapController?.dispose();
     super.dispose();
   }
@@ -256,11 +288,78 @@ class _MapScreenState extends State<MapScreen> {
 
   /// Filtert Landmarks nach aktuellem Modus (Tag/Nacht)
   List<Landmark> _filterLandmarksByMode(List<Landmark> landmarks) {
-    final mapModeService =
-        Provider.of<MapModeService>(context, listen: false);
+    final mapModeService = Provider.of<MapModeService>(context, listen: false);
+    if (mapModeService.isNightMode) {
+      return const <Landmark>[];
+    }
     return landmarks
-        .where((lm) => lm.mode == (mapModeService.isDayMode ? 'day' : 'night'))
+        .where((lm) => lm.mode != 'night')
+        .where(_isLandmarkVisibleByChipFilter)
         .toList();
+  }
+
+  bool get _shouldRenderEventMarkersByZoom =>
+      _currentZoom >= _eventVisibilityZoomThreshold;
+
+  bool _isLandmarkVisibleByChipFilter(Landmark landmark) {
+    if (landmark.mode == 'night') return false;
+    if (landmark.category == 'weltwunder') {
+      return _showWorldWonderTokens;
+    }
+    return _showNormalTokens;
+  }
+
+  bool _shouldRenderEventToken(EventToken token) {
+    if (!_showEventMarkers || !_shouldRenderEventMarkersByZoom) {
+      return false;
+    }
+    return true;
+  }
+
+  BitmapDescriptor _resolveEventMarkerIcon(
+    EventToken token, {
+    required bool grayscale,
+  }) {
+    final markerAsset = MarkerAssetService.markerForEventToken(token);
+    final iconMap = grayscale ? _eventMarkerIconsGray : _eventMarkerIcons;
+    final fallback = grayscale
+        ? (_markerIconsGray['event'] ?? BitmapDescriptor.defaultMarker)
+        : (_markerIcons['event'] ?? BitmapDescriptor.defaultMarker);
+
+    final existing = iconMap[markerAsset];
+    if (existing != null) {
+      return existing;
+    }
+
+    final dynamicKey = 'event_dyn_$markerAsset';
+    if (_markerIcons.containsKey(dynamicKey)) {
+      _eventMarkerIcons[markerAsset] =
+          _markerIcons[dynamicKey] ?? _markerIcons['event']!;
+      _eventMarkerIconsGray[markerAsset] =
+          _markerIconsGray[dynamicKey] ?? _markerIconsGray['event']!;
+      return grayscale
+          ? _eventMarkerIconsGray[markerAsset] ?? fallback
+          : _eventMarkerIcons[markerAsset] ?? fallback;
+    }
+
+    if (!_loadingEventMarkerAssets.contains(markerAsset)) {
+      _loadingEventMarkerAssets.add(markerAsset);
+      _loadMarkerIcon(dynamicKey, markerAsset).then((_) {
+        _loadingEventMarkerAssets.remove(markerAsset);
+        if (!mounted) return;
+        setState(() {
+          _eventMarkerIcons[markerAsset] =
+              _markerIcons[dynamicKey] ?? _markerIcons['event']!;
+          _eventMarkerIconsGray[markerAsset] =
+              _markerIconsGray[dynamicKey] ?? _markerIconsGray['event']!;
+        });
+        _updateMarkers();
+      }).catchError((_) {
+        _loadingEventMarkerAssets.remove(markerAsset);
+      });
+    }
+
+    return fallback;
   }
 
   void _updateMarkers() {
@@ -290,6 +389,8 @@ class _MapScreenState extends State<MapScreen> {
 
   Marker _buildSingleMarker(Landmark landmark, CollectionService cs) {
     final isCollected = cs.getToken(landmark.id) != null;
+    final eventTokenService =
+        Provider.of<EventTokenService>(context, listen: false);
     if (landmark.category == 'weltwunder') {
       // Spezielles Icon für Weltwunder
       final markerIcon = isCollected
@@ -304,31 +405,62 @@ class _MapScreenState extends State<MapScreen> {
         infoWindow: InfoWindow.noText,
       );
     }
-    final hasActiveEvent = landmark.eventIds.isNotEmpty &&
-        EventService.allEvents
-            .any((e) => e.isActive && landmark.eventIds.contains(e.id));
-    final pinKey = hasActiveEvent ? 'event' : 'gold';
-    final markerIcon = isCollected
-        ? (_markerIconsGray[pinKey] ?? BitmapDescriptor.defaultMarker)
-        : (_markerIcons[pinKey] ?? BitmapDescriptor.defaultMarker);
+    final matchingEventTokens = _shouldRenderEventMarkersByZoom
+        ? eventTokenService.activeEventTokens
+            .where(
+              (token) =>
+                  _shouldRenderEventToken(token) &&
+                  token.isActive &&
+                  (token.landmarkId == landmark.id ||
+                      _isNear(landmark.latitude, landmark.longitude,
+                          token.latitude, token.longitude)),
+            )
+            .toList(growable: false)
+        : const <EventToken>[];
+    final hasActiveEvent = matchingEventTokens.isNotEmpty;
+    final eventToken = hasActiveEvent ? matchingEventTokens.first : null;
+    final isEventCollected =
+        eventToken != null && eventTokenService.isCollected(eventToken.id);
+    final markerIcon = hasActiveEvent
+        ? ((isCollected || isEventCollected)
+            ? _resolveEventMarkerIcon(eventToken!, grayscale: true)
+            : _resolveEventMarkerIcon(eventToken!, grayscale: false))
+        : (isCollected
+            ? (_markerIconsGray['gold'] ?? BitmapDescriptor.defaultMarker)
+            : (_markerIcons['gold'] ?? BitmapDescriptor.defaultMarker));
     return Marker(
       markerId: MarkerId(landmark.id),
       position: LatLng(landmark.latitude, landmark.longitude),
       icon: markerIcon,
-      alpha: isCollected ? 0.7 : 1.0,
-      onTap: () => _showLandmarkDetails(landmark, null),
+      alpha: (isCollected || isEventCollected) ? 0.7 : 1.0,
+      onTap: () {
+        if (hasActiveEvent) {
+          final token = matchingEventTokens.first;
+          _showEventTokenDetails(token, linkedLandmark: landmark);
+          return;
+        }
+        _showLandmarkDetails(landmark, null);
+      },
       infoWindow: InfoWindow.noText,
     );
   }
 
   Set<Marker> _buildIndividualMarkers(
-          LandmarkService ls, CollectionService cs) {
+      LandmarkService ls, CollectionService cs) {
+    final mapModeService = Provider.of<MapModeService>(context, listen: false);
+    if (mapModeService.isNightMode) return <Marker>{};
     final filtered = _filterLandmarksByMode(ls.landmarks);
-    return filtered.map((lm) => _buildSingleMarker(lm, cs)).toSet();
+    final baseMarkers =
+        filtered.map((lm) => _buildSingleMarker(lm, cs)).toSet();
+    final standaloneEventMarkers = _buildStandaloneEventMarkers(
+        existingLandmarkIds: filtered.map((e) => e.id).toSet());
+    return {...baseMarkers, ...standaloneEventMarkers};
   }
 
   Future<Set<Marker>> _buildClusteredMarkers(
       LandmarkService ls, CollectionService cs) async {
+    final mapModeService = Provider.of<MapModeService>(context, listen: false);
+    if (mapModeService.isNightMode) return <Marker>{};
     final filtered = _filterLandmarksByMode(ls.landmarks);
     final clusters = _computeSetClusters(filtered);
     final markers = <Marker>{};
@@ -353,7 +485,60 @@ class _MapScreenState extends State<MapScreen> {
         ));
       }
     }
+    final standaloneEventMarkers = _buildStandaloneEventMarkers(
+        existingLandmarkIds: filtered.map((e) => e.id).toSet());
+    return {...markers, ...standaloneEventMarkers};
+  }
+
+  Set<Marker> _buildStandaloneEventMarkers({
+    required Set<String> existingLandmarkIds,
+  }) {
+    if (!_showEventMarkers || !_shouldRenderEventMarkersByZoom) {
+      return <Marker>{};
+    }
+    final mapModeService = Provider.of<MapModeService>(context, listen: false);
+    if (mapModeService.isNightMode) return <Marker>{};
+    final eventTokenService =
+        Provider.of<EventTokenService>(context, listen: false);
+    final markers = <Marker>{};
+
+    for (final token in eventTokenService.activeEventTokens) {
+      if (!_shouldRenderEventToken(token)) continue;
+      if (!token.isActive) continue;
+      if (existingLandmarkIds.contains(token.landmarkId)) {
+        // Use the existing landmark marker and avoid duplicates.
+        continue;
+      }
+
+      final overlapsExistingMarker =
+          Provider.of<LandmarkService>(context, listen: false).landmarks.any(
+              (lm) => _isNear(
+                  lm.latitude, lm.longitude, token.latitude, token.longitude));
+      if (overlapsExistingMarker) {
+        // A regular marker already exists at this position; keep one marker only.
+        continue;
+      }
+
+      markers.add(
+        Marker(
+          markerId: MarkerId('event_token_${token.id}'),
+          position: LatLng(token.latitude, token.longitude),
+          icon: eventTokenService.isCollected(token.id)
+              ? _resolveEventMarkerIcon(token, grayscale: true)
+              : _resolveEventMarkerIcon(token, grayscale: false),
+          alpha: eventTokenService.isCollected(token.id) ? 0.72 : 1.0,
+          onTap: () => _showEventTokenDetails(token),
+          infoWindow: InfoWindow.noText,
+        ),
+      );
+    }
+
     return markers;
+  }
+
+  bool _isNear(double latA, double lonA, double latB, double lonB) {
+    return (latA - latB).abs() <= _eventMergeTolerance &&
+        (lonA - lonB).abs() <= _eventMergeTolerance;
   }
 
   // Group landmarks by their first relatedSetId — only city sets get clustered
@@ -521,6 +706,20 @@ class _MapScreenState extends State<MapScreen> {
         children: [
           Consumer2<LocationService, MapModeService>(
             builder: (context, locationService, mapModeService, child) {
+              if (mapModeService.isLoaded) {
+                if (mapModeService.isNightMode && !_nightModeComingSoonShown) {
+                  _nightModeComingSoonShown = true;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      _showNightModeComingSoon();
+                    }
+                  });
+                } else if (!mapModeService.isNightMode &&
+                    _nightModeComingSoonShown) {
+                  _nightModeComingSoonShown = false;
+                }
+              }
+
               final position = locationService.currentPosition;
               final hasLocation = position != null;
 
@@ -547,7 +746,7 @@ class _MapScreenState extends State<MapScreen> {
                     },
                     onMapCreated: _onMapCreated,
                     onCameraMove: (pos) {
-                      if ((pos.zoom - _currentZoom).abs() >= 0.4) {
+                      if ((pos.zoom - _currentZoom).abs() >= 0.2) {
                         _currentZoom = pos.zoom;
                         _clusterIconCache
                             .clear(); // force re-render at new size
@@ -566,6 +765,88 @@ class _MapScreenState extends State<MapScreen> {
                     zoomControlsEnabled: true,
                     compassEnabled: true,
                   ),
+                  if (mapModeService.isNightMode)
+                    Positioned(
+                      top: 12,
+                      left: 16,
+                      right: 16,
+                      child: SafeArea(
+                        bottom: false,
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 420),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF121226)
+                                    .withValues(alpha: 0.92),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: Colors.purpleAccent
+                                      .withValues(alpha: 0.35),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.35),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.indigo[700]!,
+                                          Colors.purple[700]!,
+                                        ],
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.nightlight_round,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Coming Soon',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'Night Mode befindet sich aktuell in Entwicklung.',
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   // Overlay-Spinner solange kein Standort bekannt
                   if (!hasLocation)
                     Positioned(
@@ -622,8 +903,94 @@ class _MapScreenState extends State<MapScreen> {
               },
             ),
           ),
+          Positioned(
+            top: 88 + MediaQuery.of(context).padding.top + kToolbarHeight,
+            right: 12,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xE61A1A2E),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: IconButton(
+                tooltip: 'Filter',
+                visualDensity:
+                    const VisualDensity(horizontal: -3, vertical: -3),
+                iconSize: 20,
+                color: Colors.white,
+                onPressed: _showMapFilterSheet,
+                icon: const Icon(Icons.tune),
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  void _showMapFilterSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Widget buildOption({
+              required String title,
+              required IconData icon,
+              required bool value,
+              required ValueChanged<bool> onChanged,
+            }) {
+              return CheckboxListTile(
+                value: value,
+                onChanged: (v) {
+                  if (v == null) return;
+                  onChanged(v);
+                  setModalState(() {});
+                },
+                secondary: Icon(icon),
+                title: Text(title),
+                controlAffinity: ListTileControlAffinity.leading,
+              );
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                buildOption(
+                  title: 'Normale Tokens',
+                  icon: Icons.token,
+                  value: _showNormalTokens,
+                  onChanged: (v) {
+                    setState(() => _showNormalTokens = v);
+                    _updateMarkers();
+                  },
+                ),
+                buildOption(
+                  title: 'Weltwunder',
+                  icon: Icons.account_balance,
+                  value: _showWorldWonderTokens,
+                  onChanged: (v) {
+                    setState(() => _showWorldWonderTokens = v);
+                    _updateMarkers();
+                  },
+                ),
+                buildOption(
+                  title: 'Events',
+                  icon: Icons.event,
+                  value: _showEventMarkers,
+                  onChanged: (v) {
+                    setState(() => _showEventMarkers = v);
+                    _updateMarkers();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -657,6 +1024,383 @@ class _MapScreenState extends State<MapScreen> {
         onCollected: _updateMarkers,
         pinTier: pinTier,
       ),
+    );
+  }
+
+  void _showEventTokenDetails(EventToken token, {Landmark? linkedLandmark}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return _EventTokenBottomSheet(
+          token: token,
+          linkedLandmark: linkedLandmark,
+          onCollected: _updateMarkers,
+        );
+      },
+    );
+  }
+
+  void _showNightModeComingSoon() {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => const NightModeComingSoonDialog(),
+    );
+  }
+}
+
+class _EventTokenBottomSheet extends StatefulWidget {
+  final EventToken token;
+  final Landmark? linkedLandmark;
+  final VoidCallback onCollected;
+
+  const _EventTokenBottomSheet({
+    required this.token,
+    required this.linkedLandmark,
+    required this.onCollected,
+  });
+
+  @override
+  State<_EventTokenBottomSheet> createState() => _EventTokenBottomSheetState();
+}
+
+class _EventTokenBottomSheetState extends State<_EventTokenBottomSheet> {
+  static const double _fallbackCollectRadiusKm = 0.1;
+  bool _isCollecting = false;
+
+  double? _distanceKm(double userLat, double userLng) {
+    const earthRadius = 6371.0;
+    final dLat = _toRadians(widget.token.latitude - userLat);
+    final dLng = _toRadians(widget.token.longitude - userLng);
+    final lat1 = _toRadians(userLat);
+    final lat2 = _toRadians(widget.token.latitude);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1) * cos(lat2) * sin(dLng / 2) * sin(dLng / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _toRadians(double value) => value * pi / 180.0;
+
+  String _eventTargetLabel(String eventName) {
+    final lower = eventName.toLowerCase();
+    if (lower.contains('bridge') || lower.contains('br\u00fccke')) {
+      return 'Gefundene Br\u00fccken';
+    }
+    if (lower.contains('park')) {
+      return 'Gefundene Parks';
+    }
+    if (lower.contains('lake') || lower.contains('see')) {
+      return 'Gefundene Seen';
+    }
+    return 'Gefundene Standorte';
+  }
+
+  GameEvent? _findEvent(EventService eventService) {
+    for (final event in eventService.allConfiguredEvents) {
+      if (event.id == widget.token.eventId) {
+        return event;
+      }
+    }
+    return null;
+  }
+
+  int _totalLocationsForEvent(EventService eventService) {
+    final event = _findEvent(eventService);
+    if (event == null) return 0;
+    if (event.checkpoints.isNotEmpty) return event.checkpoints.length;
+    return event.landmarkIds.length;
+  }
+
+  Future<void> _collect(EventTokenService eventTokenService) async {
+    if (_isCollecting) return;
+
+    setState(() => _isCollecting = true);
+    try {
+      final wasCollected = await eventTokenService.collectToken(widget.token);
+      if (!mounted) return;
+      if (!wasCollected) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Token wurde bereits gesammelt.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      await Provider.of<EventService>(context, listen: false)
+          .recordEventLandmarkCollected(
+        widget.token.eventId,
+        widget.token.landmarkId,
+      );
+
+      widget.onCollected();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⭐ Event-Token gesammelt: ${widget.token.eventName}'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isCollecting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer4<EventTokenService, EventService, LocationService,
+        AuthService>(
+      builder: (context, eventTokenService, eventService, locationService,
+          authService, _) {
+        final isCollected = eventTokenService.isCollected(widget.token.id);
+        final now = DateTime.now();
+        final isExpired =
+            now.isAfter(widget.token.endDate) || !widget.token.isActive;
+        final isLoggedIn = authService.isLoggedIn;
+        final position = locationService.currentPosition;
+        final distanceKm = position != null
+            ? _distanceKm(position.latitude, position.longitude)
+            : null;
+        final radiusKm =
+            widget.linkedLandmark?.checkInRadiusKm ?? _fallbackCollectRadiusKm;
+        final isNearby =
+            Provider.of<DevModeService>(context, listen: false).enabled ||
+                (distanceKm != null && distanceKm <= radiusKm);
+
+        final event = _findEvent(eventService);
+        final required = event?.requiredCount ?? 10;
+        final collected = eventService.collectedCount(widget.token.eventId);
+        final totalLocations = _totalLocationsForEvent(eventService);
+        final progressLabel = _eventTargetLabel(widget.token.eventName);
+
+        final canCollect = !isCollected && !isExpired && isLoggedIn && isNearby;
+
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.grey[900]!, Colors.grey[850]!],
+            ),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.amber, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.token.eventName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 132,
+                  height: 132,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withValues(alpha: 0.26),
+                        blurRadius: 16,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: widget.token.tokenImageUrl.startsWith('http')
+                        ? Image.network(
+                            widget.token.tokenImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey[800],
+                              child: const Icon(Icons.image_not_supported,
+                                  color: Colors.white70, size: 48),
+                            ),
+                          )
+                        : Image.asset(
+                            widget.token.tokenImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey[800],
+                              child: const Icon(Icons.image_not_supported,
+                                  color: Colors.white70, size: 48),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                widget.token.eventDescription,
+                style: TextStyle(color: Colors.grey[300]),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Standort: ${widget.token.landmarkName}',
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.28),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Eventziel: $required Sammlungen',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$collected / $required gesammelt',
+                      style: const TextStyle(color: Colors.amberAccent),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$progressLabel: $collected / $totalLocations',
+                      style: TextStyle(color: Colors.grey[300]),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: isCollected
+                      ? Colors.teal.withValues(alpha: 0.2)
+                      : Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isCollected ? Colors.tealAccent : Colors.white24,
+                  ),
+                ),
+                child: Text(
+                  isCollected ? 'Bereits gesammelt' : 'Noch nicht gesammelt',
+                  style: TextStyle(
+                    color: isCollected ? Colors.tealAccent : Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (distanceKm != null)
+                Text(
+                  'Entfernung: ${(distanceKm * 1000).toStringAsFixed(0)} m (Radius ${(radiusKm * 1000).toStringAsFixed(0)} m)',
+                  style: TextStyle(color: Colors.grey[350], fontSize: 12),
+                )
+              else
+                Text(
+                  'Entfernung unbekannt',
+                  style: TextStyle(color: Colors.grey[350], fontSize: 12),
+                ),
+              const SizedBox(height: 14),
+              if (isCollected)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(Icons.check_circle),
+                    label: const Text('Bereits gesammelt'),
+                  ),
+                )
+              else if (isExpired)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(Icons.timer_off),
+                    label: const Text('Event beendet'),
+                  ),
+                )
+              else if (!isLoggedIn)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(Icons.lock_outline),
+                    label: const Text('Login erforderlich'),
+                  ),
+                )
+              else if (!isNearby)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(Icons.location_off),
+                    label: const Text('Zu weit entfernt'),
+                  ),
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        canCollect ? () => _collect(eventTokenService) : null,
+                    icon: _isCollecting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.add_circle_outline),
+                    label: Text(_isCollecting ? 'Sammeln...' : 'Sammeln'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[600],
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Schließen'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -724,8 +1468,17 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
   }
 
   void _refreshCooldown() {
-    final tier = widget.pinTier;
+    final isWorldWonder = widget.landmark.category == 'weltwunder';
+    final tier = isWorldWonder ? TokenTier.weltwunder : widget.pinTier;
     final id = widget.landmark.id;
+    if (isWorldWonder) {
+      final alreadyOwned = widget.collectionService.tokens.any(
+        (token) => token.isWorldWonder && token.landmarkId == id,
+      );
+      _canCollect = !alreadyOwned;
+      _remaining = null;
+      return;
+    }
     _canCollect =
         widget.cooldownService.canCollect(id, tier ?? TokenTier.bronze);
     _remaining =
@@ -768,6 +1521,8 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     }
   }
 
+  bool get _isNightLandmark => widget.landmark.mode == 'night';
+
   String get _cooldownLabel {
     final tier = widget.pinTier;
     if (tier == TokenTier.platinum) return 'Einmalig – nicht mehr sammelbar';
@@ -777,35 +1532,33 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     return 'Cooldown: ${CooldownService.formatDuration(_remaining!)}';
   }
 
-  /// Gibt das aktive Event zurück, das für diesen Standort gilt und noch nicht besucht wurde.
-  GameEvent? _activeEventForToken() {
-    final eventService = Provider.of<EventService>(context, listen: false);
-    for (final event in EventService.allEvents) {
-      if (!event.isActive) continue;
-      if (!event.landmarkIds.contains(widget.landmark.id)) continue;
-      if (eventService.hasLandmarkBeenVisited(event.id, widget.landmark.id)) {
-        continue;
-      }
-      return event;
+  /// Gibt den aktiven Eventtoken für diesen Standort zurück.
+  EventToken? _activeEventForToken() {
+    final eventTokenService =
+        Provider.of<EventTokenService>(context, listen: false);
+    try {
+      return eventTokenService.activeEventTokens.firstWhere(
+        (token) =>
+            token.landmarkId == widget.landmark.id &&
+            token.isActive &&
+            !eventTokenService.isCollected(token.id),
+      );
+    } catch (_) {
+      return null;
     }
-    return null;
   }
 
-  void _collectEventToken(BuildContext ctx) {
-    final event = _activeEventForToken()!;
+  Future<void> _collectEventToken(BuildContext ctx) async {
+    final eventToken = _activeEventForToken()!;
     final landmark = widget.landmark;
-    Provider.of<EventService>(ctx, listen: false)
-        .recordEventLandmarkCollected(event.id, landmark.id);
-    widget.collectionService.collectEventToken(
-      landmarkId: landmark.id,
-      landmarkName: landmark.name,
-      eventId: event.id,
-      eventTitle: event.title,
-      tokenImageUrl: event.tokenImageUrl,
-      latitude: landmark.latitude,
-      longitude: landmark.longitude,
-      points: event.rewardCoins ~/ event.requiredCount,
-    );
+    final wasCollected =
+        await Provider.of<EventTokenService>(ctx, listen: false)
+            .collectToken(eventToken);
+    if (!wasCollected) return;
+
+    await Provider.of<EventService>(ctx, listen: false)
+        .recordEventLandmarkCollected(eventToken.eventId, landmark.id);
+
     widget.onCollected();
     _flyCtrl.forward().then((_) {
       if (mounted) {
@@ -822,7 +1575,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     });
     ScaffoldMessenger.of(ctx).showSnackBar(
       SnackBar(
-        content: Text('⭐ Event-Token gesammelt! (${event.title})'),
+        content: Text('⭐ Event-Token gesammelt! (${eventToken.eventName})'),
         backgroundColor: Colors.amber[700],
         behavior: SnackBarBehavior.floating,
       ),
@@ -831,13 +1584,13 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
 
   TokenTier _rollCollectTier() {
     final roll = Random().nextDouble() * 100;
-    if (roll < 0.5) return TokenTier.platinum;  // 0.5%
-    if (roll < 3.5) return TokenTier.gold;      // 3%
-    if (roll < 18.5) return TokenTier.silver;   // 15%
-    return TokenTier.bronze;                     // 81.5%
+    if (roll < 0.5) return TokenTier.platinum; // 0.5%
+    if (roll < 3.5) return TokenTier.gold; // 3%
+    if (roll < 18.5) return TokenTier.silver; // 15%
+    return TokenTier.bronze; // 81.5%
   }
 
-  void _collect(BuildContext ctx) {
+  Future<void> _collect(BuildContext ctx) async {
     final authService = Provider.of<AuthService>(ctx, listen: false);
     if (!authService.isLoggedIn) {
       Navigator.pop(ctx);
@@ -853,8 +1606,19 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
       return;
     }
     final landmark = widget.landmark;
+    if (_isNightLandmark) {
+      Navigator.pop(ctx);
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(
+          content: Text('Night Mode befindet sich aktuell in Entwicklung.'),
+          backgroundColor: Colors.deepPurple,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     if (landmark.category == 'weltwunder') {
-      widget.collectionService.collectTokenAllowDuplicate(
+      await widget.collectionService.collectTokenAllowDuplicate(
         landmark.id,
         landmark.name,
         landmark.category,
@@ -878,7 +1642,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     }
     final rolledTier = _rollCollectTier();
     final awardedCoins = rolledTier.pointValue;
-    widget.collectionService.collectTokenAllowDuplicate(
+    await widget.collectionService.collectTokenAllowDuplicate(
       landmark.id,
       landmark.name,
       landmark.category,
@@ -934,12 +1698,12 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     }
   }
 
-  void _collectChurchBonus(BuildContext ctx) {
+  Future<void> _collectChurchBonus(BuildContext ctx) async {
     final landmark = widget.landmark;
     final churchId = '${landmark.id}_church';
 
     // Church bonus: Bronze-Wert, darf bei späteren Besuchen erneut gesammelt werden
-    widget.collectionService.collectTokenAllowDuplicate(
+    await widget.collectionService.collectTokenAllowDuplicate(
       churchId,
       '${landmark.name} – Kirchensegen',
       landmark.category,
@@ -972,6 +1736,17 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
 
   void _quickSell(BuildContext ctx) {
     final landmark = widget.landmark;
+    if (landmark.category == 'weltwunder') {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Weltwunder können nicht per Quick-Sell verkauft werden.'),
+          backgroundColor: Colors.deepPurple,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     final coins = landmark.pointsReward * 2;
     widget.collectionService.addPoints(coins);
     widget.cooldownService.recordCollection(landmark.id);
@@ -995,9 +1770,13 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
     final tier = widget.pinTier;
     final isPlatinum = (tier ?? TokenTier.bronze) == TokenTier.platinum;
     final isMonumente = (tier ?? TokenTier.bronze) == TokenTier.monumente;
+    final isWorldWonder = landmark.category == 'weltwunder';
     final activeEvent = _activeEventForToken();
-    final isEventPhase = _mainCollected && activeEvent != null && !_eventTokenCollected;
-    final isChurchPhase = _mainCollected && !isEventPhase && widget.landmark.isChurch;
+    final isEventPhase =
+        _mainCollected && activeEvent != null && !_eventTokenCollected;
+    final isChurchPhase =
+        _mainCollected && !isEventPhase && widget.landmark.isChurch;
+    final isNightLandmark = _isNightLandmark;
 
     return Container(
       decoration: BoxDecoration(
@@ -1075,11 +1854,13 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
             children: [
               Expanded(
                 child: Text(
-                  isEventPhase
-                      ? '${landmark.name} ⭐'
-                      : isChurchPhase
-                          ? '⛪ Kirchensegen'
-                          : landmark.name,
+                  isNightLandmark
+                      ? landmark.name
+                      : isEventPhase
+                          ? '${landmark.name} ⭐'
+                          : isChurchPhase
+                              ? '⛪ Kirchensegen'
+                              : landmark.name,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -1096,13 +1877,15 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                   border: Border.all(color: _tierColor, width: 1),
                 ),
                 child: Text(
-                  isEventPhase
-                      ? '⭐ Event'
-                      : isChurchPhase
-                          ? 'Bonus'
-                          : (landmark.category == 'weltwunder'
-                              ? 'Weltwunder'
-                              : '?'),
+                  isNightLandmark
+                      ? 'Coming Soon'
+                      : isEventPhase
+                          ? '⭐ Event'
+                          : isChurchPhase
+                              ? 'Bonus'
+                              : (landmark.category == 'weltwunder'
+                                  ? 'Weltwunder'
+                                  : '?'),
                   style: TextStyle(
                       color: _tierColor,
                       fontWeight: FontWeight.bold,
@@ -1113,11 +1896,13 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
           ),
           const SizedBox(height: 8),
           Text(
-            isEventPhase
-                ? 'Du hast diesen Standort besucht! Sammle jetzt den Event-Token. (${activeEvent.title})'
-                : isChurchPhase
-                    ? 'Du hast die Kirche besucht! Sammle jetzt den Kirchensegen als Bonus-Token (+50 Coins).'
-                    : landmark.description,
+            isNightLandmark
+                ? 'Night Mode befindet sich aktuell in Entwicklung. Bars, Restaurants, Cafés und weitere Nacht-Orte werden später in einem eigenen System ergänzt.'
+                : isEventPhase
+                    ? 'Du hast diesen Standort besucht! Sammle jetzt den Event-Token. (${activeEvent.eventName})'
+                    : isChurchPhase
+                        ? 'Du hast die Kirche besucht! Sammle jetzt den Kirchensegen als Bonus-Token (+50 Coins).'
+                        : landmark.description,
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
@@ -1164,7 +1949,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
           ),
           const SizedBox(height: 12),
           // Cooldown banner
-          if (!_canCollect) ...[
+          if (!_canCollect && !isNightLandmark) ...[
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
@@ -1188,7 +1973,46 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
             const SizedBox(height: 12),
           ],
           // Buttons
-          if (_mainCollected) ...[
+          if (isNightLandmark) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: Colors.deepPurpleAccent.withValues(alpha: 0.35)),
+              ),
+              child: const Column(
+                children: [
+                  Icon(Icons.nightlight_round, color: Colors.white70, size: 28),
+                  SizedBox(height: 8),
+                  Text(
+                    'Night Mode Coming Soon',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Der Modus ist technisch vorbereitet, aber noch nicht spielbar.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Schließen'),
+              ),
+            ),
+          ] else if (_mainCollected) ...[
             if (isEventPhase) ...[
               // ── Event Token Phase ──
               Row(
@@ -1198,7 +2022,7 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
                       height: 50,
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.star),
-                        label: Text('Event-Token: ${activeEvent.title}'),
+                        label: Text('Event-Token: ${activeEvent.eventName}'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.amber[700],
                           foregroundColor: Colors.black,
@@ -1342,46 +2166,64 @@ class _LandmarkBottomSheetState extends State<_LandmarkBottomSheet>
               ),
             ),
           ] else if (_canCollect) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add_circle_outline),
-                      label: Text(
-                          isFirstCollection ? 'Sammeln' : 'Erneut sammeln'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[600],
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 6,
+            if (isWorldWonder)
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.emoji_events),
+                  label: const Text('Weltwunder beanspruchen'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 6,
+                  ),
+                  onPressed: () => _collect(context),
+                ),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.add_circle_outline),
+                        label: Text(
+                            isFirstCollection ? 'Sammeln' : 'Erneut sammeln'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[600],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 6,
+                        ),
+                        onPressed: () => _collect(context),
                       ),
-                      onPressed: () => _collect(context),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SizedBox(
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.sell_outlined),
-                      label: Text('+${landmark.pointsReward * 2} 🪙'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange[700],
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 6,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.sell_outlined),
+                        label: Text('+${landmark.pointsReward * 2} 🪙'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange[700],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 6,
+                        ),
+                        onPressed: () => _quickSell(context),
                       ),
-                      onPressed: () => _quickSell(context),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ] else ...[
             SizedBox(
               width: double.infinity,
@@ -1460,10 +2302,7 @@ class _EventMapButtonState extends State<_EventMapButton>
     return Consumer<EventService>(
       builder: (context, eventService, _) {
         final hasPending = eventService.pendingReward() != null;
-        final activeEvents = EventService.allEvents
-            .where((e) => e.isActive)
-            .toList();
-        final firstEvent = activeEvents.isNotEmpty ? activeEvents.first : null;
+        final firstEvent = eventService.activeEvent;
         final count =
             firstEvent != null ? eventService.collectedCount(firstEvent.id) : 0;
         final required = firstEvent?.requiredCount ?? 1;

@@ -62,8 +62,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
       return 'assets/images/Kirche_default_token.png';
     }
     return token.tier != null
-      ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
-      : (token.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg');
+        ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+        : (token.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg');
   }
 
   @override
@@ -77,7 +77,19 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
     });
     if (widget.initialToken != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _selectedTokenToUpgrade = widget.initialToken);
+        if (!mounted) return;
+        if (widget.initialToken!.isWorldWonder ||
+            widget.initialToken!.tier == TokenTier.weltwunder ||
+            widget.initialToken!.tier == TokenTier.monumente) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Weltwunder und Monumente sind nicht upgradebar.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+        setState(() => _selectedTokenToUpgrade = widget.initialToken);
       });
     }
   }
@@ -126,8 +138,7 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 520),
     );
-    final curved =
-        CurvedAnimation(parent: controller, curve: Curves.easeInOut);
+    final curved = CurvedAnimation(parent: controller, curve: Curves.easeInOut);
 
     late OverlayEntry entry;
     entry = OverlayEntry(
@@ -187,8 +198,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.grey[850],
-        title: const Text('Token Upgrades',
-            style: TextStyle(color: Colors.white)),
+        title:
+            const Text('Token Upgrades', style: TextStyle(color: Colors.white)),
         actions: [
           if (isDevMode)
             IconButton(
@@ -222,8 +233,7 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
             children: [
               _buildHeader(landmarkService),
               const Divider(color: Colors.grey, height: 1),
-              Expanded(
-                  child: _buildList(collectionService, landmarkService)),
+              Expanded(child: _buildList(collectionService, landmarkService)),
               if (_selectedTokenToUpgrade != null &&
                   _selectedTokensToTrade.length == 5)
                 _buildUpgradeButton(collectionService, landmarkService),
@@ -238,8 +248,9 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
 
   Widget _buildHeader(LandmarkService landmarkService) {
     final token = _selectedTokenToUpgrade;
-    final tierColor =
-        token != null && token.tier != null ? _getTierColor(token.tier!) : Colors.grey[600]!;
+    final tierColor = token != null && token.tier != null
+        ? _getTierColor(token.tier!)
+        : Colors.grey[600]!;
 
     return Container(
       color: Colors.grey[850],
@@ -294,8 +305,7 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
                           child: Container(
                             padding: const EdgeInsets.all(2),
                             decoration: BoxDecoration(
-                                color: Colors.red[700],
-                                shape: BoxShape.circle),
+                                color: Colors.red[700], shape: BoxShape.circle),
                             child: const Icon(Icons.close,
                                 size: 12, color: Colors.white),
                           ),
@@ -325,8 +335,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
                 if (token.tier != null) _tierBadge(token.tier!),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(Icons.arrow_forward,
-                      color: Colors.green, size: 20),
+                  child:
+                      Icon(Icons.arrow_forward, color: Colors.green, size: 20),
                 ),
                 if (token.tier != null) _tierBadge(_getNextTier(token.tier!)),
               ],
@@ -343,14 +353,13 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(5, (i) {
                 final filled = i < _selectedTokensToTrade.length;
-                final sacrifice =
-                    filled ? _selectedTokensToTrade[i] : null;
+                final sacrifice = filled ? _selectedTokensToTrade[i] : null;
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: GestureDetector(
                     onTap: filled
-                        ? () => setState(
-                            () => _selectedTokensToTrade.removeAt(i))
+                        ? () =>
+                            setState(() => _selectedTokensToTrade.removeAt(i))
                         : null,
                     child: AnimatedContainer(
                       key: _sacrificeSlotKeys[i],
@@ -380,7 +389,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.asset(
-                                    _tokenImagePath(sacrifice!, landmarkService),
+                                    _tokenImagePath(
+                                        sacrifice!, landmarkService),
                                     fit: BoxFit.cover,
                                     width: double.infinity,
                                     height: double.infinity,
@@ -404,8 +414,7 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
                               child: Text(
                                 '${i + 1}',
                                 style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 16),
+                                    color: Colors.grey[600], fontSize: 16),
                               ),
                             ),
                     ),
@@ -452,8 +461,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
   Widget _buildList(
       CollectionService collectionService, LandmarkService landmarkService) {
     final tokens = collectionService.tokens
-      .where((t) => _findLandmarkById(landmarkService, t.landmarkId) != null)
-      .toList();
+        .where((t) => _findLandmarkById(landmarkService, t.landmarkId) != null)
+        .toList();
 
     if (tokens.isEmpty) {
       return const Center(
@@ -469,12 +478,18 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
     final List<Token> eligible;
     if (_selectedTokenToUpgrade == null) {
       eligible = tokens
-        .where((t) => t.tier != null && t.tier != TokenTier.monumente)
-        .toList();
+          .where((t) =>
+              !t.isWorldWonder &&
+              t.tier != null &&
+              t.tier != TokenTier.monumente &&
+              t.tier != TokenTier.weltwunder)
+          .toList();
     } else {
       // Opfertokens: gleiche Stufe, beliebiges Landmark
       eligible = tokens
           .where((t) =>
+              !t.isWorldWonder &&
+              t.tier != TokenTier.weltwunder &&
               t.tier == _selectedTokenToUpgrade!.tier &&
               !alreadySelectedIds.contains(t.id))
           .toList();
@@ -487,10 +502,13 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
       if (_searchQuery.isEmpty) {
         return true;
       }
-      final landmarkName =
-          _findLandmarkById(landmarkService, token.landmarkId)?.name.toLowerCase() ?? '';
+      final landmarkName = _findLandmarkById(landmarkService, token.landmarkId)
+              ?.name
+              .toLowerCase() ??
+          '';
       final tokenName = token.landmarkName.toLowerCase();
-      return landmarkName.contains(_searchQuery) || tokenName.contains(_searchQuery);
+      return landmarkName.contains(_searchQuery) ||
+          tokenName.contains(_searchQuery);
     }).toList();
 
     if (filtered.isEmpty) {
@@ -499,10 +517,10 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
           padding: const EdgeInsets.all(32),
           child: Text(
             _searchQuery.isNotEmpty || _tierFilter != null
-              ? 'Keine Tokens für den gewählten Filter gefunden.'
-              : _selectedTokenToUpgrade == null
-                ? 'Keine upgradefähigen Tokens vorhanden.'
-                : 'Keine weiteren ${_selectedTokenToUpgrade!.tier != null ? _selectedTokenToUpgrade!.tier!.displayName : 'Weltwunder'}-Tokens vorhanden.',
+                ? 'Keine Tokens für den gewählten Filter gefunden.'
+                : _selectedTokenToUpgrade == null
+                    ? 'Keine upgradefähigen Tokens vorhanden.'
+                    : 'Keine weiteren ${_selectedTokenToUpgrade!.tier != null ? _selectedTokenToUpgrade!.tier!.displayName : 'Weltwunder'}-Tokens vorhanden.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey[500], fontSize: 15),
           ),
@@ -512,15 +530,17 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
 
     final Map<String, List<Token>> grouped = {};
     for (final t in filtered) {
-      final key = t.tier != null ? '${t.landmarkId}_${t.tier!.name}' : '${t.landmarkId}_weltwunder';
+      final key = t.tier != null
+          ? '${t.landmarkId}_${t.tier!.name}'
+          : '${t.landmarkId}_weltwunder';
       grouped.putIfAbsent(key, () => []);
       grouped[key]!.add(t);
     }
 
     final remaining = 5 - _selectedTokensToTrade.length;
     final hint = _selectedTokenToUpgrade == null
-      ? 'Wähle einen Token zum Verbessern:'
-      : 'Wähle noch $remaining ${_selectedTokenToUpgrade!.tier != null ? _getTierEmoji(_selectedTokenToUpgrade!.tier!) : '🌍'} Token(s) zum Eintauschen:';
+        ? 'Wähle einen Token zum Verbessern:'
+        : 'Wähle noch $remaining ${_selectedTokenToUpgrade!.tier != null ? _getTierEmoji(_selectedTokenToUpgrade!.tier!) : '🌍'} Token(s) zum Eintauschen:';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,7 +566,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
                   filled: true,
                   fillColor: Colors.grey[850],
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey[700]!),
@@ -594,7 +615,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
                     return ChoiceChip(
                       label: Text('${_getTierEmoji(tier)} ${tier.displayName}'),
                       selected: selected,
-                      onSelected: (_) => setState(() => _tierFilter = selected ? null : tier),
+                      onSelected: (_) =>
+                          setState(() => _tierFilter = selected ? null : tier),
                       selectedColor: _getTierColor(tier).withValues(alpha: 0.9),
                       labelStyle: TextStyle(
                         color: selected ? Colors.black : Colors.white,
@@ -616,24 +638,27 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
               final key = grouped.keys.elementAt(idx);
               final group = grouped[key]!;
               final first = group.first;
-              final landmark = _findLandmarkById(landmarkService, first.landmarkId);
+              final landmark =
+                  _findLandmarkById(landmarkService, first.landmarkId);
               if (landmark == null) {
                 return const SizedBox.shrink();
               }
-                final imagePath = _tokenImagePath(first, landmarkService);
-              final tierColor = first.tier != null ? _getTierColor(first.tier!) : Colors.tealAccent;
-                final isPlatinumBaseSelection =
-                  _selectedTokenToUpgrade == null && first.tier == TokenTier.platinum;
+              final imagePath = _tokenImagePath(first, landmarkService);
+              final tierColor = first.tier != null
+                  ? _getTierColor(first.tier!)
+                  : Colors.tealAccent;
+              final isPlatinumBaseSelection = _selectedTokenToUpgrade == null &&
+                  first.tier == TokenTier.platinum;
 
-                // Stable key on the thumbnail, used as fly animation source
-              final groupKey =
-                  _chipKey(first.tier != null ? 'g_${first.landmarkId}_${first.tier!.name}' : 'g_${first.landmarkId}_weltwunder');
+              // Stable key on the thumbnail, used as fly animation source
+              final groupKey = _chipKey(first.tier != null
+                  ? 'g_${first.landmarkId}_${first.tier!.name}'
+                  : 'g_${first.landmarkId}_weltwunder');
 
               // How many from this group are queued as sacrifices
               final selectedFromGroup = _selectedTokensToTrade
                   .where((t) =>
-                      t.landmarkId == first.landmarkId &&
-                      t.tier == first.tier)
+                      t.landmarkId == first.landmarkId && t.tier == first.tier)
                   .length;
 
               final canTapCard =
@@ -694,15 +719,13 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                                color: canTapCard
-                                    ? tierColor
-                                    : Colors.grey[700]!,
+                                color:
+                                    canTapCard ? tierColor : Colors.grey[700]!,
                                 width: 2),
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(6),
-                            child:
-                                Image.asset(imagePath, fit: BoxFit.cover),
+                            child: Image.asset(imagePath, fit: BoxFit.cover),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -762,7 +785,14 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
 
   Widget _buildUpgradeButton(
       CollectionService collectionService, LandmarkService landmarkService) {
-    final toTier = _selectedTokenToUpgrade!.tier != null ? _getNextTier(_selectedTokenToUpgrade!.tier!) : TokenTier.bronze;
+    if (_selectedTokenToUpgrade == null ||
+        _selectedTokenToUpgrade!.isWorldWonder ||
+        _selectedTokenToUpgrade!.tier == TokenTier.weltwunder) {
+      return const SizedBox.shrink();
+    }
+    final toTier = _selectedTokenToUpgrade!.tier != null
+        ? _getNextTier(_selectedTokenToUpgrade!.tier!)
+        : TokenTier.bronze;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
@@ -779,14 +809,16 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
           width: double.infinity,
           height: 54,
           child: ElevatedButton.icon(
-            onPressed: _isOrbiting ? null : () => _startOrbitAndUpgrade(
-              collectionService, landmarkService,
-            ),
+            onPressed: _isOrbiting
+                ? null
+                : () => _startOrbitAndUpgrade(
+                      collectionService,
+                      landmarkService,
+                    ),
             icon: const Icon(Icons.upgrade),
             label: Text(
               'Zu ${toTier.displayName} upgraden',
-              style: const TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green[700],
@@ -807,9 +839,20 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
     LandmarkService landmarkService,
   ) async {
     if (_isOrbiting || _selectedTokenToUpgrade == null) return;
+    if (_selectedTokenToUpgrade!.isWorldWonder ||
+        _selectedTokenToUpgrade!.tier == TokenTier.weltwunder) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Weltwunder sind exklusiv und nicht upgradebar.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     setState(() => _isOrbiting = true);
 
-    final mainBox = _mainSlotKey.currentContext?.findRenderObject() as RenderBox?;
+    final mainBox =
+        _mainSlotKey.currentContext?.findRenderObject() as RenderBox?;
     if (mainBox == null) {
       _doUpgrade(collectionService, landmarkService);
       return;
@@ -824,10 +867,16 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
 
     // Gather sacrifice token images
     final sacrificeImages = _selectedTokensToTrade.map((t) {
-      return t.tier != null ? landmarkService.getImageUrlForTier(t.landmarkId, t.tier!) : (t.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg');
+      return t.tier != null
+          ? landmarkService.getImageUrlForTier(t.landmarkId, t.tier!)
+          : (t.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg');
     }).toList();
-    final toTier = _selectedTokenToUpgrade!.tier != null ? _getNextTier(_selectedTokenToUpgrade!.tier!) : TokenTier.bronze;
-    final mainColor = _selectedTokenToUpgrade!.tier != null ? _getTierColor(_selectedTokenToUpgrade!.tier!) : Colors.tealAccent;
+    final toTier = _selectedTokenToUpgrade!.tier != null
+        ? _getNextTier(_selectedTokenToUpgrade!.tier!)
+        : TokenTier.bronze;
+    final mainColor = _selectedTokenToUpgrade!.tier != null
+        ? _getTierColor(_selectedTokenToUpgrade!.tier!)
+        : Colors.tealAccent;
 
     final orbitController = AnimationController(
       vsync: this,
@@ -861,7 +910,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
       builder: (_) => AnimatedBuilder(
         animation: Listenable.merge([orbitAnim, collapseAnim, flashAnim]),
         builder: (_, __) {
-          final phase = collapseController.isAnimating || collapseController.isCompleted;
+          final phase =
+              collapseController.isAnimating || collapseController.isCompleted;
           final radius = orbitRadius * (phase ? collapseAnim.value : 1.0);
           final opacity = phase ? collapseAnim.value : 1.0;
           return Stack(
@@ -913,7 +963,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(6),
-                        child: Image.asset(sacrificeImages[i], fit: BoxFit.cover),
+                        child:
+                            Image.asset(sacrificeImages[i], fit: BoxFit.cover),
                       ),
                     ),
                   ),
@@ -950,7 +1001,9 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
     CollectionService collectionService,
     LandmarkService landmarkService,
   ) {
-    final toTier = _selectedTokenToUpgrade!.tier != null ? _getNextTier(_selectedTokenToUpgrade!.tier!) : TokenTier.bronze;
+    final toTier = _selectedTokenToUpgrade!.tier != null
+        ? _getNextTier(_selectedTokenToUpgrade!.tier!)
+        : TokenTier.bronze;
     final landmark =
         _findLandmarkById(landmarkService, _selectedTokenToUpgrade!.landmarkId);
     if (landmark == null) {
@@ -962,15 +1015,16 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Dieser Token gehört zu einem nicht mehr verfügbaren Ort.'),
+            content: Text(
+                'Dieser Token gehört zu einem nicht mehr verfügbaren Ort.'),
             backgroundColor: Colors.red,
           ),
         );
       }
       return;
     }
-    final newImagePath =
-        landmarkService.getImageUrlForTier(_selectedTokenToUpgrade!.landmarkId, toTier);
+    final newImagePath = landmarkService.getImageUrlForTier(
+        _selectedTokenToUpgrade!.landmarkId, toTier);
 
     collectionService.upgradeSpecificTokens(
       _selectedTokenToUpgrade!.id,
@@ -1016,6 +1070,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         return Colors.cyan[400]!;
       case TokenTier.monumente:
         return Colors.deepPurpleAccent;
+      case TokenTier.weltwunder:
+        return const Color(0xFF00BFA5);
     }
   }
 
@@ -1031,6 +1087,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         return TokenTier.platinum;
       case TokenTier.monumente:
         return TokenTier.monumente;
+      case TokenTier.weltwunder:
+        return TokenTier.weltwunder;
     }
   }
 
@@ -1046,6 +1104,8 @@ class _TokenUpgradeScreenState extends State<TokenUpgradeScreen>
         return '💎';
       case TokenTier.monumente:
         return '🏛️';
+      case TokenTier.weltwunder:
+        return '🌍';
     }
   }
 }
@@ -1118,11 +1178,18 @@ class _UpgradeResultDialogState extends State<_UpgradeResultDialog>
 
   String _tierLabel(TokenTier t) {
     switch (t) {
-      case TokenTier.bronze: return '🥉 Bronze';
-      case TokenTier.silver: return '🥈 Silber';
-      case TokenTier.gold: return '🥇 Gold';
-      case TokenTier.platinum: return '💎 Platin';
-      case TokenTier.monumente: return '🏛️ Monumente';
+      case TokenTier.bronze:
+        return '🥉 Bronze';
+      case TokenTier.silver:
+        return '🥈 Silber';
+      case TokenTier.gold:
+        return '🥇 Gold';
+      case TokenTier.platinum:
+        return '💎 Platin';
+      case TokenTier.monumente:
+        return '🏛️ Monumente';
+      case TokenTier.weltwunder:
+        return '🌍 Weltwunder';
     }
   }
 
@@ -1181,7 +1248,8 @@ class _UpgradeResultDialogState extends State<_UpgradeResultDialog>
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: color.withValues(alpha: _glowAnim.value * 0.7),
+                              color: color.withValues(
+                                  alpha: _glowAnim.value * 0.7),
                               blurRadius: 40,
                               spreadRadius: 15,
                             ),
@@ -1220,10 +1288,14 @@ class _UpgradeResultDialogState extends State<_UpgradeResultDialog>
               const SizedBox(height: 8),
               // Tier badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.1)],
+                    colors: [
+                      color.withValues(alpha: 0.3),
+                      color.withValues(alpha: 0.1)
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: color, width: 1.5),

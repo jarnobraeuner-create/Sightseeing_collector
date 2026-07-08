@@ -1,38 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/friend_service.dart';
+
 import '../services/collection_service.dart';
+import '../services/friend_service.dart';
 import 'friends_screen.dart';
 
-class LeaderboardScreen extends StatefulWidget {
+class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({Key? key}) : super(key: key);
 
   @override
-  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
+  Widget build(BuildContext context) {
+    return const LeaderboardPanel(embedded: false);
+  }
 }
 
-class _LeaderboardScreenState extends State<LeaderboardScreen>
+class LeaderboardPanel extends StatefulWidget {
+  final bool embedded;
+
+  const LeaderboardPanel({Key? key, required this.embedded}) : super(key: key);
+
+  @override
+  State<LeaderboardPanel> createState() => _LeaderboardPanelState();
+}
+
+class _LeaderboardPanelState extends State<LeaderboardPanel>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
-  List<LeaderboardEntry> _global = [];
-  List<LeaderboardEntry> _friends = [];
-  bool _loadingGlobal = true;
-  bool _loadingFriends = true;
+  late final ScrollController _globalScroll;
+  late final ScrollController _friendsScroll;
+
+  int _globalLimit = 30;
+  int _friendsLimit = 30;
 
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 2, vsync: this);
-    // Publish own stats first so we appear on the leaderboard, then load.
+    _globalScroll = ScrollController()..addListener(_onGlobalScroll);
+    _friendsScroll = ScrollController()..addListener(_onFriendsScroll);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _publishAndLoad();
+      _publishStats();
     });
   }
 
-  Future<void> _publishAndLoad() async {
+  void _onGlobalScroll() {
+    if (!_globalScroll.hasClients) return;
+    if (_globalScroll.position.pixels >=
+        _globalScroll.position.maxScrollExtent - 140) {
+      setState(() => _globalLimit += 20);
+    }
+  }
+
+  void _onFriendsScroll() {
+    if (!_friendsScroll.hasClients) return;
+    if (_friendsScroll.position.pixels >=
+        _friendsScroll.position.maxScrollExtent - 140) {
+      setState(() => _friendsLimit += 20);
+    }
+  }
+
+  Future<void> _publishStats() async {
     final collection = context.read<CollectionService>();
 
-    // Wait for collection to finish loading so leaderboardScore is accurate.
     if (!collection.isLoaded) {
       await Future.doWhile(() async {
         await Future.delayed(const Duration(milliseconds: 100));
@@ -42,145 +72,178 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       if (!mounted) return;
     }
 
-    final friendService = context.read<FriendService>();
     final stats = collection.getStatistics();
-
-    // Build own entry to always inject into global leaderboard
-    final myUid = friendService.myUid;
-    final myUsername = friendService.myUsername;
-    final ownEntry = (myUid != null)
-        ? LeaderboardEntry(
-            uid: myUid,
-            username: myUsername ?? myUid,
-            totalPoints: stats['leaderboardScore'] ?? 0,
-            totalTokens: stats['totalTokens'] ?? 0,
-            isFriend: false,
-            isMe: true,
-          )
-        : null;
-
-    // Publish in background — don't block the UI
-    friendService.publishMyStats(
-      totalPoints: stats['totalPoints'] ?? 0,
-      totalTokens: stats['totalTokens'] ?? 0,
-      visitedLandmarks: stats['visitedLandmarks'] ?? 0,
-      leaderboardScore: stats['leaderboardScore'] ?? 0,
-    );
-    _loadGlobal(ownEntry: ownEntry);
-    _loadFriends();
+    await context.read<FriendService>().publishMyStats(
+          totalPoints: stats['totalPoints'] ?? 0,
+          totalTokens: stats['totalTokens'] ?? 0,
+          visitedLandmarks: stats['visitedLandmarks'] ?? 0,
+          leaderboardScore: stats['leaderboardScore'] ?? 0,
+          worldWonderTokens: stats['worldWonderTokens'] ?? 0,
+          level: stats['level'] ?? 1,
+        );
   }
 
   @override
   void dispose() {
     _tabs.dispose();
+    _globalScroll.dispose();
+    _friendsScroll.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadGlobal({LeaderboardEntry? ownEntry}) async {
-    setState(() => _loadingGlobal = true);
-    final data = await context.read<FriendService>().loadLeaderboard(friendsOnly: false, ownEntry: ownEntry);
-    if (mounted) setState(() { _global = data; _loadingGlobal = false; });
-  }
-
-  Future<void> _loadFriends() async {
-    setState(() => _loadingFriends = true);
-    final data = await context.read<FriendService>().loadLeaderboard(friendsOnly: true);
-    if (mounted) setState(() { _friends = data; _loadingFriends = false; });
   }
 
   @override
   Widget build(BuildContext context) {
+    final content = Column(
+      children: [
+        Container(
+          color: const Color(0xFF151A26),
+          child: TabBar(
+            controller: _tabs,
+            indicatorColor: Colors.amber,
+            labelColor: Colors.amber,
+            unselectedLabelColor: Colors.white38,
+            tabs: const [
+              Tab(text: 'Global'),
+              Tab(text: 'Freunde'),
+            ],
+          ),
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabs,
+            children: [
+              _RealtimeLeaderboardList(
+                stream: context
+                    .read<FriendService>()
+                    .streamGlobalLeaderboard(limit: _globalLimit),
+                scrollController: _globalScroll,
+                emptyMessage:
+                    'Noch keine Spieler-Daten verfügbar.\nSpiele und sammle Tokens um zu erscheinen!',
+              ),
+              _RealtimeLeaderboardList(
+                stream: context
+                    .read<FriendService>()
+                    .streamFriendsLeaderboard(limit: _friendsLimit),
+                scrollController: _friendsScroll,
+                emptyMessage:
+                    'Noch keine Freunde.\nFüge Freunde hinzu um sie hier zu sehen!',
+                onAddFriends: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FriendsScreen()),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (widget.embedded) {
+      return Container(color: const Color(0xFF0F111A), child: content);
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F111A),
       appBar: AppBar(
         backgroundColor: const Color(0xFF151A26),
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Rangliste', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        bottom: TabBar(
-          controller: _tabs,
-          indicatorColor: Colors.amber,
-          labelColor: Colors.amber,
-          unselectedLabelColor: Colors.white38,
-          tabs: const [
-            Tab(text: 'Alle Spieler'),
-            Tab(text: 'Freunde'),
-          ],
+        title: const Text(
+          'Rangliste',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
-            onPressed: () => _publishAndLoad(),
+            onPressed: _publishStats,
           ),
         ],
       ),
-      body: TabBarView(
-        controller: _tabs,
-        children: [
-          _LeaderboardList(
-            entries: _global,
-            loading: _loadingGlobal,
-            emptyMessage: 'Noch keine Spieler-Daten verfügbar.\nSpiele und sammle Tokens um zu erscheinen!',
-          ),
-          _LeaderboardList(
-            entries: _friends,
-            loading: _loadingFriends,
-            emptyMessage: 'Noch keine Freunde.\nFüge Freunde hinzu um sie hier zu sehen!',
-            onAddFriends: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const FriendsScreen())),
-          ),
-        ],
-      ),
+      body: content,
     );
   }
 }
 
-class _LeaderboardList extends StatelessWidget {
-  final List<LeaderboardEntry> entries;
-  final bool loading;
+class _RealtimeLeaderboardList extends StatelessWidget {
+  final Stream<List<LeaderboardEntry>> stream;
+  final ScrollController scrollController;
   final String emptyMessage;
   final VoidCallback? onAddFriends;
 
-  const _LeaderboardList({
-    required this.entries,
-    required this.loading,
+  const _RealtimeLeaderboardList({
+    required this.stream,
+    required this.scrollController,
     required this.emptyMessage,
     this.onAddFriends,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (loading) {
-      return const Center(child: CircularProgressIndicator(color: Colors.amber));
-    }
-    if (entries.isEmpty) {
-      return Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.emoji_events_outlined, color: Colors.white24, size: 52),
-          const SizedBox(height: 16),
-          Text(emptyMessage, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
-          if (onAddFriends != null) ...[
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: onAddFriends,
-              icon: const Icon(Icons.person_add),
-              label: const Text('Freunde hinzufügen'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber[700], foregroundColor: Colors.black),
-            ),
-          ],
-        ]),
-      );
-    }
+    return StreamBuilder<List<LeaderboardEntry>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.amber),
+          );
+        }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: entries.length,
-      itemBuilder: (ctx, i) {
-        final e = entries[i];
-        final rank = i + 1;
-        return _LeaderboardTile(entry: e, rank: rank, onTap: e.isMe
-            ? null
-            : () => Navigator.push(ctx, MaterialPageRoute(
-                builder: (_) => FriendProfileScreen(uid: e.uid, username: e.username))));
+        final entries = snapshot.data ?? const <LeaderboardEntry>[];
+        if (entries.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.emoji_events_outlined,
+                  color: Colors.white24,
+                  size: 52,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  emptyMessage,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                if (onAddFriends != null) ...[
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: onAddFriends,
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('Freunde hinzufügen'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber[700],
+                      foregroundColor: Colors.black,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          controller: scrollController,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: entries.length,
+          itemBuilder: (ctx, i) {
+            final e = entries[i];
+            final rank = i + 1;
+            return _LeaderboardTile(
+              entry: e,
+              rank: rank,
+              onTap: e.isMe
+                  ? null
+                  : () => Navigator.push(
+                        ctx,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              FriendProfileScreen(uid: e.uid, username: e.username),
+                        ),
+                      ),
+            );
+          },
+        );
       },
     );
   }
@@ -210,6 +273,7 @@ class _LeaderboardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isHighlighted = entry.isMe;
+    final avatar = entry.photoUrl;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -231,19 +295,25 @@ class _LeaderboardTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Rank
             SizedBox(
               width: 40,
               child: rank <= 3
-                  ? Text(_rankEmoji(), style: const TextStyle(fontSize: 20), textAlign: TextAlign.center)
+                  ? Text(
+                      _rankEmoji(),
+                      style: const TextStyle(fontSize: 20),
+                      textAlign: TextAlign.center,
+                    )
                   : Text(
                       '#$rank',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: _rankColor(), fontWeight: FontWeight.bold, fontSize: 13),
+                      style: TextStyle(
+                        color: _rankColor(),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
             ),
             const SizedBox(width: 10),
-            // Avatar
             CircleAvatar(
               radius: 20,
               backgroundColor: isHighlighted
@@ -251,52 +321,109 @@ class _LeaderboardTile extends StatelessWidget {
                   : entry.isFriend
                       ? Colors.deepPurple[700]
                       : Colors.grey[700],
-              child: Text(
-                entry.username.isNotEmpty ? entry.username[0].toUpperCase() : '?',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-              ),
+              backgroundImage: avatar != null && avatar.startsWith('http')
+                  ? NetworkImage(avatar)
+                  : null,
+              child: avatar == null || !avatar.startsWith('http')
+                  ? Text(
+                      entry.username.isNotEmpty
+                          ? entry.username[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
-            // Name + tokens
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    Text(
-                      entry.username,
-                      style: TextStyle(
-                        color: isHighlighted ? Colors.amber : Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                  Row(
+                    children: [
+                      Text(
+                        entry.username,
+                        style: TextStyle(
+                          color: isHighlighted ? Colors.amber : Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    if (entry.isMe) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.amber[700], borderRadius: BorderRadius.circular(6)),
-                        child: const Text('Du', style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
-                      ),
+                      if (entry.isMe) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber[700],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Du',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (entry.isFriend && !entry.isMe) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple[700],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Freund',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                    if (entry.isFriend && !entry.isMe) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.deepPurple[700], borderRadius: BorderRadius.circular(6)),
-                        child: const Text('Freund', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ]),
+                  ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${entry.totalTokens} Tokens',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      Text(
+                        '${entry.totalTokens} Tokens',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                      ),
+                      Text(
+                        '${entry.worldWonderTokens} Weltwunder',
+                        style: TextStyle(
+                          color: Colors.tealAccent[100],
+                          fontSize: 11,
+                        ),
+                      ),
+                      Text(
+                        'Lvl ${entry.level}',
+                        style: TextStyle(
+                          color: Colors.lightBlueAccent[100],
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            // Points
             Text(
               '${entry.totalPoints}',
               style: TextStyle(

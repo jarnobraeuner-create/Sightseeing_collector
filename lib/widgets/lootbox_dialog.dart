@@ -129,7 +129,7 @@ class _LootboxDialogState extends State<LootboxDialog>
 
     // Open lootbox / resolve forced reward
     final landmarkService = context.read<LandmarkService>();
-    final all = landmarkService.landmarks;
+    final all = landmarkService.playableLandmarks;
     late final TokenTier tier;
     late final Landmark landmark;
     if (_isForcedRewardMode) {
@@ -190,7 +190,7 @@ class _LootboxDialogState extends State<LootboxDialog>
     final collectionService = context.read<CollectionService>();
     final landmark = _wonLandmark!;
     final tier = _wonTier!;
-    collectionService.collectTokenAllowDuplicate(
+      await collectionService.collectTokenAllowDuplicate(
       landmark.id,
       landmark.name,
       landmark.category,

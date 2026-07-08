@@ -6,7 +6,6 @@ import '../widgets/index.dart';
 import '../widgets/daily_reward_dialog.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
-import 'trading_screen.dart';
 import 'sets_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -17,8 +16,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Page order: Trading(0) | Karte(1) | Sets(2) | Profil(3)
-  static const int _initialPage = 1;
+  // Page order: Karte(0) | Sets(1) | Profil(2)
+  static const int _initialPage = 0;
   late final PageController _pageController;
   int _currentPage = _initialPage;
 
@@ -42,16 +41,16 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       onStepChanged: (stepIndex) {
         if (!mounted) return;
-        // Seite 4 => Sets, Seite 5 => Marktplatz, Seite 6 => Profil
+        // Seite 4 => Sets, Seite 5 => Karte, Seite 6 => Profil
         if (stepIndex == 3) {
-          _pageController.jumpToPage(2);
-          setState(() => _currentPage = 2);
+          _pageController.jumpToPage(1);
+          setState(() => _currentPage = 1);
         } else if (stepIndex == 4) {
           _pageController.jumpToPage(0);
           setState(() => _currentPage = 0);
         } else if (stepIndex == 5) {
-          _pageController.jumpToPage(3);
-          setState(() => _currentPage = 3);
+          _pageController.jumpToPage(2);
+          setState(() => _currentPage = 2);
         }
       },
     );
@@ -114,9 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   static const List<_NavItem> _navItems = [
-    _NavItem(icon: Icons.swap_horiz, label: 'Trading'),
     _NavItem(icon: Icons.map, label: 'Karte'),
-    _NavItem(icon: Icons.collections, label: 'Sets'),
+    _NavItem(icon: Icons.collections_bookmark, label: 'Sets'),
     _NavItem(icon: Icons.person, label: 'Profil'),
   ];
 
@@ -130,7 +128,6 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const NeverScrollableScrollPhysics(),
             onPageChanged: (i) => setState(() => _currentPage = i),
             children: const [
-              _KeepAlivePage(child: TradingScreen()),
               _KeepAlivePage(child: MapScreen()),
               _KeepAlivePage(child: SetsScreen()),
               _KeepAlivePage(child: ProfileScreen()),
@@ -151,7 +148,8 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedFontSize: 11,
         unselectedFontSize: 11,
         items: _navItems
-            .map((n) => BottomNavigationBarItem(icon: Icon(n.icon), label: n.label))
+            .map((n) =>
+                BottomNavigationBarItem(icon: Icon(n.icon), label: n.label))
             .toList(),
       ),
     );
@@ -199,7 +197,8 @@ class _ExploreTabState extends State<ExploreTab> {
     // Initialisiere Location Service nach einem Delay
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
-        final locationService = Provider.of<LocationService>(context, listen: false);
+        final locationService =
+            Provider.of<LocationService>(context, listen: false);
         locationService.ensureInitialized();
       }
     });
@@ -285,8 +284,7 @@ class _ExploreTabState extends State<ExploreTab> {
                 return ListView.builder(
                   itemCount: landmarkService.filteredLandmarks.length,
                   itemBuilder: (context, index) {
-                    final landmark =
-                        landmarkService.filteredLandmarks[index];
+                    final landmark = landmarkService.filteredLandmarks[index];
                     return LandmarkCard(
                       landmark: landmark,
                       onTap: () {
@@ -356,12 +354,14 @@ class LandmarkDetailScreen extends StatelessWidget {
         title: Text(landmark.name),
       ),
       body: Consumer3<LocationService, CollectionService, AuthService>(
-        builder: (context, locationService, collectionService, authService, child) {
+        builder:
+            (context, locationService, collectionService, authService, child) {
           final position = locationService.currentPosition;
           final distance = position != null
               ? landmark.getDistance(position.latitude, position.longitude)
               : null;
-          final isNearby = distance != null && distance <= landmark.checkInRadiusKm;
+          final isNearby =
+              distance != null && distance <= landmark.checkInRadiusKm;
           final isCollected = collectionService.hasCollectedToken(landmark.id);
 
           return SingleChildScrollView(
@@ -428,8 +428,9 @@ class LandmarkDetailScreen extends StatelessWidget {
                                 : 'Location unavailable',
                             style: TextStyle(
                               color: isNearby ? Colors.green : Colors.grey[600],
-                              fontWeight:
-                                  isNearby ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: isNearby
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                           const Spacer(),
@@ -452,9 +453,10 @@ class LandmarkDetailScreen extends StatelessWidget {
                       // Description
                       Text(
                         'Description',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -467,17 +469,20 @@ class LandmarkDetailScreen extends StatelessWidget {
                         children: [
                           Text(
                             'Difficulty: ',
-                            style:
-                                Theme.of(context).textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                           Chip(
                             label: Text(
                               landmark.difficulty.toUpperCase(),
                               style: const TextStyle(fontSize: 12),
                             ),
-                            backgroundColor: _getDifficultyColor(landmark.difficulty),
+                            backgroundColor:
+                                _getDifficultyColor(landmark.difficulty),
                             padding: EdgeInsets.zero,
                             materialTapTargetSize:
                                 MaterialTapTargetSize.shrinkWrap,
@@ -517,10 +522,11 @@ class LandmarkDetailScreen extends StatelessWidget {
                           onPressed: isCollected
                               ? null
                               : (isNearby
-                                  ? () {
+                                  ? () async {
                                       if (!authService.isLoggedIn) {
                                         Navigator.pop(context);
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           const SnackBar(
                                             content: Text(
                                               'Bitte melde dich an, um Tokens zu sammeln. Gehe zum Profil-Tab.',
@@ -531,14 +537,15 @@ class LandmarkDetailScreen extends StatelessWidget {
                                         );
                                         return;
                                       }
-                                      collectionService.collectToken(
+                                      await collectionService.collectToken(
                                         landmark.id,
                                         landmark.name,
                                         landmark.category,
                                         landmark.pointsReward,
                                         landmark.relatedSetIds,
                                       );
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         SnackBar(
                                           content: Text(
                                             'Token collected! +${landmark.pointsReward} points',
@@ -573,10 +580,11 @@ class LandmarkDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
                             'You need to be within 100m to collect this token',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.orange[700],
-                                  fontStyle: FontStyle.italic,
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.orange[700],
+                                      fontStyle: FontStyle.italic,
+                                    ),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -593,20 +601,29 @@ class LandmarkDetailScreen extends StatelessWidget {
 
   Color _getDifficultyColor(String difficulty) {
     switch (difficulty.toLowerCase()) {
-      case 'easy': return Colors.green[300]!;
-      case 'medium': return Colors.orange[300]!;
-      case 'hard': return Colors.red[300]!;
-      default: return Colors.grey[300]!;
+      case 'easy':
+        return Colors.green[300]!;
+      case 'medium':
+        return Colors.orange[300]!;
+      case 'hard':
+        return Colors.red[300]!;
+      default:
+        return Colors.grey[300]!;
     }
   }
 
   IconData _getQuestIcon(String taskType) {
     switch (taskType.toLowerCase()) {
-      case 'photo': return Icons.camera_alt;
-      case 'visit': return Icons.location_on;
-      case 'quiz': return Icons.quiz;
-      case 'collect': return Icons.token;
-      default: return Icons.task_alt;
+      case 'photo':
+        return Icons.camera_alt;
+      case 'visit':
+        return Icons.location_on;
+      case 'quiz':
+        return Icons.quiz;
+      case 'collect':
+        return Icons.token;
+      default:
+        return Icons.task_alt;
     }
   }
 }
@@ -632,7 +649,8 @@ class _SetCompletedBannerState extends State<_SetCompletedBanner>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 400));
     _slide = Tween<Offset>(begin: const Offset(0, -1.2), end: Offset.zero)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
     _fade = Tween<double>(begin: 0, end: 1)
@@ -700,12 +718,15 @@ class _SetCompletedBannerState extends State<_SetCompletedBanner>
                         width: 52,
                         height: 52,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.emoji_events, color: Colors.amber, size: 40),
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.emoji_events,
+                            color: Colors.amber,
+                            size: 40),
                       ),
                     )
                   else
-                    const Icon(Icons.emoji_events, color: Colors.amber, size: 40),
+                    const Icon(Icons.emoji_events,
+                        color: Colors.amber, size: 40),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -731,7 +752,8 @@ class _SetCompletedBannerState extends State<_SetCompletedBanner>
                         ),
                         Text(
                           '+${widget.set.bonusPoints} Bonus-Coins erhalten!',
-                          style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                          style:
+                              TextStyle(color: Colors.grey[400], fontSize: 12),
                         ),
                       ],
                     ),
@@ -750,5 +772,4 @@ class _SetCompletedBannerState extends State<_SetCompletedBanner>
       ),
     );
   }
-
 }

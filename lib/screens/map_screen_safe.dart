@@ -14,6 +14,7 @@ class MapScreenSafe extends StatelessWidget {
       ),
       body: Consumer2<LandmarkService, LocationService>(
         builder: (context, landmarkService, locationService, child) {
+          final playableLandmarks = landmarkService.playableLandmarks;
           final position = locationService.currentPosition;
           
           return ListView(
@@ -47,7 +48,7 @@ class MapScreenSafe extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              ...landmarkService.landmarks.map((landmark) {
+              ...playableLandmarks.map((landmark) {
                 final distance = position != null
                     ? landmark.getDistance(position.latitude, position.longitude)
                     : null;

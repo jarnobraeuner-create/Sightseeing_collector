@@ -16,25 +16,11 @@ class _CollectionScreenState extends State<CollectionScreen> {
   List<_TokenCategory> _buildCategories(List<Token> tokens) {
     return [
       _TokenCategory(
-        key: 'set_tokens',
-        label: 'Set Tokens',
-        icon: Icons.collections_bookmark,
-        color: Colors.lightBlueAccent,
-        predicate: (t) => t.setIds.isNotEmpty,
-      ),
-      _TokenCategory(
         key: 'weltwunder',
         label: 'Weltwunder',
         icon: Icons.public,
         color: Colors.tealAccent,
         predicate: (t) => t.category == 'weltwunder',
-      ),
-      _TokenCategory(
-        key: 'event',
-        label: 'Event Tokens',
-        icon: Icons.star,
-        color: Colors.yellowAccent,
-        predicate: (t) => t.category == 'event',
       ),
       _TokenCategory(
         key: 'monumente',
@@ -74,16 +60,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
     ];
   }
 
-  void _openSetWappenPage(BuildContext context, CollectionService collectionService) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _SetWappenPage(sets: collectionService.sets),
-      ),
-    );
-  }
-
-  void _openCategory(BuildContext context, _TokenCategory category, List<Token> allTokens) {
+  void _openCategory(
+      BuildContext context, _TokenCategory category, List<Token> allTokens) {
     final filtered = allTokens.where(category.predicate).toList();
     Navigator.push(
       context,
@@ -120,12 +98,14 @@ class _CollectionScreenState extends State<CollectionScreen> {
               icon: const Icon(Icons.science, color: Colors.white70),
               tooltip: 'Alle Tokens sammeln (Test)',
               onPressed: () {
-                final cs = Provider.of<CollectionService>(context, listen: false);
+                final cs =
+                    Provider.of<CollectionService>(context, listen: false);
                 final ls = Provider.of<LandmarkService>(context, listen: false);
                 cs.collectAllTokensForTesting(ls.landmarks);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('🔬 Alle Token-Tiers pro Landmark gesammelt!'),
+                    content:
+                        Text('🔬 Alle Token-Tiers pro Landmark gesammelt!'),
                     backgroundColor: Colors.teal,
                   ),
                 );
@@ -140,7 +120,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Reset Collection?'),
-                    content: const Text('Alle gesammelten Tokens werden gelöscht. Dies kann nicht rückgängig gemacht werden.'),
+                    content: const Text(
+                        'Alle gesammelten Tokens werden gelöscht. Dies kann nicht rückgängig gemacht werden.'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
@@ -148,7 +129,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
                       ),
                       TextButton(
                         onPressed: () {
-                          Provider.of<CollectionService>(context, listen: false).resetCollection();
+                          Provider.of<CollectionService>(context, listen: false)
+                              .resetCollection();
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -157,7 +139,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
                             ),
                           );
                         },
-                        child: const Text('Reset', style: TextStyle(color: Colors.red)),
+                        child: const Text('Reset',
+                            style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),
@@ -171,31 +154,66 @@ class _CollectionScreenState extends State<CollectionScreen> {
   }
 
   void _showTokenDetail(BuildContext context, Token token) {
-    final landmarkService = Provider.of<LandmarkService>(context, listen: false);
+    final landmarkService =
+        Provider.of<LandmarkService>(context, listen: false);
     final landmark = landmarkService.getLandmarkById(token.landmarkId);
     final imageUrl = token.tier != null
-      ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
-      : (token.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg');
+        ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+        : (token.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg');
 
     Color tierColor;
     switch (token.tier) {
-      case TokenTier.bronze: tierColor = Colors.orange[700]!; break;
-      case TokenTier.silver: tierColor = Colors.grey[400]!; break;
-      case TokenTier.gold:   tierColor = Colors.amber[500]!; break;
-      case TokenTier.platinum: tierColor = Colors.cyan[300]!; break;
-      case TokenTier.monumente: tierColor = Colors.deepPurpleAccent; break;
-      case null: tierColor = Colors.tealAccent; break; // Weltwunder
+      case TokenTier.bronze:
+        tierColor = Colors.orange[700]!;
+        break;
+      case TokenTier.silver:
+        tierColor = Colors.grey[400]!;
+        break;
+      case TokenTier.gold:
+        tierColor = Colors.amber[500]!;
+        break;
+      case TokenTier.platinum:
+        tierColor = Colors.cyan[300]!;
+        break;
+      case TokenTier.monumente:
+        tierColor = Colors.deepPurpleAccent;
+        break;
+      case TokenTier.weltwunder:
+        tierColor = const Color(0xFF00BFA5);
+        break;
+      case null:
+        tierColor = Colors.tealAccent;
+        break; // Weltwunder
     }
 
     String tierEmoji;
     switch (token.tier) {
-      case TokenTier.bronze: tierEmoji = '🥉'; break;
-      case TokenTier.silver: tierEmoji = '🥈'; break;
-      case TokenTier.gold:   tierEmoji = '🥇'; break;
-      case TokenTier.platinum: tierEmoji = '💎'; break;
-      case TokenTier.monumente: tierEmoji = '🏛️'; break;
-      case null: tierEmoji = '🌍'; break; // Weltwunder
+      case TokenTier.bronze:
+        tierEmoji = '🥉';
+        break;
+      case TokenTier.silver:
+        tierEmoji = '🥈';
+        break;
+      case TokenTier.gold:
+        tierEmoji = '🥇';
+        break;
+      case TokenTier.platinum:
+        tierEmoji = '💎';
+        break;
+      case TokenTier.monumente:
+        tierEmoji = '🏛️';
+        break;
+      case TokenTier.weltwunder:
+        tierEmoji = '🌍';
+        break;
+      case null:
+        tierEmoji = '🌍';
+        break; // Weltwunder
     }
+
+    final canUpgrade = !token.isWorldWonder &&
+        token.tier != TokenTier.weltwunder &&
+        token.tier != TokenTier.monumente;
 
     showDialog(
       context: context,
@@ -221,17 +239,45 @@ class _CollectionScreenState extends State<CollectionScreen> {
               // Big token image
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
-                child: Image.asset(
-                  imageUrl,
-                  width: double.infinity,
-                  height: 260,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 260,
-                    color: Colors.grey[800],
-                    child: const Icon(Icons.image_not_supported,
-                        size: 80, color: Colors.white38),
-                  ),
+                child: Stack(
+                  children: [
+                    Image.asset(
+                      imageUrl,
+                      width: double.infinity,
+                      height: 260,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 260,
+                        color: Colors.grey[800],
+                        child: const Icon(Icons.image_not_supported,
+                            size: 80, color: Colors.white38),
+                      ),
+                    ),
+                    if (token.isWorldWonder &&
+                        token.worldWonderBadgeLabel != null)
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.78),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                                color: Colors.tealAccent, width: 1.4),
+                          ),
+                          child: Text(
+                            token.worldWonderBadgeLabel!,
+                            style: const TextStyle(
+                              color: Colors.tealAccent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
@@ -248,15 +294,15 @@ class _CollectionScreenState extends State<CollectionScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
                       color: tierColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: tierColor),
                     ),
                     child: Text(
-                      '$tierEmoji ${token.tier != null ? token.tier!.displayName : 'Weltwunder'}  ·  ${token.points} 🪙',
+                      '$tierEmoji ${token.tier != null ? token.tier!.displayName : 'Weltwunder'}${token.worldWonderBadgeLabel != null ? ' ${token.worldWonderBadgeLabel}' : ''}  ·  ${token.points} 🪙',
                       style: TextStyle(
                           color: tierColor,
                           fontWeight: FontWeight.bold,
@@ -287,24 +333,29 @@ class _CollectionScreenState extends State<CollectionScreen> {
                   ),
                   Expanded(
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.upgrade, size: 16),
-                      label: const Text('Upgraden'),
+                      icon: Icon(
+                          canUpgrade ? Icons.upgrade : Icons.lock_outline,
+                          size: 16),
+                      label: Text(canUpgrade ? 'Upgraden' : 'Exklusiv'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: tierColor,
+                        backgroundColor:
+                            canUpgrade ? tierColor : Colors.grey[700],
                         foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                TokenUpgradeScreen(initialToken: token),
-                          ),
-                        );
-                      },
+                      onPressed: canUpgrade
+                          ? () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      TokenUpgradeScreen(initialToken: token),
+                                ),
+                              );
+                            }
+                          : null,
                     ),
                   ),
                 ],
@@ -349,17 +400,19 @@ class _CollectionScreenState extends State<CollectionScreen> {
                         const SizedBox(height: 16),
                         Text(
                           'Noch keine Tokens gesammelt',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Besuche Orte auf der Karte und starte deine Sammlung.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[500],
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.grey[500],
+                                  ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -375,52 +428,65 @@ class _CollectionScreenState extends State<CollectionScreen> {
           onRefresh: onRefresh,
           color: Colors.amber,
           child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                child: _CollectionOverview(
-                  totalTokens: visibleTokens.length,
-                  totalCoins: collectionService.totalPoints,
-                  completedSets: collectionService.getCompletedSets().length,
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: _CollectionOverview(
+                    totalTokens: visibleTokens.length,
+                    totalCoins: collectionService.totalPoints,
+                    completedSets: collectionService.getCompletedSets().length,
+                  ),
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: categories.map((category) {
-                    final count = category.key == 'set_tokens'
-                        ? collectionService.sets.length
-                        : visibleTokens.where(category.predicate).length;
-                    return _CategoryTile(
-                      title: category.label,
-                      count: count,
-                      icon: category.icon,
-                      color: category.color,
-                      onTap: category.key == 'set_tokens'
-                          ? () => _openSetWappenPage(context, collectionService)
-                          : () => _openCategory(context, category, visibleTokens),
-                    );
-                  }).toList(),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: categories.map((category) {
+                      final count =
+                          visibleTokens.where(category.predicate).length;
+                      return _CategoryTile(
+                        title: category.label,
+                        count: count,
+                        icon: category.icon,
+                        color: category.color,
+                        onTap: () =>
+                            _openCategory(context, category, visibleTokens),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
-            ),
-            // ── Completed set reward badges (first row) ──────────────────
-            () {
-              final completedWithReward = collectionService.sets
-                  .where((s) => s.completed && s.rewardImageUrl != null)
-                  .toList();
-              if (completedWithReward.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
-              return SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              // ── Regular tokens ────────────────────────────────────────────
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
-                    (_, i) => _SetRewardCard(set: completedWithReward[i]),
-                    childCount: completedWithReward.length,
+                    (_, index) {
+                      final token = visibleTokens[index];
+                      return TokenCard(
+                        token: token,
+                        onTap: () => _showTokenDetail(context, token),
+                        onLongPress: token.isWorldWonder
+                            ? null
+                            : () {
+                                if (token.tier == TokenTier.monumente) {
+                                  return;
+                                }
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        TokenUpgradeScreen(initialToken: token),
+                                  ),
+                                );
+                              },
+                      );
+                    },
+                    childCount: visibleTokens.length,
                   ),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
@@ -429,46 +495,13 @@ class _CollectionScreenState extends State<CollectionScreen> {
                     mainAxisSpacing: 12,
                   ),
                 ),
-              );
-            }(),
-            // ── Regular tokens ────────────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverGrid(
-                delegate: SliverChildBuilderDelegate(
-                  (_, index) {
-                    final token = visibleTokens[index];
-                    return TokenCard(
-                      token: token,
-                      onTap: () => _showTokenDetail(context, token),
-                      onLongPress: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TokenUpgradeScreen(initialToken: token),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                  childCount: visibleTokens.length,
-                ),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.75,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
               ),
-            ),
-          ],
+            ],
           ),
         );
       },
     );
   }
-
 }
 
 class _TokenCategory {
@@ -598,10 +631,16 @@ class _CollectionCategoryPage extends StatelessWidget {
                     token: token,
                     onTap: () => onTokenTap(token),
                     onLongPress: () {
+                      if (token.isWorldWonder ||
+                          token.tier == TokenTier.weltwunder ||
+                          token.tier == TokenTier.monumente) {
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => TokenUpgradeScreen(initialToken: token),
+                          builder: (_) =>
+                              TokenUpgradeScreen(initialToken: token),
                         ),
                       );
                     },
@@ -755,7 +794,8 @@ class _SetRewardCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
@@ -951,10 +991,26 @@ class _WappenCard extends StatelessWidget {
                           ? const ColorFilter.mode(
                               Colors.transparent, BlendMode.multiply)
                           : const ColorFilter.matrix([
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0,      0,      0,      0.5, 0,
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0.5,
+                              0,
                             ]),
                       child: Image.asset(
                         rewardUrl,

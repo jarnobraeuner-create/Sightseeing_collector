@@ -59,6 +59,108 @@ service cloud.firestore {
         && request.resource.data.coins >= 0;
     }
 
+    function isValidPublicStats() {
+      return signedIn()
+        && request.resource.data.keys().hasOnly([
+          'uid', 'username', 'totalPoints', 'totalTokens', 'visitedLandmarks',
+          'leaderboardScore', 'worldWonderTokens', 'level', 'updatedAt'
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.username is string
+        && request.resource.data.totalPoints is number
+        && request.resource.data.totalTokens is number
+        && request.resource.data.visitedLandmarks is number
+        && request.resource.data.leaderboardScore is number
+        && request.resource.data.worldWonderTokens is number
+        && request.resource.data.level is number;
+    }
+
+    function isValidFriendRequestCreate() {
+      return signedIn()
+        && request.resource.data.keys().hasOnly([
+          'fromUid', 'fromUsername', 'toUid', 'toUsername', 'status', 'createdAt'
+        ])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.fromUsername is string
+        && request.resource.data.toUid is string
+        && request.resource.data.toUsername is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    function isValidFriendRequestUpdate() {
+      return signedIn()
+        && resource.data.keys().hasAll(['fromUid', 'toUid', 'status'])
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toUid == resource.data.toUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['pending', 'accepted', 'rejected']
+        && (
+          (request.auth.uid == resource.data.toUid && request.resource.data.status in ['accepted', 'rejected'])
+          || (request.auth.uid == resource.data.fromUid && request.resource.data.status == 'pending')
+        );
+    }
+
+    function isFriendRequestParticipant() {
+      return signedIn()
+        && (
+          request.auth.uid == resource.data.fromUid
+          || request.auth.uid == resource.data.toUid
+        );
+    }
+
+    function isValidLeaderboardStatsWrite(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'uid', 'username', 'photoUrl', 'totalPoints', 'totalTokens',
+          'visitedLandmarks', 'leaderboardScore', 'worldWonderTokens',
+          'level', 'updatedAt'
+        ])
+        && request.resource.data.uid == userId
+        && request.resource.data.username is string
+        && request.resource.data.totalPoints is number
+        && request.resource.data.totalTokens is number
+        && request.resource.data.visitedLandmarks is number
+        && request.resource.data.leaderboardScore is number
+        && request.resource.data.worldWonderTokens is number
+        && request.resource.data.level is number;
+    }
+
+    function isValidFriendContactWrite(userId, friendId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'createdAt'])
+        && request.resource.data.uid == friendId
+        && request.resource.data.username is string;
+    }
+
+    function isValidUserEventTokenWrite(userId, tokenId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.id == tokenId
+        && request.resource.data.keys().hasOnly([
+          'id', 'uid', 'username', 'eventId', 'eventName', 'eventDescription',
+          'startDate', 'endDate', 'landmarkId', 'landmarkName', 'tokenImageUrl',
+          'markerImageUrl', 'eventStatus', 'latitude', 'longitude', 'points', 'rewardCoins', 'rewardLootboxes',
+          'isActive', 'updatedAt', 'collectedAt'
+        ]);
+    }
+
+    function isValidWorldWonderMirrorCreate() {
+      return signedIn()
+        && request.resource.data.keys().hasOnly([
+          'tokenId', 'wonderId', 'serial', 'landmarkId', 'landmarkName', 'title',
+          'description', 'imageUrl', 'latitude', 'longitude', 'points',
+          'ownerUid', 'ownerUsername', 'claimedAt', 'status'
+        ])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.serial is number
+        && request.resource.data.serial >= 1
+        && request.resource.data.status == 'owned';
+    }
+
     function isValidAuctionCreate() {
       return request.resource.data.keys().hasOnly([
         'sellerId', 'sellerName', 'title', 'description', 'startPrice', 'currentBid',
@@ -159,7 +261,7 @@ service cloud.firestore {
       // Username-Eindeutigkeit prüfen (nur für authentifizierte User)
       allow list: if signedIn();
 
-      allow get: if isOwnUser(userId);
+      allow get: if signedIn();
       allow create: if isValidUserCreate(userId);
       // Profil-Update (username) ODER nur Coins-Update (CollectionService)
       allow update: if isValidUserUpdate(userId) || isOwnCoinsUpdate(userId);
@@ -167,6 +269,114 @@ service cloud.firestore {
 
       match /tokens/{tokenId} {
         allow read, write: if isOwnUser(userId);
+      }
+
+      match /weltwunder/{tokenId} {
+        allow read, write: if isOwnUser(userId);
+      }
+
+      match /stats/{statId} {
+        allow read: if signedIn();
+        allow write: if isOwnUser(userId);
+      }
+
+      match /event_tokens/{tokenId} {
+        allow read: if isOwnUser(userId);
+        allow create: if isValidUserEventTokenWrite(userId, tokenId);
+        allow update, delete: if false;
+      }
+    }
+
+    // Public leaderboard stats
+    match /public_stats/{userId} {
+      allow read: if signedIn();
+      allow create, update: if isValidPublicStats();
+      allow delete: if isOwnUser(userId);
+    }
+
+    // Friend requests and friendships
+    match /friend_requests/{requestId} {
+      allow read: if isFriendRequestParticipant();
+      allow create: if isValidFriendRequestCreate();
+      allow update: if isValidFriendRequestUpdate();
+      allow delete: if isFriendRequestParticipant();
+    }
+
+    // Confirmed friendships
+    match /friends/{userId}/contacts/{friendId} {
+      allow read: if isOwnUser(userId);
+      allow create, update: if isValidFriendContactWrite(userId, friendId);
+      allow delete: if isOwnUser(userId);
+    }
+
+    // Dedicated leaderboard stats (realtime source)
+    match /leaderboard_stats/{userId} {
+      allow read: if signedIn();
+      allow create, update: if isValidLeaderboardStatsWrite(userId);
+      allow delete: if isOwnUser(userId);
+    }
+
+    // Global event token definitions are read-only for clients.
+    match /event_tokens/{tokenId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    // Night Mode is prepared but currently read-only / non-playable.
+    match /night_tokens/{tokenId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /night_locations/{locationId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /night_rewards/{rewardId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /night_progress/{userId} {
+      allow read: if isOwnUser(userId);
+      allow create, update, delete: if isOwnUser(userId);
+    }
+
+    match /night_stats/{userId} {
+      allow read: if isOwnUser(userId);
+      allow create, update, delete: if isOwnUser(userId);
+    }
+
+    // Server-side managed event rotation config
+    match /event_rotation/{docId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Global world wonder catalog and owned instances
+    match /weltwunder/{wonderId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn();
+      allow delete: if false;
+
+      match /tokens/{serialId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn();
+        allow delete: if signedIn();
+      }
+    }
+
+    // Canonical world wonders collection (alias for new structure)
+    match /world_wonders/{wonderId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn();
+      allow delete: if false;
+
+      match /tokens/{serialId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn();
+        allow delete: if signedIn();
       }
     }
 

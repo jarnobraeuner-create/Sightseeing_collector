@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import '../services/notification_service.dart';
 import '../widgets/app_lottie.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
@@ -15,15 +14,6 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  @override
-  void initState() {
-    super.initState();
-    // Nach dem ersten Frame Permission anfragen (Activity ist dann bereit)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      NotificationService.instance.requestPermissions();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthService>(

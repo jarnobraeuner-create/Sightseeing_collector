@@ -68,6 +68,16 @@ class Token {
   final List<String> setIds;
   final TokenTier? tier; // nullable for legacy data
   final Weltwunder? weltwunder; // falls Weltwunder
+  final String? worldWonderId;
+  final int? worldWonderSerial;
+  final String? worldWonderOwnerUid;
+  final String? worldWonderOwnerUsername;
+
+    bool get isWorldWonder =>
+      category == 'weltwunder' || worldWonderId != null || weltwunder != null;
+
+    String? get worldWonderBadgeLabel =>
+      worldWonderSerial != null ? '#$worldWonderSerial' : null;
 
   Token({
     required this.id,
@@ -79,6 +89,10 @@ class Token {
     this.setIds = const [],
     this.tier,
     this.weltwunder,
+    this.worldWonderId,
+    this.worldWonderSerial,
+    this.worldWonderOwnerUid,
+    this.worldWonderOwnerUsername,
   });
 
   Map<String, dynamic> toJson() => {
@@ -89,6 +103,10 @@ class Token {
         'points': points,
         'setIds': setIds,
         'tier': tier?.name,
+        'worldWonderId': worldWonderId,
+        'worldWonderSerial': worldWonderSerial,
+        'worldWonderOwnerUid': worldWonderOwnerUid,
+        'worldWonderOwnerUsername': worldWonderOwnerUsername,
         // weltwunder: serialization nach Bedarf ergänzen
       };
 
@@ -108,6 +126,10 @@ class Token {
             : (json['category'] == 'weltwunder'
                 ? TokenTier.weltwunder
                 : null),
+        worldWonderId: json['worldWonderId'] as String?,
+        worldWonderSerial: (json['worldWonderSerial'] as num?)?.toInt(),
+        worldWonderOwnerUid: json['worldWonderOwnerUid'] as String?,
+        worldWonderOwnerUsername: json['worldWonderOwnerUsername'] as String?,
         // weltwunder: deserialization nach Bedarf ergänzen
       );
 }

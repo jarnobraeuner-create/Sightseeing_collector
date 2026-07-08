@@ -25,48 +25,74 @@ class TokenCard extends StatelessWidget {
           onTap: onTap,
           onLongPress: onLongPress,
           child: Card(
-          elevation: 2,
-          color: Colors.black,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(4),
+            elevation: 2,
+            color: Colors.black,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(4),
+                      ),
                     ),
-                  ),
-                  child: landmark != null
-                      ? ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(4),
-                          ),
-                          child: Image.asset(
-                            token.tier != null
-                                ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
-                                : (token.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg'),
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) => Center(
-                              child: Icon(
-                                Icons.emoji_events,
-                                size: 48,
-                                color: Colors.amber[700],
-                              ),
+                    child: landmark != null
+                        ? ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(4),
+                            ),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.asset(
+                                  token.tier != null
+                                      ? landmarkService.getImageUrlForTier(token.landmarkId, token.tier!)
+                                      : (token.weltwunder?.imageUrl ?? 'assets/images/default_token.jpeg'),
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) => Center(
+                                    child: Icon(
+                                      Icons.emoji_events,
+                                      size: 48,
+                                      color: Colors.amber[700],
+                                    ),
+                                  ),
+                                ),
+                                if (token.isWorldWonder && token.worldWonderBadgeLabel != null)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(alpha: 0.78),
+                                        borderRadius: BorderRadius.circular(999),
+                                        border: Border.all(color: Colors.tealAccent, width: 1.2),
+                                      ),
+                                      child: Text(
+                                        token.worldWonderBadgeLabel!,
+                                        style: const TextStyle(
+                                          color: Colors.tealAccent,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          )
+                        : Center(
+                            child: Icon(
+                              Icons.emoji_events,
+                              size: 48,
+                              color: Colors.amber[700],
                             ),
                           ),
-                        )
-                      : Center(
-                          child: Icon(
-                            Icons.emoji_events,
-                            size: 48,
-                            color: Colors.amber[700],
-                          ),
-                        ),
+                  ),
                 ),
-              ),
               Container(
                 width: double.infinity,
                 color: Colors.black,
@@ -140,6 +166,8 @@ class TokenCard extends StatelessWidget {
         return Colors.cyan[400]!;
       case TokenTier.monumente:
         return Colors.deepPurpleAccent;
+      case TokenTier.weltwunder:
+        return const Color(0xFF00BFA5);
     }
   }
 }

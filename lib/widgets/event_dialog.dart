@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/event_service.dart';
@@ -17,9 +16,12 @@ class EventDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       child: Consumer<EventService>(
         builder: (context, eventService, _) {
-          final events = EventService.allEvents
-              .where((e) => !e.isExpired)
-              .toList();
+          final active = eventService.activeEvent;
+          final next = eventService.nextEvent;
+          final events = <GameEvent>[
+            if (active != null) active,
+            if (next != null && next.id != active?.id) next,
+          ];
           return Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
@@ -172,11 +174,17 @@ class _EventCard extends StatelessWidget {
     final count = eventService.collectedCount(event.id);
     final required = event.requiredCount;
     final claimed = eventService.rewardClaimed(event.id);
-    final expired = event.isExpired;
+    final status = eventService.statusOf(event.id);
+    final isActive = status == EventStatus.active;
+    final isUpcoming = status == EventStatus.upcoming;
+    final expired = status == EventStatus.finished;
     final completed = count >= required;
     final progress = (count / required).clamp(0.0, 1.0);
 
-    final remaining = event.endDate.difference(DateTime.now());
+    final eventEnd = isActive
+      ? (eventService.activeEventEnd ?? event.endDate)
+      : event.endDate;
+    final remaining = eventEnd.difference(DateTime.now());
     final daysLeft = remaining.inDays;
     final hoursLeft = remaining.inHours % 24;
 
@@ -190,6 +198,11 @@ class _EventCard extends StatelessWidget {
       cardTop = const Color(0xFF0A2010);
       statusLabel = '✅ Abgeholt';
       statusColor = Colors.green;
+    } else if (isUpcoming) {
+      accentColor = Colors.lightBlueAccent;
+      cardTop = const Color(0xFF081B30);
+      statusLabel = 'Demnächst';
+      statusColor = Colors.lightBlueAccent;
     } else if (expired) {
       accentColor = Colors.grey;
       cardTop = const Color(0xFF151515);
@@ -250,7 +263,7 @@ class _EventCard extends StatelessWidget {
                     ),
                   ),
                   child: const Center(
-                    child: Text('⛪', style: TextStyle(fontSize: 22)),
+                    child: Text('🎯', style: TextStyle(fontSize: 22)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -387,11 +400,13 @@ class _EventCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      expired
-                          ? 'Abgelaufen'
-                          : (daysLeft > 0
-                              ? 'Noch $daysLeft Tag${daysLeft == 1 ? '' : 'e'} $hoursLeft h'
-                              : 'Endet heute in ${remaining.inHours} h'),
+                      isUpcoming
+                          ? 'Startet bald'
+                          : (expired
+                              ? 'Abgelaufen'
+                              : (daysLeft > 0
+                                  ? 'Noch $daysLeft Tag${daysLeft == 1 ? '' : 'e'} $hoursLeft h'
+                                  : 'Endet heute in ${remaining.inHours} h')),
                       style: TextStyle(color: Colors.grey[500], fontSize: 10),
                     ),
                     const Spacer(),
@@ -428,7 +443,7 @@ class _EventCard extends StatelessWidget {
                   ],
                 ),
 
-                if (completed && !claimed && !expired) ...[
+                if (isActive && completed && !claimed && !expired) ...[
                   const SizedBox(height: 12),
                   _ClaimButton(onClaim: () => _claimReward(context)),
                 ],

@@ -56,6 +56,7 @@ class SightseeingCollectorApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LootboxService()),
         ChangeNotifierProvider(create: (_) => CooldownService()),
         ChangeNotifierProvider(create: (_) => DailyRewardService()),
+        ChangeNotifierProvider(create: (_) => NightTokenService()),
         ChangeNotifierProxyProvider<AuthService, DevModeService>(
           create: (_) => DevModeService(),
           update: (_, auth, service) {
@@ -74,14 +75,40 @@ class SightseeingCollectorApp extends StatelessWidget {
             return event;
           },
         ),
+        ChangeNotifierProxyProvider3<AuthService, EventService, LandmarkService,
+            EventTokenService>(
+          create: (_) => EventTokenService(),
+          update: (_, auth, events, landmarks, service) {
+            service!
+              ..setUser(
+                auth.isLoggedIn ? auth.firebaseUser?.uid : null,
+                auth.appUser?.username,
+              )
+              ..configureFromLocalEvents(
+                events: EventService.allEvents,
+                landmarks: landmarks.landmarks,
+                activeEventId: events.activeEventId,
+                nextEventId: events.nextEventId,
+                activeWindowStart: events.activeEventStart,
+                activeWindowEnd: events.activeEventEnd,
+              );
+            return service;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => CosmeticService()),
-        ChangeNotifierProxyProvider<AuthService, FriendService>(
+        ChangeNotifierProxyProvider2<AuthService, CollectionService, FriendService>(
           create: (_) => FriendService(),
-          update: (_, auth, service) {
+          update: (_, auth, collection, service) {
             service!.setUser(
               auth.isLoggedIn ? auth.firebaseUser?.uid : null,
               auth.appUser?.username,
             );
+            if (auth.isLoggedIn && collection.isLoaded) {
+              final stats = collection.getStatistics();
+              service.syncLiveStatsFromCollection(
+                stats.map((key, value) => MapEntry(key, value.toInt())),
+              );
+            }
             return service;
           },
         ),

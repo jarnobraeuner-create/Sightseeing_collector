@@ -745,7 +745,7 @@ class _TradingScreenState extends State<TradingScreen> with SingleTickerProvider
     return Consumer3<CollectionService, AuctionService, LandmarkService>(
       builder: (context, collectionService, auctionService, landmarkService, child) {
         final landmarksById = {
-          for (final landmark in landmarkService.landmarks) landmark.id: landmark,
+          for (final landmark in landmarkService.playableLandmarks) landmark.id: landmark,
         };
         final myTokens = collectionService.tokens
             .where((token) => landmarksById.containsKey(token.landmarkId))

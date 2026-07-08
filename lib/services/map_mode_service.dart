@@ -8,7 +8,7 @@ class MapModeService extends ChangeNotifier {
   static const String _modeDayValue = 'day';
   static const String _modeNightValue = 'night';
 
-  String _currentMode = _modeNightValue;
+  String _currentMode = _modeDayValue;
   bool _isLoaded = false;
 
   String get currentMode => _currentMode;
@@ -32,7 +32,7 @@ class MapModeService extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_prefKey) ?? _modeDayValue;
-      _currentMode = saved;
+      _currentMode = availableModes.contains(saved) ? saved : _modeDayValue;
       _isLoaded = true;
       notifyListeners();
     } catch (e) {

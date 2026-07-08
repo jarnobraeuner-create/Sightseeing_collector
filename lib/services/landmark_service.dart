@@ -18,6 +18,13 @@ class LandmarkService extends ChangeNotifier {
     _ensureLoaded();
     return _landmarks;
   }
+
+  /// Landmarks, die bereits im normalen Gameplay verwendet werden dürfen.
+  /// Night-Mode-Inhalte bleiben damit vollständig isoliert.
+  List<Landmark> get playableLandmarks {
+    _ensureLoaded();
+    return _landmarks.where((landmark) => landmark.mode != 'night').toList(growable: false);
+  }
   
   List<Landmark> get filteredLandmarks {
     _ensureLoaded();
